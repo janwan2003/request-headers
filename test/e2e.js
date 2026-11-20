@@ -27,6 +27,16 @@ function serve() {
         res.end('<!doctype html><script>window.v=[];document.addEventListener("securitypolicyviolation",(e)=>v.push([e.disposition,e.originalPolicy]))</script><img src="/img-probe">');
         return;
       }
+      if (req.url.startsWith('/ck-')) {
+        // Cookie explainer guard: /ck-set?c=<Set-Cookie line> sets it; /ck-echo returns the Cookie header.
+        // Both allow credentialed CORS from the requesting origin.
+        const u = new URL(req.url, 'http://x');
+        const h = { 'content-type': 'application/json', 'access-control-allow-origin': req.headers.origin || '*', 'access-control-allow-credentials': 'true', 'cache-control': 'no-store' };
+        if (u.pathname === '/ck-set') h['set-cookie'] = u.searchParams.get('c');
+        res.writeHead(200, h);
+        res.end(JSON.stringify({ ok: true, cookie: req.headers.cookie || '' }));
+        return;
+      }
       if (req.url.startsWith('/twoacao')) {
         // Two Access-Control-Allow-Origin lines, neither the page's (cors-error-explainer.html).
         res.setHeader('access-control-allow-origin', ['http://example.com', 'http://other.example']);
@@ -768,6 +778,58 @@ async function fetchVia(page, url) {
     ok('CORS explainer: real Chrome errors parsed, its profile fixes a credentialed PUT (' + seen.join(' > ') + ') and a doubled ACAO');
   }
 
+  // Tool guard (cookie-blocked-explainer.html): Chrome refuses a cross-site SameSite=None cookie
+  // without Secure. Feed the DevTools text for the reason Chrome reports (CDP) and the Set-Cookie line
+  // to the explainer with the page and API URLs, apply the profile it builds, and the cookie must then
+  // be stored and sent on a credentialed request from the page. Also shows that Secure is accepted
+  // over http://localhost (the page says so).
+  {
+    require('../extension/lib/model.js');
+    const CK = require('../site/js/cookie-explain.js');
+    const ui2 = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/cookie-messages.json'), 'utf8')).filter((x) => x.browser === 'chrome' && x.kind === 'devtools-network');
+    const saved = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state);
+    await ui.evaluate(async () => chrome.storage.local.set({ state: HeaderDial.normalizeState({ profiles: [] }) }));
+    await settle();
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Network.enable');
+    const blocked = [];
+    cdp.on('Network.responseReceivedExtraInfo', (e) => { for (const b of e.blockedCookies || []) blocked.push(...b.blockedReasons); });
+    const line = 'cksid=abc123; Path=/; HttpOnly; SameSite=None';
+    const run = async (tag) => {
+      await page.goto(A + '/');
+      return page.evaluate(async ([b, l, t]) => {
+        await fetch(b + '/ck-set?c=' + encodeURIComponent(l) + '&' + t, { credentials: 'include' });
+        return (await (await fetch(b + '/ck-echo?' + t, { credentials: 'include' })).json()).cookie;
+      }, [B, line, tag]);
+    };
+    const before = await run('before');
+    assert.ok(!/cksid=/.test(before), 'control: Chrome refuses SameSite=None without Secure (' + before + ')');
+    await until(async () => blocked.length, 'blocked cookie reason over CDP');
+    assert.deepStrictEqual([...new Set(blocked)], ['SameSiteNoneInsecure']);
+    const text = (ui2.find((x) => (x.reasons || []).includes(blocked[0])) || {}).text;
+    assert.ok(text, 'fixture has the DevTools text for ' + blocked[0]);
+    const r = CK.explain(text + '\nSet-Cookie: ' + line, { page: A + '/', url: B + '/ck-set' });
+    assert.strictEqual(r.causes[0].id, 'samesite-none-insecure');
+    assert.strictEqual(r.causes[0].name, 'cksid');
+    assert.strictEqual(r.crossSite, true, '127.0.0.1 and localhost are different sites');
+    assert.strictEqual(r.ctx.secure, true);
+    const f = CK.fixSetCookie(r.setCookies[0].sc, { crossSite: r.crossSite, ctx: r.ctx });
+    assert.strictEqual(f.line, 'cksid=abc123; Path=/; Secure; HttpOnly; SameSite=None');
+    const prof = CK.buildProfile({ name: 'cksid', value: 'abc123', attrs: f.line.replace(/^cksid=abc123; /, ''), host: r.ctx.host });
+    await ui.evaluate(async (pr) => chrome.storage.local.set({ state: HeaderDial.normalizeState({ profiles: [pr] }) }), prof);
+    await settle();
+    let after = '';
+    for (let i = 0; i < 5 && !/cksid=abc123/.test(after); i++) { if (i) await sleep(300); after = await run('after' + i); }
+    assert.match(after, /cksid=abc123/, 'with the explainer\'s profile the cookie is stored and sent cross-site');
+    const jar = (await cdp.send('Network.getCookies', { urls: [B + '/'] })).cookies.find((c) => c.name === 'cksid');
+    assert.ok(jar && jar.secure && jar.sameSite === 'None', 'stored as Secure; SameSite=None on http://localhost');
+    await cdp.detach();
+    await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
+    await settle();
+    await page.context().clearCookies();
+    ok('cookie explainer: Chrome\'s real SameSiteNoneInsecure refusal explained, its profile makes the cookie work cross-site (Secure accepted on http://localhost)');
+  }
+
   if (SHOTS) {
     await ui.setViewportSize({ width: 1280, height: 800 });
     await ui.reload();
@@ -1036,6 +1098,65 @@ async function fetchVia(page, url) {
     assert.match(await page.locator('.cause').first().innerText(), /Need the reason line/);
     assert.deepStrictEqual(errors, []);
     ok('CORS error explainer: examples explain, fix fills from the message, origin required with cookies, OPTIONS 404 has no fix, no network');
+    await browser.close();
+  }
+
+  // ---- 10. The cookie explainer page (no extension): examples explain, a Firefox message gives
+  // the name, the corrected line and code follow the toggles, and the share link holds a Store row
+  // (plus a Send row when ticked) for the cookie's host. No network requests.
+  {
+    const browser = await chromium.launch({ executablePath: fs.existsSync(CHROME) ? CHROME : undefined, headless: true });
+    const page = await (await browser.newContext()).newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    page.on('request', (r) => { if (!/^file:|\/favicon\.png$/.test(r.url())) errors.push('network request: ' + r.url()); });
+    await page.goto('file://' + path.join(root, 'dist/site/guides/cookie-blocked-explainer.html'));
+    assert.ok(await page.locator('#result').isHidden());
+    const causes = () => page.locator('.cause').evaluateAll((els) => els.map((e) => e.getAttribute('data-cause')));
+    await page.click('[data-example="chrome-none"]');
+    assert.deepStrictEqual(await causes(), ['samesite-none-insecure', 'credentials', 'httponly-script']);
+    assert.match(await page.locator('.cause').first().innerText(), /Blocked[\s\S]*session[\s\S]*refused to store/);
+    assert.match(await page.locator('#facts').innerText(), /different sites/);
+    assert.strictEqual(await page.locator('#fixed').innerText(), 'Set-Cookie: session=7f3a9c; Path=/; Secure; HttpOnly; SameSite=None');
+    await page.check('#part');
+    await page.selectOption('#fmt', 'express');
+    assert.match(await page.locator('#output').innerText(), /sameSite: 'none',\n  partitioned: true/);
+    await page.check('#send');
+    await page.click('#copy');
+    const p = await page.evaluate((l) => HeaderDial.parseImport(l).profiles[0], await page.locator('#link').inputValue());
+    assert.deepStrictEqual(p.cookies.map((c) => [c.target, c.name, c.value, c.attrs]), [
+      ['response', 'session', '7f3a9c', 'Path=/; Secure; HttpOnly; SameSite=None; Partitioned'], ['request', 'session', '7f3a9c', '']]);
+    assert.deepStrictEqual(p.filters.map((f) => [f.type, f.value]), [['domain', 'api.example.com']]);
+    await page.click('[data-example="firefox-cross"]');
+    assert.deepStrictEqual(await causes(), ['samesite-cross-site']);
+    assert.strictEqual(await page.locator('#cname').inputValue(), 'token');
+    assert.ok(await page.locator('#noline').isVisible(), 'asks for the Set-Cookie line');
+    await page.click('[data-example="check"]');
+    assert.strictEqual((await causes())[0], 'invalid-prefix');
+    assert.strictEqual(await page.locator('#fixed').innerText(), 'Set-Cookie: __Host-session=abc; Path=/; Secure; HttpOnly; SameSite=Lax');
+    await page.fill('#paste', 'TypeError: Failed to fetch');
+    assert.ok(await page.locator('#result').isHidden());
+    assert.deepStrictEqual(errors, []);
+    ok('cookie explainer page: examples explain, Firefox name read, fixed line + Express + share link (Store and Send rows), no network');
+    await browser.close();
+  }
+
+  // ---- 11. Every site page fits a 390px-wide phone: no sideways scrolling of the whole page
+  // (wide tables scroll inside themselves). 13 guides overflowed before the style.css fix.
+  {
+    const browser = await chromium.launch({ executablePath: fs.existsSync(CHROME) ? CHROME : undefined, headless: true });
+    const page = await (await browser.newContext({ viewport: { width: 390, height: 800 } })).newPage();
+    const site = path.join(root, 'dist/site');
+    const pages = [];
+    (function walk(d) { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const full = path.join(d, f.name); if (f.isDirectory()) walk(full); else if (f.name.endsWith('.html')) pages.push(full); } })(site);
+    const wide = [];
+    for (const f of pages) {
+      await page.goto('file://' + f);
+      const w = await page.evaluate(() => document.documentElement.scrollWidth);
+      if (w > 390) wide.push(path.relative(site, f) + ' ' + w + 'px');
+    }
+    assert.deepStrictEqual(wide, [], 'pages wider than a 390px screen');
+    ok('all ' + pages.length + ' site pages fit a 390px-wide screen');
     await browser.close();
   }
 

@@ -1,0 +1,287 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why was my cookie blocked? Paste the Set-Cookie warning, get the fix – HeaderDial</title><meta name="description" content="Paste the cookie warning from Chrome, Edge or Firefox DevTools, or the Set-Cookie header. See why the cookie was not set or not sent (SameSite, Secure, Domain, Path, third-party), the corrected Set-Cookie line, and the code for Express, PHP, Django or nginx. Runs locally.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/cookie-blocked-explainer.html">
+<meta property="og:title" content="Why was my cookie blocked? Paste the warning, get the fix"><meta property="og:description" content="For 'This attempt to set a cookie via a Set-Cookie header was blocked' and 'Cookie rejected because it has the SameSite=None attribute but is missing the secure attribute'. Names the cause, writes the fixed Set-Cookie line and server code, and checks a Set-Cookie line against your page and API URLs. Nothing is uploaded."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<style>
+#tool { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--soft); margin: 16px 0; }
+#tool .big { display: block; font-weight: 600; margin: 4px 0 6px; }
+#tool h3 { margin: 22px 0 8px; }
+#tool .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 4px; }
+#tool button { font: inherit; font-size: 15px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+#tool button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#tool button:disabled { opacity: .5; cursor: default; }
+#paste, #tool input[type=text], #output, #link, #fixed { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+#paste { width: 100%; min-height: 96px; resize: vertical; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
+#tool input[type=text] { width: 100%; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.grid { display: grid; grid-template-columns: max-content 1fr; gap: 8px 12px; align-items: center; margin: 10px 0; }
+.grid label.chk { grid-column: 1 / -1; }
+#facts { margin: 10px 0; padding-left: 20px; }
+.cause { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 10px 12px; margin: 10px 0; }
+.cause h4 { margin: 0 0 6px; font-size: 16px; }
+.cause p { margin: 6px 0; }
+.cause .src { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.badge { display: inline-block; margin-right: 6px; padding: 0 8px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.b-no { background: #fee2e2; color: #991b1b; } .b-warn { background: #fef3c7; color: #92400e; } .b-info { background: var(--code); color: var(--muted); }
+@media (prefers-color-scheme: dark) { .b-no { background: #7f1d1d; color: #fecaca; } .b-warn { background: #78350f; color: #fde68a; } }
+#fmt { font: inherit; font-size: 15px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+#output, #fixed { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; border: 1px solid var(--line); background: var(--bg); min-height: 2em; }
+#link { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font-size: 12px; }
+#changes li { margin: 3px 0; }
+@media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Find out why a cookie was blocked and fix it","description":"Paste the cookie warning from DevTools or the Set-Cookie header to see why the browser did not store or send the cookie, the corrected Set-Cookie line, and server code.","tool":[{"@type":"HowToTool","name":"This page (runs locally in your browser)"},{"@type":"HowToTool","name":"HeaderDial browser extension (optional, to test the fix)"}],"step":[{"@type":"HowToStep","name":"Copy the warning","text":"Chrome or Edge: DevTools, Network, click the request, Cookies tab, hover the highlighted cookie and copy the tooltip, or copy the issue title from the Issues panel. Firefox: copy the cookie line from the Console. Also copy the Set-Cookie line from the response headers."},{"@type":"HowToStep","name":"Paste it with the two URLs","text":"Paste the text, then enter the page URL from the address bar and the URL of the request that sets or should carry the cookie. The page says whether the two are the same site."},{"@type":"HowToStep","name":"Read the cause and the fixed line","text":"Each cause says whether the cookie was refused when set or only not sent, and what to change. The fixed Set-Cookie line is shown as a header or as Express, PHP, Django or nginx code."},{"@type":"HowToStep","name":"Test before deploying","text":"Copy the share link or download the JSON and import it into HeaderDial. It stores the fixed cookie on that host's responses in your browser only."}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Why is my cookie not being set from a fetch to my API?","acceptedAnswer":{"@type":"Answer","text":"Three usual reasons. A request to another origin ignores Set-Cookie unless the code asks for credentials (fetch credentials: 'include', axios withCredentials: true), and the browser logs no warning for that. If the page and the API are different sites, the cookie needs SameSite=None and Secure, so the API must be on https. And the API must answer with Access-Control-Allow-Credentials: true and the exact origin in Access-Control-Allow-Origin."}},{"@type":"Question","name":"What is the difference between same-site and same-origin?","acceptedAnswer":{"@type":"Answer","text":"An origin is scheme, host and port. A site is the scheme plus the registrable domain: app.example.com and api.example.com are different origins but the same site, so SameSite cookies work between them. localhost:3000 and localhost:8080 are the same site too. localhost and 127.0.0.1 are different sites, and so are two apps on a shared hosting domain such as a.vercel.app and b.vercel.app, because vercel.app is a public suffix."}},{"@type":"Question","name":"Why does my cookie work in Postman but not in the browser?","acceptedAnswer":{"@type":"Answer","text":"Postman and curl do not apply SameSite, Secure, third-party cookie blocking or CORS. The browser does, and refuses a cookie that breaks one of those rules, for example SameSite=None without Secure, or a SameSite=Lax cookie set by a fetch to another site."}},{"@type":"Question","name":"Why can't I see my cookie in document.cookie?","acceptedAnswer":{"@type":"Answer","text":"Either it is HttpOnly, which hides it from JavaScript on purpose while the browser still sends it, or it belongs to another host: a cookie set by api.example.com without a Domain attribute is not visible to a page on app.example.com. Look in DevTools, Application (Chrome) or Storage (Firefox), under the API's host."}}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Why was my cookie blocked? Paste the warning, get the fix</h1>
+<p>Paste the cookie warning from Chrome or Edge DevTools (<code>This attempt to set a cookie via a Set-Cookie header was blocked because…</code>) or from the Firefox console (<code>Cookie “sid” rejected because…</code>), the <code>Set-Cookie</code> line from the response headers, or both. Add the page's URL and the API's URL and the page also checks the line itself: same site or not, SameSite, Secure, Domain, Path, prefixes and size. You get the cause, the corrected <code>Set-Cookie</code> line, code for Express, PHP, Django or nginx, and a <a href="../">HeaderDial</a> profile to try the fix in your own browser. Everything runs <strong>in this page</strong>: it makes no network requests after it has loaded, and nothing you paste is sent anywhere.</p>
+
+<div id="tool">
+  <label class="big" for="paste">Paste the cookie warning and/or the Set-Cookie line</label>
+  <textarea id="paste" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Set-Cookie: sid=abc123; Path=/; HttpOnly&#10;This attempt to set a cookie via a Set-Cookie header was blocked because …"></textarea>
+  <div class="grid">
+    <label for="page">Page URL</label><input type="text" id="page" spellcheck="false" autocomplete="off" placeholder="http://localhost:5173/ (the address bar)">
+    <label for="url">Cookie URL</label><input type="text" id="url" spellcheck="false" autocomplete="off" placeholder="https://api.example.com/auth/login (the request that sets it, or should send it)">
+  </div>
+  <div class="actions"><span class="note">Examples:</span>
+    <button type="button" data-example="chrome-none">Chrome SameSite=None</button>
+    <button type="button" data-example="chrome-lax">Chrome Lax by default</button>
+    <button type="button" data-example="firefox-cross">Firefox cross-site</button>
+    <button type="button" data-example="check">Check a Set-Cookie line</button>
+    <button type="button" id="clear">Clear</button></div>
+  <p class="note" id="status" role="status">Read locally. Nothing you paste leaves this tab.</p>
+
+  <div id="result" hidden>
+    <ul id="facts"></ul>
+    <div id="causes"></div>
+
+    <div id="fix" hidden>
+      <h3>The corrected cookie</h3>
+      <div class="grid">
+        <label class="chk"><input type="checkbox" id="cross"> The cookie must work across sites (the page and the cookie URL are different sites)</label>
+        <label class="chk"><input type="checkbox" id="part"> Add <code>Partitioned</code> (one cookie per top-level site; still works where third-party cookies are blocked)</label>
+      </div>
+      <pre id="fixed" aria-live="polite"></pre>
+      <ul id="changes" class="note"></ul>
+      <div class="actions"><label for="fmt">Show as</label> <select id="fmt">
+        <option value="header">Set-Cookie header</option><option value="express">Express (res.cookie)</option><option value="php">PHP (setcookie)</option><option value="django">Django (set_cookie)</option><option value="nginx">nginx (proxy_cookie_flags)</option></select>
+        <button type="button" id="copy-out">Copy</button></div>
+      <pre id="output" aria-live="polite"></pre>
+      <p class="note" id="fmt-note"></p>
+
+      <h3 id="test">Test the fix in your browser first</h3>
+      <p class="note">A HeaderDial profile that adds the corrected <code>Set-Cookie</code> line to the responses from one host, so the browser stores the cookie as if the server already sent it. The value is the one you pasted; change it here if it has expired.</p>
+      <div class="grid">
+        <label for="cname">Name</label><input type="text" id="cname" spellcheck="false" autocomplete="off">
+        <label for="cvalue">Value</label><input type="text" id="cvalue" spellcheck="false" autocomplete="off">
+        <label for="host">Only on</label><input type="text" id="host" spellcheck="false" autocomplete="off" placeholder="api.example.com (a Domain filter; subdomains included)">
+        <label class="chk"><input type="checkbox" id="send"> Also send <code>name=value</code> with requests to that host (a Send row; works even where the browser would not send the cookie)</label>
+      </div>
+      <div class="actions"><button type="button" class="primary" id="copy">Copy share link</button><button type="button" id="download">Download JSON</button></div>
+      <p class="note" id="link-wrap" hidden><label for="link">Share link (opens the share page, which shows the profile and imports into HeaderDial). It contains the value: for a real session token, use Download JSON instead.</label><br><input id="link" readonly></p>
+    </div>
+    <p class="note" id="noline" hidden>For an exact fix, also paste the <code>Set-Cookie</code> line: DevTools, Network, click the request, Headers, Response Headers.</p>
+  </div>
+</div>
+
+<div class="callout"><strong>Your own sites only.</strong> SameSite, Secure and third-party blocking protect users from cross-site tracking and request forgery. Loosen them only for cookies your app needs across sites, and keep <code>HttpOnly</code> on session cookies. The browser profile is for testing; it changes responses in your browser alone.</div>
+
+<h2 id="find">Where to find the message</h2>
+<ul>
+<li><strong>Chrome and Edge:</strong> the console says nothing about cookies (none of our 15 test cases logged a line there). Open DevTools, <strong>Network</strong>, click the request that sets the cookie, then the <strong>Cookies</strong> tab. A refused cookie is highlighted under <em>Response cookies</em>; hover the <span title="information">ⓘ</span> or the row for the reason and copy it. For cookies that were stored but not sent, tick <em>show filtered out request cookies</em> under <em>Request cookies</em>. The <strong>Issues</strong> panel shows a headline for only some causes: in our tests just one, <em>Mark cross-site cookies as Secure to allow setting them in cross-site contexts</em> for <code>SameSite=None</code> without <code>Secure</code>.</li>
+<li><strong>Firefox:</strong> the <strong>Console</strong> logs one line per refused cookie when it is set, starting <code>Cookie “<em>name</em>”</code>. When a stored cookie is not sent (SameSite on a cross-site request), it logs nothing. Network → the request → <em>Cookies</em> shows what was sent and received.</li>
+<li><strong>Safari:</strong> it logs no reason. Web Inspector → Storage → Cookies shows whether the cookie was stored. Safari blocks all third-party cookies, so a cookie set by another site than the page is refused there even with <code>SameSite=None; Secure</code>.</li>
+<li><strong>The Set-Cookie line:</strong> Network → the request → <em>Headers</em> → <em>Response Headers</em>, or <code>curl -si https://api.example.com/login | grep -i set-cookie</code>.</li>
+</ul>
+
+<h2 id="sites">Same site or not? The rule behind most cookie problems</h2>
+<p>SameSite is about <em>sites</em>, not origins. A site is the scheme plus the registrable domain (the part you buy: <code>example.com</code>, <code>example.co.uk</code>). Ports and subdomains do not matter.</p>
+<table>
+<tr><th>Page</th><th>Cookie URL</th><th>Same site?</th></tr>
+<tr><td><code>http://localhost:5173</code></td><td><code>http://localhost:8080</code></td><td>Yes: ports do not count</td></tr>
+<tr><td><code>https://app.example.com</code></td><td><code>https://api.example.com</code></td><td>Yes (but a different origin, so fetch still needs <code>credentials: 'include'</code>)</td></tr>
+<tr><td><code>http://localhost:3000</code></td><td><code>http://127.0.0.1:8000</code></td><td><strong>No</strong>: different hosts</td></tr>
+<tr><td><code>https://shop.vercel.app</code></td><td><code>https://shop-api.vercel.app</code></td><td><strong>No</strong>: <code>vercel.app</code> is a public suffix, like <code>netlify.app</code>, <code>herokuapp.com</code>, <code>github.io</code>, <code>pages.dev</code> and <code>onrender.com</code></td></tr>
+<tr><td><code>http://localhost:5173</code></td><td><code>https://api.example.com</code></td><td><strong>No</strong>, and the cookie is third-party</td></tr>
+<tr><td><code>http://example.com</code></td><td><code>https://example.com</code></td><td><strong>No</strong> in Chrome and Edge (they compare schemes too)</td></tr>
+</table>
+<p>When the page and the API are different sites, the cookie needs <code>SameSite=None; Secure</code>, which needs https on the API. Firefox 158 is more lenient here than Chrome: it stores a cross-site cookie without SameSite (in a separate jar per top-level site), so code that works in Firefox can still fail in Chrome. The simplest fix is often to make them the same site: serve the API under the app's domain (<code>api.example.com</code> next to <code>app.example.com</code>), or call it through the dev server's proxy (Vite <code>server.proxy</code>, Next.js <code>rewrites</code>) so the browser only ever sees the page's own origin.</p>
+
+<h2 id="causes-list">Every cause the explainer knows</h2>
+<p>The texts below were captured in Chrome 159 and Firefox 158 (two runs each, identical; page on <code>https://a.test</code>, API on <code>https://b.test</code>). Chrome's are the DevTools Network-panel tooltips; Firefox's are console lines, with your cookie's name in place of <code>sid</code>. "Nothing" means the browser showed no reason anywhere we could read.</p>
+<table>
+<tr><th>Cause</th><th>Chrome / Edge DevTools</th><th>Firefox console</th><th>Fix</th></tr>
+<tr><td><code>SameSite=None</code> without <code>Secure</code></td><td><code>…blocked because it had the "SameSite=None" attribute but didn’t have the "Secure" attribute…</code></td><td><code>Cookie “sid” rejected because it has the “SameSite=None” attribute but is missing the “secure” attribute.</code></td><td>Add <code>Secure</code>; serve the API over https</td></tr>
+<tr><td>No SameSite, set by a cross-site fetch</td><td><code>This "Set-Cookie" header didn’t specify a "SameSite" attribute and was defaulted to "SameSite=Lax"…</code></td><td>Stored (partitioned); only <code>…will soon be rejected because it is foreign and does not have the “Partitioned“ attribute.</code></td><td><code>SameSite=None; Secure</code></td></tr>
+<tr><td><code>SameSite=Strict</code> or <code>Lax</code>, set cross-site</td><td><code>…had the "SameSite=Strict" attribute but came from a cross-site response which wasn’t the response to a top-level navigation</code></td><td><code>Cookie “sid” has been rejected because it is in a cross-site context and its “SameSite” is “Lax” or “Strict”.</code></td><td><code>SameSite=None; Secure</code>, or make it same-site</td></tr>
+<tr><td>Lax cookie not sent on a cross-site fetch</td><td><code>This cookie was blocked because it had the "SameSite=Lax" attribute and the request was made from a different site…</code></td><td>Nothing (not sent)</td><td>Same as above</td></tr>
+<tr><td>Strict cookie not sent after a link from another site</td><td><code>…had the "SameSite=Strict" attribute and the request was made from a different site. This includes top-level navigation requests…</code></td><td>Nothing (not sent; a Lax cookie was sent)</td><td><code>SameSite=Lax</code> if links from other sites must arrive logged in</td></tr>
+<tr><td><code>Secure</code> from an http response</td><td><code>…had the "Secure" attribute but wasn’t received over a secure connection</code></td><td><code>…rejected because a non-HTTPS cookie can’t be set as “secure”.</code></td><td>https, or <code>http://localhost</code> (accepted: our test stored a <code>Secure</code> cookie there in Chrome 159)</td></tr>
+<tr><td>http page replacing a <code>Secure</code> cookie</td><td><code>…wasn’t sent over a secure connection and would have overwritten a cookie with the "Secure" attribute</code></td><td><code>…rejected because there is an existing “secure” cookie.</code></td><td>Use https, or another name</td></tr>
+<tr><td><code>Domain</code> not covering the host</td><td><code>…its "Domain" attribute was invalid with regards to the current host URL</code></td><td><code>Cookie “sid” has been rejected for invalid domain.</code></td><td>Remove <code>Domain</code> or use a parent domain of the host</td></tr>
+<tr><td><code>__Host-</code> / <code>__Secure-</code> rules</td><td><code>…it used the "__Secure-" or "__Host-" prefix in its name and broke the additional rules…</code></td><td><code>…has been rejected for invalid prefix.</code></td><td><code>Secure</code>; for <code>__Host-</code> also <code>Path=/</code>, no <code>Domain</code></td></tr>
+<tr><td>Over 4096 bytes</td><td><code>…the cookie was too large. The combined size of the name and value must be less than or equal to 4096 characters.</code></td><td><code>…is invalid because its size is too big. Max size is 4096 B.</code></td><td>Store an id, keep the data on the server</td></tr>
+<tr><td><code>Partitioned</code> without <code>Secure</code></td><td>Nothing (dropped silently)</td><td><code>…has the “Partitioned” attribute but is missing the “secure” attribute.</code></td><td>Add <code>Secure</code></td></tr>
+<tr><td>Control character in the value</td><td><code>This "Set-Cookie" header contained a disallowed character…</code></td><td><code>…has been rejected for invalid characters in the value.</code></td><td>Encode the value</td></tr>
+<tr><td>Third-party cookies blocked</td><td><code>…was blocked due to user preferences</code> (Chrome allowed them by default in our tests)</td><td><code>…has been rejected as third-party.</code> with strict tracking protection; by default Firefox partitions them instead</td><td>Not a header problem: put the API on the page's site, or use <code>Partitioned</code></td></tr>
+</table>
+<p>Not captured: Safari, which shows no reason. Silent in both browsers: <code>Max-Age=0</code> or a past <code>Expires</code> (the cookie is deleted), and <code>document.cookie</code> trying to replace an <code>HttpOnly</code> cookie (ignored).</p>
+
+<h2 id="silent">When nothing is logged at all</h2>
+<ul>
+<li><strong>The fetch does not include credentials.</strong> A request to another origin sends no cookies and ignores <code>Set-Cookie</code> unless you write <code>fetch(url, { credentials: 'include' })</code> (axios: <code>withCredentials: true</code>). The API must answer with <code>Access-Control-Allow-Credentials: true</code> and your exact origin; the <a href="cors-error-explainer.html">CORS error explainer</a> covers those errors.</li>
+<li><strong>The Path is too narrow.</strong> Without <code>Path</code>, a cookie set by <code>/api/auth/login</code> is only sent to <code>/api/auth/…</code>. Chrome lists it as filtered out on the other requests; Firefox says nothing.</li>
+<li><strong>It is HttpOnly.</strong> <code>document.cookie</code> does not show it, but it is sent. Check the request's <code>Cookie</code> header instead.</li>
+<li><strong>It was deleted.</strong> <code>Max-Age=0</code> or a past <code>Expires</code> removes the cookie; a logout route often does this.</li>
+</ul>
+
+<h2 id="test-first">Why test the fix in the browser first</h2>
+<p>Cookie fixes are deploy-and-retry work: change the attributes, deploy, log in again, look in DevTools. A HeaderDial profile adds the corrected <code>Set-Cookie</code> line to the API's responses in your own browser, so you can check that the rest of the flow works (the cookie is stored, then sent, and the API accepts it) before you change the server. A <strong>Send</strong> row goes further and adds <code>name=value</code> to requests directly, which tells you whether the backend works once the cookie arrives. The profile needs site access to the API's host. Its <code>Set-Cookie</code> line follows the same rules as the server's: <code>SameSite=None; Secure</code> still needs https. More in <a href="send-cookie-with-request.html">send a cookie with requests</a> and <a href="cookie-header-testing.html">test with Cookie and Set-Cookie headers</a>.</p>
+
+<h2 id="how">How the page works</h2>
+<p>It matches the pasted text against the cookie messages Chrome, Edge and Firefox show in English and reads the cookie name where the message has one (Firefox's always do; Chrome's tooltips do not). <code>Set-Cookie</code> lines are parsed and checked against the URLs you enter: the site of each (with a built-in list of common public suffixes such as <code>co.uk</code> and <code>vercel.app</code>, not the full <a href="https://publicsuffix.org/">Public Suffix List</a>), whether the cookie URL is https or localhost, whether <code>Domain</code> covers the host, and the default path. The corrected line keeps your attributes and changes only what the causes need.</p>
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="cors-error-explainer.html">CORS error explainer: paste the console error, get the fix</a></li>
+<li><a href="send-cookie-with-request.html">Send a cookie with requests without setting it in the browser</a></li>
+<li><a href="cookie-header-testing.html">Test with Cookie and Set-Cookie headers in the browser</a></li>
+<li><a href="security-headers-checker.html">Security headers checker (includes Set-Cookie flags)</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div>
+<script src="../js/model.js"></script><script src="../js/transfer.js"></script><script src="../js/cookie-explain.js"></script>
+<script>
+(function () {
+  'use strict';
+  var HD = window.HeaderDial, CK = window.CookieExplain;
+  var $ = function (id) { return document.getElementById(id); };
+  var last = null;
+
+  var EXAMPLES = {
+    'chrome-none': { text: 'Set-Cookie: session=7f3a9c; Path=/; HttpOnly; SameSite=None\nThis attempt to set a cookie via a "Set-Cookie" header was blocked because it had the "SameSite=None" attribute but didn’t have the "Secure" attribute, which is required in order to use "SameSite=None"', page: 'http://localhost:5173/', url: 'https://api.example.com/auth/login' },
+    'chrome-lax': { text: 'Set-Cookie: sid=s%3Aj2k1; Path=/; HttpOnly; Secure\nThis "Set-Cookie" header didn’t specify a "SameSite" attribute and was defaulted to "SameSite=Lax", and was blocked because it came from a cross-site response which wasn’t the response to a top-level navigation. The "Set-Cookie" header had to have been set with "SameSite=None" to enable cross-site usage.', page: 'https://shop.vercel.app/', url: 'https://shop-api.vercel.app/login' },
+    'firefox-cross': { text: 'Cookie “token” has been rejected because it is in a cross-site context and its “SameSite” is “Lax” or “Strict”.', page: 'http://localhost:3000/', url: 'http://127.0.0.1:8000/api/auth/token' },
+    'check': { text: 'Set-Cookie: __Host-session=abc; Domain=example.com; Secure; HttpOnly; SameSite=Lax', page: 'https://app.example.com/', url: 'https://api.example.com/v1/auth/login' },
+  };
+
+  function el(tag, html, cls) { var e = document.createElement(tag); if (html != null) e.innerHTML = html; if (cls) e.className = cls; return e; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var BROWSER = { chrome: 'Chrome or Edge', firefox: 'Firefox', mixed: 'Chrome and Firefox' };
+  var LEVEL = { blocked: ['b-no', 'Blocked'], warn: ['b-warn', 'Check this'], info: ['b-info', 'Good to know'] };
+  var SIDE = { set: 'The browser refused to store the cookie.', send: 'The cookie is stored, but was not sent with this request.', both: 'The browser refuses to store such a cookie, and does not send one stored earlier.', warn: 'A warning: the cookie still works today.' };
+
+  function sc() { return last && last.setCookies.length ? last.setCookies[0].sc : null; }
+
+  function run() {
+    var text = $('paste').value;
+    var r = CK.explain(text, { page: $('page').value, url: $('url').value });
+    last = r;
+    var any = r.causes.length || r.setCookies.length;
+    $('result').hidden = !any;
+    if (!any) {
+      $('status').textContent = text.trim() ? 'No cookie message or Set-Cookie line found. Copy the whole warning, or a line that starts with Set-Cookie:.' : 'Read locally. Nothing you paste leaves this tab.';
+      return;
+    }
+    var parts = [];
+    if (r.messages.length) parts.push(r.messages.length + ' message' + (r.messages.length > 1 ? 's' : '') + (r.browser ? ' from ' + BROWSER[r.browser] : ''));
+    if (r.setCookies.length) parts.push(r.setCookies.length + ' Set-Cookie line' + (r.setCookies.length > 1 ? 's' : ''));
+    $('status').textContent = 'Read ' + parts.join(' and ') + '.';
+    var facts = $('facts'); facts.textContent = '';
+    var c = r.ctx;
+    if (r.names.length) facts.appendChild(el('li', 'Cookie: ' + r.names.map(function (n) { return '<code>' + esc(n) + '</code>'; }).join(', ')));
+    if (c.known) {
+      facts.appendChild(el('li', 'Page site <code>' + esc(c.pageSite) + '</code>, cookie site <code>' + esc(c.site) + '</code>: ' +
+        (c.crossSite ? '<strong>different sites</strong> (cross-site' + (c.suffix && c.suffix.indexOf('.') > 0 ? '; <code>' + esc(c.suffix) + '</code> is a public suffix' : '') + ')' :
+          c.schemeCross ? '<strong>same domain, different scheme</strong> (cross-site in Chrome and Edge)' : 'same site' + (c.crossOrigin ? ', different origins' : ''))));
+      facts.appendChild(el('li', 'Cookie URL is ' + (c.secure ? (c.local && !/^https/.test(c.url) ? 'localhost over http (counts as secure)' : 'https') : '<strong>plain http</strong> (Secure cookies cannot be set here)')));
+    } else if (c.host || c.pageHost) {
+      facts.appendChild(el('li', 'Enter both URLs to check same-site, Secure, Domain and Path.'));
+    }
+    var box = $('causes'); box.textContent = '';
+    r.causes.forEach(function (x) {
+      var info = CK.CAUSES[x.id] || CK.CAUSES.unknown;
+      var lv = LEVEL[x.level] || LEVEL.info;
+      var d = el('div', null, 'cause'); d.setAttribute('data-cause', x.id);
+      d.appendChild(el('h4', '<span class="badge ' + lv[0] + '">' + lv[1] + '</span>' + esc(info.title) + (x.name ? ': <code>' + esc(x.name) + '</code>' : '')));
+      d.appendChild(el('p', esc(info.what)));
+      if (x.detail) d.appendChild(el('p', esc(x.detail)));
+      if (x.from === 'message' && SIDE[x.side] && x.level !== 'info') d.appendChild(el('p', '<strong>Set or send?</strong> ' + SIDE[x.side]));
+      if (info.serverFix === false && x.level === 'blocked') d.appendChild(el('p', '<strong>Not fixable in Set-Cookie alone:</strong> see the note above.'));
+      if (x.text) d.appendChild(el('p', esc(x.text.length > 400 ? x.text.slice(0, 400) + '…' : x.text), 'src'));
+      box.appendChild(d);
+    });
+    $('cross').checked = r.crossSite;
+    $('part').checked = !!(sc() && sc().attrs.partitioned);
+    var name = sc() ? sc().name : (r.names[0] || '');
+    $('cname').value = name;
+    $('cvalue').value = sc() ? sc().value : '';
+    $('host').value = c.host || '';
+    $('noline').hidden = !!sc();
+    $('fix').hidden = !name;
+    update();
+  }
+
+  function fixed() {
+    var base = sc() || { name: $('cname').value.trim() || (last && last.names[0]) || 'name', value: '', attrs: {}, order: [], unknown: [] };
+    if (!sc()) base.attrs = { path: '/' };
+    return CK.fixSetCookie(base, { crossSite: $('cross').checked, partitioned: $('part').checked, ctx: last ? last.ctx : {} });
+  }
+  function attrString(a) {
+    var s = CK.snippet('n', 'v', a, 'header').replace(/^Set-Cookie: n=v;?\s*/, '');
+    return s;
+  }
+  function update() {
+    if (!last) return;
+    var f = fixed();
+    var name = $('cname').value.trim() || 'name', value = $('cvalue').value;
+    $('fixed').textContent = 'Set-Cookie: ' + name + '=' + value + (attrString(f.attrs) ? '; ' + attrString(f.attrs) : '');
+    var ch = $('changes'); ch.textContent = '';
+    (f.changes.length ? f.changes : ['No attribute change needed' + (last.causes.some(function (x) { return x.level === 'blocked'; }) ? ': the blocking cause is outside Set-Cookie (see above).' : '.')]).forEach(function (t) { ch.appendChild(el('li', esc(t))); });
+    var fmt = $('fmt').value;
+    $('output').textContent = CK.snippet(name, value, f.attrs, fmt);
+    $('fmt-note').innerHTML = fmt === 'express' ? 'Express 4.19 or later for <code>partitioned</code>. With <a href="https://www.npmjs.com/package/cookie-session">cookie-session</a> or express-session, put the same options in the session\'s <code>cookie</code> settings.' :
+      fmt === 'nginx' ? 'For an app behind nginx that you cannot change quickly. Fix the app itself when you can.' :
+      fmt === 'php' ? 'For PHP sessions, <code>session_set_cookie_params()</code> takes the same array.' :
+      fmt === 'django' ? 'For a single cookie in a view; the settings cover Django\'s own session and CSRF cookies.' : 'Send this on the response that sets the cookie (for example the login response).';
+    $('link-wrap').hidden = true;
+  }
+  function profile() {
+    var f = fixed();
+    return CK.buildProfile({ name: $('cname').value.trim(), value: $('cvalue').value, attrs: attrString(f.attrs), host: $('host').value, send: $('send').checked });
+  }
+
+  ['paste', 'page', 'url'].forEach(function (id) { $(id).addEventListener('input', run); });
+  ['cname', 'cvalue', 'host'].forEach(function (id) { $(id).addEventListener('input', update); });
+  ['cross', 'part', 'fmt', 'send'].forEach(function (id) { $(id).addEventListener('change', update); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-example]'), function (b) {
+    b.addEventListener('click', function () { var e = EXAMPLES[b.getAttribute('data-example')]; $('paste').value = e.text; $('page').value = e.page; $('url').value = e.url; run(); });
+  });
+  $('clear').addEventListener('click', function () { $('paste').value = $('page').value = $('url').value = ''; run(); $('paste').focus(); });
+
+  function copyText(btn, text, label, fallback) {
+    var done = function (t) { btn.textContent = t; setTimeout(function () { btn.textContent = label; }, 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done('Copied'); }, function () { fallback(); done('Select and copy'); });
+    else { fallback(); done('Select and copy'); }
+  }
+  $('copy-out').addEventListener('click', function () {
+    var pre = $('output');
+    copyText(this, pre.textContent, 'Copy', function () { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); });
+  });
+  $('copy').addEventListener('click', function () {
+    var link = $('link');
+    link.value = HD.shareLink(profile());
+    $('link-wrap').hidden = false;
+    copyText(this, link.value, 'Copy share link', function () { link.select(); });
+  });
+  $('download').addEventListener('click', function () {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([HD.exportJSON([profile()])], { type: 'application/json' }));
+    a.download = 'headerdial-cookie-' + ($('host').value.trim() || 'test') + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+  if ($('paste').value) run();
+})();
+</script></body></html>

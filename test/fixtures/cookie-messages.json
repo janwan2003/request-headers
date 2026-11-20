@@ -1,0 +1,776 @@
+[
+  {
+    "scenario": "s0-control-none-secure",
+    "browser": "chrome",
+    "kind": "devtools-issue",
+    "setCookie": null,
+    "cookieName": "s0ok",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMG9rPTE7IFNhbWVTaXRlPU5vbmU7IFNlY3VyZSJd",
+    "text": null,
+    "reasons": [
+      "WarnThirdPartyPhaseout"
+    ],
+    "issueCode": "CookieIssue::WarnThirdPartyPhaseout::SetCookie",
+    "issueFile": null,
+    "shownInIssuesPanel": false
+  },
+  {
+    "scenario": "s1-samesite-none-no-secure",
+    "browser": "chrome",
+    "setCookie": "s1none=1; SameSite=None",
+    "cookieName": "s1none",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMW5vbmU9MTsgU2FtZVNpdGU9Tm9uZSJd",
+    "kind": "cdp-reason",
+    "text": "SameSiteNoneInsecure",
+    "reasons": [
+      "SameSiteNoneInsecure"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s1-samesite-none-no-secure",
+    "browser": "chrome",
+    "setCookie": "s1none=1; SameSite=None",
+    "cookieName": "s1none",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMW5vbmU9MTsgU2FtZVNpdGU9Tm9uZSJd",
+    "kind": "devtools-network",
+    "text": "This attempt to set a cookie via a \"Set-Cookie\" header was blocked because it had the \"SameSite=None\" attribute but didn’t have the \"Secure\" attribute, which is required in order to use \"SameSite=None\"",
+    "reasons": [
+      "SameSiteNoneInsecure"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s1-samesite-none-no-secure",
+    "browser": "chrome",
+    "kind": "devtools-issue",
+    "setCookie": null,
+    "cookieName": "s1none",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMW5vbmU9MTsgU2FtZVNpdGU9Tm9uZSJd",
+    "text": "Mark cross-site cookies as Secure to allow setting them in cross-site contexts",
+    "reasons": [
+      "ExcludeSameSiteNoneInsecure",
+      "WarnSameSiteNoneInsecure"
+    ],
+    "issueCode": "CookieIssue::ExcludeSameSiteNoneInsecure::SetCookie",
+    "issueFile": "SameSiteNoneInsecureErrorSet.md",
+    "shownInIssuesPanel": true
+  },
+  {
+    "scenario": "s2-no-samesite-cross-site",
+    "browser": "chrome",
+    "setCookie": "s2unspec=1",
+    "cookieName": "s2unspec",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMnVuc3BlYz0xIl0",
+    "kind": "cdp-reason",
+    "text": "SchemefulSameSiteUnspecifiedTreatedAsLax",
+    "reasons": [
+      "SchemefulSameSiteUnspecifiedTreatedAsLax"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s2-no-samesite-cross-site",
+    "browser": "chrome",
+    "setCookie": "s2unspec=1",
+    "cookieName": "s2unspec",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMnVuc3BlYz0xIl0",
+    "kind": "devtools-network",
+    "text": "This \"Set-Cookie\" header didn’t specify a \"SameSite\" attribute and was defaulted to \"SameSite=Lax\", and was blocked because it came from a cross-site response which wasn’t the response to a top-level navigation. The \"Set-Cookie\" header had to have been set with \"SameSite=None\" to enable cross-site usage.",
+    "reasons": [
+      "SchemefulSameSiteUnspecifiedTreatedAsLax"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s2-no-samesite-cross-site",
+    "browser": "chrome",
+    "kind": "devtools-issue",
+    "setCookie": null,
+    "cookieName": "s2unspec",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMnVuc3BlYz0xIl0",
+    "text": null,
+    "reasons": [
+      "ExcludeSameSiteUnspecifiedTreatedAsLax",
+      "WarnSameSiteUnspecifiedCrossSiteContext"
+    ],
+    "issueCode": "CookieIssue::ExcludeSameSiteUnspecifiedTreatedAsLax::SetCookie",
+    "issueFile": null,
+    "shownInIssuesPanel": false
+  },
+  {
+    "scenario": "s3-strict-cross-site-set",
+    "browser": "chrome",
+    "setCookie": "s3strict=1; SameSite=Strict; Secure",
+    "cookieName": "s3strict",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzM3N0cmljdD0xOyBTYW1lU2l0ZT1TdHJpY3Q7IFNlY3VyZSJd",
+    "kind": "cdp-reason",
+    "text": "SchemefulSameSiteStrict",
+    "reasons": [
+      "SchemefulSameSiteStrict"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s3-strict-cross-site-set",
+    "browser": "chrome",
+    "setCookie": "s3strict=1; SameSite=Strict; Secure",
+    "cookieName": "s3strict",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzM3N0cmljdD0xOyBTYW1lU2l0ZT1TdHJpY3Q7IFNlY3VyZSJd",
+    "kind": "devtools-network",
+    "text": "This attempt to set a cookie via a \"Set-Cookie\" header was blocked because it had the \"SameSite=Strict\" attribute but came from a cross-site response which wasn’t the response to a top-level navigation",
+    "reasons": [
+      "SchemefulSameSiteStrict"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s4-lax-not-sent-cross-site-fetch",
+    "browser": "chrome",
+    "setCookie": null,
+    "cookieName": "s4lax",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/echo",
+    "kind": "cdp-reason",
+    "text": "SchemefulSameSiteLax",
+    "reasons": [
+      "SchemefulSameSiteLax"
+    ],
+    "side": "request"
+  },
+  {
+    "scenario": "s4-lax-not-sent-cross-site-fetch",
+    "browser": "chrome",
+    "setCookie": null,
+    "cookieName": "s4lax",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/echo",
+    "kind": "devtools-network",
+    "text": "This cookie was blocked because it had the \"SameSite=Lax\" attribute and the request was made from a different site and wasn’t initiated by a top-level navigation",
+    "reasons": [
+      "SchemefulSameSiteLax"
+    ],
+    "side": "request"
+  },
+  {
+    "scenario": "s5-strict-not-sent-top-level-link",
+    "browser": "chrome",
+    "setCookie": null,
+    "cookieName": "s5strict",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/echo",
+    "kind": "cdp-reason",
+    "text": "SchemefulSameSiteStrict",
+    "reasons": [
+      "SchemefulSameSiteStrict"
+    ],
+    "side": "request"
+  },
+  {
+    "scenario": "s5-strict-not-sent-top-level-link",
+    "browser": "chrome",
+    "setCookie": null,
+    "cookieName": "s5strict",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/echo",
+    "kind": "devtools-network",
+    "text": "This cookie was blocked because it had the \"SameSite=Strict\" attribute and the request was made from a different site. This includes top-level navigation requests initiated by other sites.",
+    "reasons": [
+      "SchemefulSameSiteStrict"
+    ],
+    "side": "request"
+  },
+  {
+    "scenario": "s6-secure-from-http",
+    "browser": "chrome",
+    "setCookie": "s6sec=1; Secure",
+    "cookieName": "s6sec",
+    "pageUrl": "http://a.test:8080/page",
+    "requestUrl": "http://a.test:8080/set?c=WyJzNnNlYz0xOyBTZWN1cmUiXQ",
+    "kind": "cdp-reason",
+    "text": "SecureOnly",
+    "reasons": [
+      "SecureOnly"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s6-secure-from-http",
+    "browser": "chrome",
+    "setCookie": "s6sec=1; Secure",
+    "cookieName": "s6sec",
+    "pageUrl": "http://a.test:8080/page",
+    "requestUrl": "http://a.test:8080/set?c=WyJzNnNlYz0xOyBTZWN1cmUiXQ",
+    "kind": "devtools-network",
+    "text": "This attempt to set a cookie via a \"Set-Cookie\" header was blocked because it had the \"Secure\" attribute but wasn’t received over a secure connection",
+    "reasons": [
+      "SecureOnly"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s7-domain-mismatch",
+    "browser": "chrome",
+    "setCookie": "s7dom=1; Domain=other.test",
+    "cookieName": "s7dom",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzN2RvbT0xOyBEb21haW49b3RoZXIudGVzdCJd",
+    "kind": "cdp-reason",
+    "text": "InvalidDomain",
+    "reasons": [
+      "InvalidDomain"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s7-domain-mismatch",
+    "browser": "chrome",
+    "setCookie": "s7dom=1; Domain=other.test",
+    "cookieName": "s7dom",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzN2RvbT0xOyBEb21haW49b3RoZXIudGVzdCJd",
+    "kind": "devtools-network",
+    "text": "This attempt to set a cookie via a \"Set-Cookie\" header was blocked because its \"Domain\" attribute was invalid with regards to the current host URL",
+    "reasons": [
+      "InvalidDomain"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s8a-host-prefix-with-domain",
+    "browser": "chrome",
+    "setCookie": "__Host-s8h=1; Path=/; Domain=b.test; Secure",
+    "cookieName": "__Host-s8h",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJfX0hvc3QtczhoPTE7IFBhdGg9LzsgRG9tYWluPWIudGVzdDsgU2VjdXJlIl0",
+    "kind": "cdp-reason",
+    "text": "InvalidPrefix",
+    "reasons": [
+      "InvalidPrefix"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s8a-host-prefix-with-domain",
+    "browser": "chrome",
+    "setCookie": "__Host-s8h=1; Path=/; Domain=b.test; Secure",
+    "cookieName": "__Host-s8h",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJfX0hvc3QtczhoPTE7IFBhdGg9LzsgRG9tYWluPWIudGVzdDsgU2VjdXJlIl0",
+    "kind": "devtools-network",
+    "text": "This attempt to set a cookie via a \"Set-Cookie\" header was blocked because it used the \"__Secure-\" or \"__Host-\" prefix in its name and broke the additional rules applied to cookies with these prefixes as defined in https://tools.ietf.org/html/draft-west-cookie-prefixes-05",
+    "reasons": [
+      "InvalidPrefix"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s8b-secure-prefix-no-secure",
+    "browser": "chrome",
+    "setCookie": "__Secure-s8s=1",
+    "cookieName": "__Secure-s8s",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJfX1NlY3VyZS1zOHM9MSJd",
+    "kind": "cdp-reason",
+    "text": "InvalidPrefix",
+    "reasons": [
+      "InvalidPrefix"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s8b-secure-prefix-no-secure",
+    "browser": "chrome",
+    "setCookie": "__Secure-s8s=1",
+    "cookieName": "__Secure-s8s",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJfX1NlY3VyZS1zOHM9MSJd",
+    "kind": "devtools-network",
+    "text": "This attempt to set a cookie via a \"Set-Cookie\" header was blocked because it used the \"__Secure-\" or \"__Host-\" prefix in its name and broke the additional rules applied to cookies with these prefixes as defined in https://tools.ietf.org/html/draft-west-cookie-prefixes-05",
+    "reasons": [
+      "InvalidPrefix"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s9-oversize",
+    "browser": "chrome",
+    "setCookie": "s9big=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "cookieName": "s9big",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzOWJpZz14eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCJd",
+    "kind": "cdp-reason",
+    "text": "NameValuePairExceedsMaxSize",
+    "reasons": [
+      "NameValuePairExceedsMaxSize"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s9-oversize",
+    "browser": "chrome",
+    "setCookie": "s9big=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "cookieName": "s9big",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzOWJpZz14eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCJd",
+    "kind": "devtools-network",
+    "text": "This attempt to set a cookie via a \"Set-Cookie\" header was blocked because the cookie was too large. The combined size of the name and value must be less than or equal to 4096 characters.",
+    "reasons": [
+      "NameValuePairExceedsMaxSize"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s10-http-overwrites-secure",
+    "browser": "chrome",
+    "setCookie": "s10=plain",
+    "cookieName": "s10",
+    "pageUrl": "http://a.test:8080/page",
+    "requestUrl": "http://a.test:8080/set?c=WyJzMTA9cGxhaW4iXQ",
+    "kind": "cdp-reason",
+    "text": "OverwriteSecure",
+    "reasons": [
+      "OverwriteSecure"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s10-http-overwrites-secure",
+    "browser": "chrome",
+    "setCookie": "s10=plain",
+    "cookieName": "s10",
+    "pageUrl": "http://a.test:8080/page",
+    "requestUrl": "http://a.test:8080/set?c=WyJzMTA9cGxhaW4iXQ",
+    "kind": "devtools-network",
+    "text": "This attempt to set a cookie via a \"Set-Cookie\" header was blocked because it wasn’t sent over a secure connection and would have overwritten a cookie with the \"Secure\" attribute",
+    "reasons": [
+      "OverwriteSecure"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s10-http-overwrites-secure",
+    "browser": "chrome",
+    "setCookie": null,
+    "cookieName": "s10",
+    "pageUrl": "http://a.test:8080/page",
+    "requestUrl": "http://a.test:8080/page",
+    "kind": "cdp-reason",
+    "text": "SecureOnly",
+    "reasons": [
+      "SecureOnly"
+    ],
+    "side": "request"
+  },
+  {
+    "scenario": "s10-http-overwrites-secure",
+    "browser": "chrome",
+    "setCookie": null,
+    "cookieName": "s10",
+    "pageUrl": "http://a.test:8080/page",
+    "requestUrl": "http://a.test:8080/page",
+    "kind": "devtools-network",
+    "text": "This cookie was blocked because it had the \"Secure\" attribute and the connection wasn’t secure",
+    "reasons": [
+      "SecureOnly"
+    ],
+    "side": "request"
+  },
+  {
+    "scenario": "s12-third-party",
+    "browser": "chrome",
+    "kind": "devtools-issue",
+    "setCookie": null,
+    "cookieName": "s12pre",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTJuZXc9MTsgU2FtZVNpdGU9Tm9uZTsgU2VjdXJlIl0",
+    "text": null,
+    "reasons": [
+      "WarnThirdPartyPhaseout"
+    ],
+    "issueCode": "CookieIssue::WarnThirdPartyPhaseout::ReadCookie",
+    "issueFile": null,
+    "shownInIssuesPanel": false
+  },
+  {
+    "scenario": "s12-third-party",
+    "browser": "chrome",
+    "kind": "devtools-issue",
+    "setCookie": null,
+    "cookieName": "s12new",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTJuZXc9MTsgU2FtZVNpdGU9Tm9uZTsgU2VjdXJlIl0",
+    "text": null,
+    "reasons": [
+      "WarnThirdPartyPhaseout"
+    ],
+    "issueCode": "CookieIssue::WarnThirdPartyPhaseout::SetCookie",
+    "issueFile": null,
+    "shownInIssuesPanel": false
+  },
+  {
+    "scenario": "s14b-control-char-in-value",
+    "browser": "chrome",
+    "setCookie": "s14c=1\u0001x",
+    "cookieName": "s14c",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTRjPTFcdTAwMDF4Il0",
+    "kind": "cdp-reason",
+    "text": "DisallowedCharacter",
+    "reasons": [
+      "DisallowedCharacter"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s14b-control-char-in-value",
+    "browser": "chrome",
+    "setCookie": "s14c=1\u0001x",
+    "cookieName": "s14c",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTRjPTFcdTAwMDF4Il0",
+    "kind": "devtools-network",
+    "text": "This \"Set-Cookie\" header contained a disallowed character (a forbidden ASCII control character, or the tab character if it appears in the middle of the cookie name, value, an attribute name, or an attribute value)",
+    "reasons": [
+      "DisallowedCharacter"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s14c-tab-in-name",
+    "browser": "chrome",
+    "setCookie": "s14\tt=1",
+    "cookieName": "s14\tt",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTRcdHQ9MSJd",
+    "kind": "cdp-reason",
+    "text": "DisallowedCharacter",
+    "reasons": [
+      "DisallowedCharacter"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s14c-tab-in-name",
+    "browser": "chrome",
+    "setCookie": "s14\tt=1",
+    "cookieName": "s14\tt",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTRcdHQ9MSJd",
+    "kind": "devtools-network",
+    "text": "This \"Set-Cookie\" header contained a disallowed character (a forbidden ASCII control character, or the tab character if it appears in the middle of the cookie name, value, an attribute name, or an attribute value)",
+    "reasons": [
+      "DisallowedCharacter"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s14d-semicolon-only-and-empty",
+    "browser": "chrome",
+    "setCookie": "",
+    "cookieName": "",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyI9czE0ZW1wdHkiLCIiXQ",
+    "kind": "cdp-reason",
+    "text": "NoCookieContent",
+    "reasons": [
+      "NoCookieContent"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s12-third-party@chrome-3pcd-flag",
+    "browser": "chrome",
+    "kind": "devtools-issue",
+    "setCookie": null,
+    "cookieName": "s12pre",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTJuZXc9MTsgU2FtZVNpdGU9Tm9uZTsgU2VjdXJlIl0",
+    "text": null,
+    "reasons": [
+      "WarnThirdPartyPhaseout"
+    ],
+    "issueCode": "CookieIssue::WarnThirdPartyPhaseout::ReadCookie",
+    "issueFile": null,
+    "shownInIssuesPanel": false
+  },
+  {
+    "scenario": "s12-third-party@chrome-3pcd-flag",
+    "browser": "chrome",
+    "kind": "devtools-issue",
+    "setCookie": null,
+    "cookieName": "s12new",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTJuZXc9MTsgU2FtZVNpdGU9Tm9uZTsgU2VjdXJlIl0",
+    "text": null,
+    "reasons": [
+      "WarnThirdPartyPhaseout"
+    ],
+    "issueCode": "CookieIssue::WarnThirdPartyPhaseout::SetCookie",
+    "issueFile": null,
+    "shownInIssuesPanel": false
+  },
+  {
+    "scenario": "s12-third-party@chrome-cookie-controls",
+    "browser": "chrome",
+    "setCookie": "s12new=1; SameSite=None; Secure",
+    "cookieName": "s12new",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTJuZXc9MTsgU2FtZVNpdGU9Tm9uZTsgU2VjdXJlIl0",
+    "kind": "cdp-reason",
+    "text": "UserPreferences",
+    "reasons": [
+      "UserPreferences"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s12-third-party@chrome-cookie-controls",
+    "browser": "chrome",
+    "setCookie": "s12new=1; SameSite=None; Secure",
+    "cookieName": "s12new",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTJuZXc9MTsgU2FtZVNpdGU9Tm9uZTsgU2VjdXJlIl0",
+    "kind": "devtools-network",
+    "text": "This attempt to set a cookie via a \"Set-Cookie\" header was blocked due to user preferences",
+    "reasons": [
+      "UserPreferences"
+    ],
+    "side": "set"
+  },
+  {
+    "scenario": "s12-third-party@chrome-cookie-controls",
+    "browser": "chrome",
+    "setCookie": null,
+    "cookieName": "s12pre",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTJuZXc9MTsgU2FtZVNpdGU9Tm9uZTsgU2VjdXJlIl0",
+    "kind": "cdp-reason",
+    "text": "UserPreferences",
+    "reasons": [
+      "UserPreferences"
+    ],
+    "side": "request"
+  },
+  {
+    "scenario": "s12-third-party@chrome-cookie-controls",
+    "browser": "chrome",
+    "setCookie": null,
+    "cookieName": "s12pre",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": "https://b.test:8443/set?c=WyJzMTJuZXc9MTsgU2FtZVNpdGU9Tm9uZTsgU2VjdXJlIl0",
+    "kind": "devtools-network",
+    "text": "This cookie was blocked due to user preferences",
+    "reasons": [
+      "UserPreferences"
+    ],
+    "side": "request"
+  },
+  {
+    "scenario": "s0-control-none-secure",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s0ok=1; SameSite=None; Secure",
+    "cookieName": "s0ok",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “s0ok” will soon be rejected because it is foreign and does not have the “Partitioned“ attribute.",
+    "category": "cookiesCHIPS"
+  },
+  {
+    "scenario": "s1-samesite-none-no-secure",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s1none=1; SameSite=None",
+    "cookieName": "s1none",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “s1none” rejected because it has the “SameSite=None” attribute but is missing the “secure” attribute.",
+    "category": "cookieSameSite"
+  },
+  {
+    "scenario": "s2-no-samesite-cross-site",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s2unspec=1",
+    "cookieName": "s2unspec",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “s2unspec” will soon be rejected because it is foreign and does not have the “Partitioned“ attribute.",
+    "category": "cookiesCHIPS"
+  },
+  {
+    "scenario": "s3-strict-cross-site-set",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s3strict=1; SameSite=Strict; Secure",
+    "cookieName": "s3strict",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “s3strict” has been rejected because it is in a cross-site context and its “SameSite” is “Lax” or “Strict”.",
+    "category": "cookieSameSite"
+  },
+  {
+    "scenario": "s6-secure-from-http",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s6sec=1; Secure",
+    "cookieName": "s6sec",
+    "pageUrl": "http://a.test:8080/page",
+    "requestUrl": null,
+    "text": "Cookie “s6sec” has been rejected because a non-HTTPS cookie can’t be set as “secure”.",
+    "category": "cookiesRejection"
+  },
+  {
+    "scenario": "s7-domain-mismatch",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s7dom=1; Domain=other.test",
+    "cookieName": "s7dom",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “s7dom” has been rejected for invalid domain.",
+    "category": "cookiesRejection"
+  },
+  {
+    "scenario": "s8a-host-prefix-with-domain",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "__Host-s8h=1; Path=/; Domain=b.test; Secure",
+    "cookieName": "__Host-s8h",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “__Host-s8h” has been rejected for invalid prefix.",
+    "category": "cookiesRejection"
+  },
+  {
+    "scenario": "s8b-secure-prefix-no-secure",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "__Secure-s8s=1",
+    "cookieName": "__Secure-s8s",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “__Secure-s8s” has been rejected for invalid prefix.",
+    "category": "cookiesRejection"
+  },
+  {
+    "scenario": "s9-oversize",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s9big=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "cookieName": "s9big",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “s9big” is invalid because its size is too big. Max size is 4096 B.",
+    "category": "cookiesOversize"
+  },
+  {
+    "scenario": "s10-http-overwrites-secure",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s10=plain",
+    "cookieName": "s10",
+    "pageUrl": "http://a.test:8080/page",
+    "requestUrl": null,
+    "text": "Cookie “s10” has been rejected because there is an existing “secure” cookie.",
+    "category": "cookiesRejection"
+  },
+  {
+    "scenario": "s11-partitioned-no-secure",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s11part=1; Partitioned",
+    "cookieName": "s11part",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “s11part” has been rejected because it has the “Partitioned” attribute but is missing the “secure” attribute.",
+    "category": "cookiesRejection"
+  },
+  {
+    "scenario": "s12-third-party",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s12new=1; SameSite=None; Secure",
+    "cookieName": "s12new",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “s12new” will soon be rejected because it is foreign and does not have the “Partitioned“ attribute.",
+    "category": "cookiesCHIPS"
+  },
+  {
+    "scenario": "s14b-control-char-in-value",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s14c=1\u0001x",
+    "cookieName": "s14c",
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “s14c” has been rejected for invalid characters in the value.",
+    "category": "cookiesRejection"
+  },
+  {
+    "scenario": "s14d-semicolon-only-and-empty",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "=s14empty | ",
+    "cookieName": null,
+    "pageUrl": "https://b.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “” has been rejected for invalid characters in the name.",
+    "category": "cookiesRejection"
+  },
+  {
+    "scenario": "s12-third-party@firefox-cookieBehavior1",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s12new=1; SameSite=None; Secure",
+    "cookieName": null,
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “” has been rejected as third-party.",
+    "category": "cookiesRejection"
+  },
+  {
+    "scenario": "s12-third-party@firefox-cookieBehavior1",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s12new=1; SameSite=None; Secure",
+    "cookieName": "https://b.test:8443/set?c=WyJzMTJuZXc9MTsgU2FtZVNpdGU9Tm9uZTsgU2VjdXJlIl0",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": null,
+    "text": "Request to access cookie or storage on “https://b.test:8443/set?c=WyJzMTJuZXc9MTsgU2FtZVNpdGU9Tm9uZTsgU2VjdXJlIl0” was blocked because we are blocking all third-party storage access requests and Enhanced Tracking Protection is enabled.",
+    "category": "cookieBlockedForeign"
+  },
+  {
+    "scenario": "s12-third-party@firefox-cookieBehavior1",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s12new=1; SameSite=None; Secure",
+    "cookieName": "s12new=1; SameSite=None; Secure",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": null,
+    "text": "Cookie “s12new=1; SameSite=None; Secure” has been rejected as third-party.",
+    "category": "cookiesRejection"
+  },
+  {
+    "scenario": "s12-third-party@firefox-cookieBehavior1",
+    "browser": "firefox",
+    "kind": "console",
+    "setCookie": "s12new=1; SameSite=None; Secure",
+    "cookieName": "https://b.test:8443/echo",
+    "pageUrl": "https://a.test:8443/page",
+    "requestUrl": null,
+    "text": "Request to access cookie or storage on “https://b.test:8443/echo” was blocked because we are blocking all third-party storage access requests and Enhanced Tracking Protection is enabled.",
+    "category": "cookieBlockedForeign"
+  }
+]

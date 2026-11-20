@@ -178,7 +178,9 @@ What exists:
 - Site tool pages that run locally: `guides/curl-to-browser-headers.html` and `guides/security-headers-checker.html` (0.9.0 session,
   `site/js/headers-check.js`: paste response headers from DevTools or `curl -I`; verdicts for CSP, HSTS, framing, nosniff, Referrer-Policy,
   Permissions-Policy, COOP/COEP/CORP, Set-Cookie flags, CORS, Server/X-Powered-By; ticked fixes become a HeaderDial profile of response rows,
-  CSP in Report-Only, limited to the response's host). **CSP builder** `guides/csp-builder.html` (session 10, `site/js/csp-build.js`, 22 unit tests): 4 presets, 17 directives with keyword toggles, paste an existing policy (value, header line, `<meta>`, nginx, Apache), weak-spot warnings, output as value/header/nginx/Apache/meta; "Test it on your site" makes a share link of a Report-Only (or enforce) response row limited to a host, optionally removing the site's own CSP. Comparison page `guides/modheader-alternatives-compared.html` (figures checked
+  CSP in Report-Only, limited to the response's host). **Cookie explainer** `guides/cookie-blocked-explainer.html` (session 12,
+  `site/js/cookie-explain.js`): DevTools/Firefox cookie messages and Set-Cookie lines + page/cookie URLs → causes, same-site check, fixed line,
+  Express/PHP/Django/nginx code, Store/Send profile; texts captured in Chrome 159 / Firefox 158 (`test/fixtures/cookie-messages.json`). **CSP builder** `guides/csp-builder.html` (session 10, `site/js/csp-build.js`, 22 unit tests): 4 presets, 17 directives with keyword toggles, paste an existing policy (value, header line, `<meta>`, nginx, Apache), weak-spot warnings, output as value/header/nginx/Apache/meta; "Test it on your site" makes a share link of a Report-Only (or enforce) response row limited to a host, optionally removing the site's own CSP. Comparison page `guides/modheader-alternatives-compared.html` (figures checked
   2026-11-20; they go stale). **CORS error explainer** `guides/cors-error-explainer.html` (session 11, `site/js/cors-explain.js`): paste
   Chrome/Edge, Firefox or Safari CORS console lines → cause (19 kinds), whether the request reached the server, whether headers can fix it,
   the headers to send (plain, Express `cors`, nginx, Apache) and a share link/JSON of response rows limited to the API host. Chrome/Firefox
@@ -215,30 +217,34 @@ check the binding and call the handler).
    submit the current version (`publish-amo.py`, then `--listing`; it must be higher than any version signed unlisted in step 2), change the Firefox install line on
    `site/index.html` and `guides/modify-headers-firefox.html` from "in review" to live, and record
    AMO daily users in Metrics.
-4. **CORS explainer follow-through:** watch GSC for "blocked by CORS policy" / "Cross-Origin Request Blocked" queries landing on
+4. **Cookie explainer follow-through:** watch GSC for "cookie blocked", "SameSite=None Secure", "Set-Cookie was blocked" queries landing on
+   `guides/cookie-blocked-explainer.html`. Not covered yet: Safari (shows no reason), Chrome reasons with no DevTools text (NoCookieContent,
+   PortMismatch, SchemeMismatch), cross-site redirects and a measured Path-mismatch case (the subagent's suggested next scenarios), the full Public
+   Suffix List (the page uses ~50 common suffixes and says so).
+5. **CORS explainer follow-through:** watch GSC for "blocked by CORS policy" / "Cross-Origin Request Blocked" queries landing on
    `guides/cors-error-explainer.html`. Possible next: a "CORS" mode in the extension's popup that reads the tab's last CORS failure (needs
    `webRequest` or DevTools access, which conflicts with minimal permissions, so probably not), or Safari texts captured on a Mac.
-5. **Search Console:** `python3 scripts/gsc.py status` from about 2026-11-27 for indexing and the
+6. **Search Console:** `python3 scripts/gsc.py status` from about 2026-11-27 for indexing and the
    first impressions; record them in Metrics. Write guides for the queries that show up.
-6. Features next: tab-group / window filters (the last ModHeader import warnings; tab/window ids do not survive a restart, so
+7. Features next: tab-group / window filters (the last ModHeader import warnings; tab/window ids do not survive a restart, so
    import value is low), and an
    "edit one cookie" mode that really replaces a same-named browser cookie (DNR cannot rewrite part of a
    header; would need the `cookies` permission, so weigh it against the minimal-permission promise).
-7. Guard the guides, continued: guarded now: Sec-Fetch-Site settable, Host/Connection removal ignored, service-worker requests
+8. Guard the guides, continued: guarded now: Sec-Fetch-Site settable, Host/Connection removal ignored, service-worker requests
    miss tab-only profiles, OPTIONS 404 stays blocked (Chrome); response set over Content-Type ignored (Firefox); cross-profile
    cookie table and framing needs XFO + CSP removed (both). Still unguarded: HSTS in Firefox, the DevTools-override results,
    `Access-Control-Allow-Headers: *` letting Authorization through (spec says it should not; most likely to change).
-8. Once a store listing is live: ask the operator (inbox) to answer existing questions from displaced ModHeader
+9. Once a store listing is live: ask the operator (inbox) to answer existing questions from displaced ModHeader
    users with the recovery page (needs their accounts; no mass posting), and about one awesome-list PR. Recovery is the one thing
    no competitor offers; watch GSC for "modheader" queries landing on it.
-9. More recipes once GSC shows which queries land (each recipe should have a guide, as CORS and iframe do). Consider letting the
+10. More recipes once GSC shows which queries land (each recipe should have a guide, as CORS and iframe do). Consider letting the
    iframe recipe tick the `sub_frame` request type when the profile has no other rows (now it removes CSP on page loads too unless
    the user adds a Domain filter; the guide says to).
-10. Paste import and tool pages: watch GSC for "curl" and "security headers" queries landing on the two tool pages; if they come, add
+11. Paste import and tool pages: watch GSC for "curl" and "security headers" queries landing on the two tool pages; if they come, add
    "Copy as fetch to headers", "Postman headers to browser" and a CSP builder page. The checker's DevTools formats are partly assumed
    (Chrome's non-raw header list copy, Firefox "Copy All" JSON); confirm by copying from a real DevTools panel. Re-check the comparison
    page's figures about monthly (the curl/API calls are listed at the end of the page); a scheduled routine would be cheaper than by hand.
-11. Tests: the CORS check "access to both hosts works" flaked once in CI 44780455961 (passed on rerun); session 11 made it retry the fetch up to 5 times (a blocked case must stay blocked
+12. Tests: the CORS check "access to both hosts works" flaked once in CI 44780455961 (passed on rerun); session 11 made it retry the fetch up to 5 times (a blocked case must stay blocked
    on every try); if it still flakes, wait for the rules to show in `getDynamicRules` before fetching. The Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
    the chrome scope) and the matched-request count (needs an activeTab grant from a real click).
 
@@ -278,6 +284,10 @@ check the binding and call the handler).
 - 2026-11-20 (session 11): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS `--publish` 400
   on the same dashboard fields; draft 0.9.2). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for 2026-10-23..11-20.
   Sitemap: 38 URLs after this session's build.
+
+- 2026-11-20 (session 12): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS `--publish` 400
+  on the same dashboard fields; draft 0.9.2). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for 2026-10-23..11-20.
+  Sitemap: 39 URLs after this session's build.
 
 ## Monetization plan
 
@@ -464,3 +474,18 @@ that is how the incumbent died.
   hub 200; the "Cookies + *" example → wildcard-credentials, share link = ACAO https://app.example.com + ACAC true on api.example.com, 0 requests
   after load, link opens on the share page; sitemap 38 URLs incl. the explainer, `gsc.py submit` 204.
   Not verified: Safari texts (from WebKit strings), Edge, Firefox's Network-panel labels (taken from MDN's error-page names).
+- 2026-11-20 builder (session 12): channels unchanged (AMO 0.2.0 `nominated`/`unreviewed` per `publish-amo.py --status`; CWS `--publish` 400 on the
+  same dashboard fields, draft 0.9.2; GSC sitemap pending, no search analytics rows). Built the next debug-intent search page: **"Why was my cookie
+  blocked?"** (`guides/cookie-blocked-explainer.html`, `site/js/cookie-explain.js`). Paste Chrome DevTools cookie tooltips, Firefox console lines and/or
+  Set-Cookie lines, plus the page and cookie URLs → causes (27 kinds, blocked / check / good to know), same-site vs cross-site with a built-in list of
+  common public suffixes (vercel.app, github.io, co.uk…), the corrected Set-Cookie line, code (header, Express, PHP, Django, nginx
+  `proxy_cookie_flags`) and a HeaderDial profile (Store row, optional Send row, Domain filter). A subagent captured the texts in Chrome 159 / Firefox
+  158 (15 scenarios + control, 2 runs each, identical; `test/measure-cookie-messages.js`, 58 fixture entries; DevTools strings read from the shipped
+  `en-US.json`, devtools-frontend @22dfc603; Firefox from necko.properties @fbddff0b). Its findings changed the page: Chrome 159 writes "didn’t"/
+  "wasn’t" with curly apostrophes and quotes "Set-Cookie"; Firefox 158 has no Lax-by-default (a cross-site cookie without SameSite is stored,
+  partitioned) and logs nothing for request-side SameSite; Chrome logs nothing to the console and drops `Partitioned` without `Secure` silently;
+  only one cause (SameSite=None without Secure) gets an Issues-panel headline; `a b=1` is accepted by both. Also fixed a site-wide mobile defect:
+  13 of 38 guides scrolled sideways at 390px (wide tables, long inline code); `style.css` now wraps inline code and scrolls tables inside
+  themselves. Tests: unit 107/107 (8 new incl. every captured text recognised); Chromium e2e 43/43 locally (new: Chrome's real SameSiteNoneInsecure
+  refusal over CDP → explainer → its profile → the cookie is stored as Secure; SameSite=None on http://localhost and sent cross-site; page test with
+  no network; every site page ≤390px wide). Firefox e2e not run locally (extension code unchanged; CI runs it).
