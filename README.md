@@ -5,7 +5,7 @@ HTTP request and response headers. Website: https://janwan2003.github.io/request
 
 - Profiles (several active at once, leftmost wins), each with request and response headers
 - Operations: set, append, remove
-- Filters: domains, URL patterns, URL regexes, exclusions, request types, a single tab
+- Filters: domains, URL patterns, URL regexes, the page that made the request ("Page domain"), exclusions, request types, methods, a single tab
 - Timed headers that switch themselves off (15 min to 1 day)
 - URL redirects: replace text in the URL or use a regex with groups (DNR `redirect` rules)
 - Cookie rows: send `name=value` after the browser's own cookies (one DNR `append` on `Cookie`), or store a cookie through an added `Set-Cookie` line

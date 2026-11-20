@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send a header only on requests made by one site (initiator filter) – HeaderDial</title><meta name="description" content="Add a request header only when the page making the request is on a given site, e.g. your localhost app calling a shared API. Measured in Chrome 159 and Firefox 158.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/headers-only-from-one-site.html">
+<meta property="og:title" content="Send a header only on requests made by one site"><meta property="og:description" content="Limit a header to requests your localhost app makes, not the same API called from other tabs. Measured in Chrome and Firefox.">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Send a header only on requests made by pages on one site","description":"Use HeaderDial's Page domain filter so a request header is added only when the page that makes the request is on a given site.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Add the header","text":"In HeaderDial, click + Request header and enter the name and value."},{"@type":"HowToStep","name":"Add a Page domain filter","text":"Open Where it applies, click + Only on…, choose Page domain and type the site of the page, for example localhost."},{"@type":"HowToStep","name":"Optionally limit the target","text":"Add a Domain filter for the API host as well; both must match."},{"@type":"HowToStep","name":"Verify","text":"Call the API from a page on that site and from another page, and compare what the server received."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Send a header only on requests made by one site</h1>
+<p>To add a header only when a request comes from pages on one site, use HeaderDial's <strong>Page domain</strong> filter (added in 0.6.0). Say your app runs on <code>localhost:3000</code> and calls <code>api.example.com</code>. A rule with <strong>Only on</strong> → <strong>Page domain</strong> → <code>localhost</code> adds your test token to those calls. The same API opened in another tab, or used by another site, gets nothing. A plain <strong>Domain</strong> filter can't do this, because it looks at where the request <em>goes</em>, not which page sent it.</p>
+
+<h2>Domain vs Page domain</h2>
+<table>
+<tr><th>Filter</th><th>Looks at</th><th>Example</th></tr>
+<tr><td><strong>Domain</strong></td><td>The host the request is sent to</td><td><code>api.example.com</code>: every request to the API, from any tab</td></tr>
+<tr><td><strong>Page domain</strong></td><td>The site of the page that made the request (the browser calls it the <em>initiator</em>)</td><td><code>localhost</code>: requests that pages on localhost make, to any host</td></tr>
+</table>
+<p>Use both in one profile to get "requests from my local app to the API only". The two filters must both match. Several Page domain filters in one profile mean "any of these sites".</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Open HeaderDial and click <strong>+ Request header</strong>. Enter the name and value, for example <code>Authorization</code> and <code>Bearer &lt;test token&gt;</code>.</li>
+<li>Open <strong>Where it applies</strong> and click <strong>+ Only on…</strong>. In the second select choose <strong>Page domain</strong> and type the page's host, for example <code>localhost</code> or <code>app.example.com</code>. Leave out the port and the <code>http://</code>.</li>
+<li>To limit the target too, add another <strong>+ Only on…</strong> filter with <strong>Domain</strong> <code>api.example.com</code>.</li>
+<li>Give HeaderDial site access to both the API host and the page's host. In our <a href="cors-headers-for-local-development.html">CORS test</a>, Chrome changed a call between two hosts only when HeaderDial had access to both. Access to just one of them changed nothing. The banner in the popup asks for access.</li>
+</ol>
+<p>Use <strong>Never on</strong> → <strong>Page domain</strong> the other way round, for example to add a header everywhere except on requests made by your admin console.</p>
+
+<h2>What we measured</h2>
+<p>Measured with HeaderDial 0.6.0's end-to-end tests: a local echo server reachable as both <code>localhost</code> and <code>127.0.0.1</code>, and a profile limited to <strong>Page domain</strong> <code>localhost</code>. Chrome 159.0.8154.6 and Firefox 158.0.1, 20 November 2026.</p>
+<table>
+<tr><th>Request</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td><code>fetch()</code> from a page on <code>localhost</code> to <code>127.0.0.1</code></td><td>header sent</td><td>header sent</td></tr>
+<tr><td>The same <code>fetch()</code> from a page on <code>127.0.0.1</code></td><td>not sent</td><td>not sent</td></tr>
+<tr><td>Typing the API URL in the address bar</td><td>not sent</td><td>not sent</td></tr>
+<tr><td>A navigation started by script on the <code>localhost</code> page (<code>location.href = …</code>)</td><td>header sent</td><td>not measured</td></tr>
+</table>
+<p>The typed address gets nothing because a request you type has no initiator page. Bookmarks and new tabs behave the same way. If you need the header on page loads you open yourself, use a <strong>Domain</strong> filter instead.</p>
+
+<h2>Things to know</h2>
+<ul>
+<li><strong>Subdomains are included.</strong> Per the browser's declarativeNetRequest documentation, <code>example.com</code> also matches pages on <code>app.example.com</code>. To match only a subdomain, type it in full.</li>
+<li><strong>Frames count as their own page.</strong> According to the same documentation, the initiator is the origin of the frame that made the request. A request from an embedded iframe therefore counts as coming from the iframe's site, not the top page's.</li>
+<li><strong>Redirects follow it too.</strong> A Page domain filter also limits the profile's URL redirects. A plain <strong>Only on</strong> URL filter does not, because a redirect carries its own URL match.</li>
+</ul>
+
+<h2>"Never on" no longer switches off your other profiles</h2>
+<p>The same release fixes a quieter problem. Browsers implement a "Never on" URL filter as an <em>allow</em> rule, and an allow rule switches off every lower-priority rule of the extension, not just its own profile's. Before 0.6.0, a "Never on <code>*/health*</code>" filter in your top profile therefore also stopped the profiles below it on <code>/health</code>. HeaderDial now copies the lower profiles' header rules above the exclusion, limited to the excluded URLs. In both browsers above, the lower profile's headers now arrive on the excluded URL, and the upper profile still wins on other URLs. In one case the browser rules cannot express this: two active profiles that both have "Never on" URL filters. HeaderDial then shows a warning in the popup that names both profiles. Using a <strong>Domain</strong> exclusion in one of them avoids the problem.</p>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
+<li><a href="feature-flag-headers-staging.html">Send custom headers to staging and feature flags</a></li>
+<li><a href="change-origin-header.html">Change or remove the Origin header</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

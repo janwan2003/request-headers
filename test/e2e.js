@@ -453,6 +453,37 @@ async function fetchVia(page, url) {
     ok('guide claims hold in this Chrome: Sec-Fetch-Site can be set, Host and Connection cannot be removed');
   }
 
+  // A "Never on" URL filter in a higher profile must not switch off the profiles below it
+  // (DNR allow rules cut every lower rule; the compiler copies the lower profile's rules up).
+  // And a "Page domain" filter applies to requests made by pages on that site only.
+  {
+    const saved = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state);
+    await ui.evaluate(async () => {
+      await chrome.storage.local.set({ state: { profiles: [
+        { id: 'ex', name: 'Excluding', active: true, filters: [{ kind: 'exclude', type: 'pattern', value: '*skip*' }],
+          headers: [{ target: 'request', name: 'X-Upper', value: '1' }, { target: 'request', name: 'X-Both', value: 'upper' }] },
+        { id: 'low', name: 'Lower', active: true, headers: [{ target: 'request', name: 'X-Lower', value: '1' },
+          { target: 'request', name: 'X-Both', value: 'lower' }] },
+        { id: 'pd', name: 'Page domain', active: true, filters: [{ kind: 'include', type: 'initiator', value: 'localhost' }],
+          headers: [{ target: 'request', name: 'X-From-Localhost', value: '1' }] }] } });
+    });
+    await settle();
+    let g = await until(async () => { const x = await echoVia(page, A + '/echo?skip'); return x['x-lower'] && x; }, 'lower profile on an excluded URL');
+    assert.deepStrictEqual([g['x-upper'], g['x-lower'], g['x-both']], [undefined, '1', 'lower']);
+    g = await echoVia(page, A + '/echo?other');
+    assert.deepStrictEqual([g['x-upper'], g['x-lower'], g['x-both']], ['1', '1', 'upper']);
+    assert.deepStrictEqual((await status()).problems, []);
+    ok('a "Never on" URL filter in the upper profile leaves the lower profile on (and the upper still wins elsewhere)');
+    assert.strictEqual(g['x-from-localhost'], undefined, 'typed address: no initiator');
+    await page.goto(B + '/');
+    assert.strictEqual(await page.evaluate(async (u) => (await (await fetch(u)).json())['x-from-localhost'] || null, A + '/echo?pd'), '1');
+    await page.goto(A + '/');
+    assert.strictEqual(await page.evaluate(async (u) => (await (await fetch(u)).json())['x-from-localhost'] || null, A + '/echo?pd'), null);
+    ok('"Page domain" filter: header on a fetch from a localhost page, not from another page or a typed address');
+    await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
+    await settle();
+  }
+
   if (SHOTS) {
     await ui.setViewportSize({ width: 1280, height: 800 });
     await ui.reload();

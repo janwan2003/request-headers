@@ -279,6 +279,34 @@ async function launch() {
   await s.setState(`p.headers = p.headers.filter((h) => h.name !== 'Content-Type');`);
   ok('Firefox: guide claim holds, a response set over an existing Content-Type is ignored');
 
+  // A "Never on" URL filter in an upper profile must not switch off the profile below it,
+  // and a "Page domain" filter matches requests made by pages on that site only.
+  {
+    const B = A.replace('127.0.0.1', 'localhost');
+    const orig = await s.run(`chrome.storage.local.get('state').then((x) => JSON.stringify(x.state.profiles))`);
+    st = await s.setState(`s.profiles = [
+      HeaderDial.newProfile(0, { name: 'Excluding', filters: [HeaderDial.newFilter('exclude', { value: '*skip*' })],
+        headers: [HeaderDial.newHeader('request', { name: 'X-Upper', value: '1' }), HeaderDial.newHeader('request', { name: 'X-Both', value: 'upper' })] }),
+      HeaderDial.newProfile(1, { name: 'Lower', headers: [HeaderDial.newHeader('request', { name: 'X-Lower', value: '1' }),
+        HeaderDial.newHeader('request', { name: 'X-Both', value: 'lower' })] }),
+      HeaderDial.newProfile(2, { name: 'Page domain', filters: [HeaderDial.newFilter('include', { type: 'initiator', value: 'localhost' })],
+        headers: [HeaderDial.newHeader('request', { name: 'X-From-Localhost', value: '1' })] })];`);
+    assert.deepStrictEqual(st.problems, [], 'no rule rejected: ' + JSON.stringify(st.problems));
+    await s.go(A + '/echo?skip');
+    let g = JSON.parse(await s.run('document.body.innerText'));
+    assert.deepStrictEqual([g['x-upper'], g['x-lower'], g['x-both']], [undefined, '1', 'lower']);
+    await s.go(A + '/echo?other');
+    g = JSON.parse(await s.run('document.body.innerText'));
+    assert.deepStrictEqual([g['x-upper'], g['x-lower'], g['x-both']], ['1', '1', 'upper']);
+    ok('Firefox: a "Never on" URL filter in the upper profile leaves the lower profile on');
+    assert.strictEqual(g['x-from-localhost'], undefined, 'typed address: no initiator');
+    const from = async (page) => { await s.go(page + '/'); return s.run(`fetch('${A}/echo?pd').then((r) => r.json()).then((j) => j['x-from-localhost'] || 'none')`); };
+    assert.strictEqual(await from(B), '1');
+    assert.strictEqual(await from(A), 'none');
+    ok('Firefox: "Page domain" filter: header on a fetch from a localhost page, not from another page or a typed address');
+    await s.setState(`s.profiles = HeaderDial.normalizeState({ profiles: ${orig} }).profiles;`);
+  }
+
   // Pause.
   st = await s.setState(`s.paused = true; p.filters = [];`);
   got = await s.echo();

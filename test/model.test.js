@@ -82,7 +82,8 @@ test('first profile has the highest priority; tab profiles become session rules;
   assert.deepStrictEqual(out.session[0].condition.tabIds, [7]);
   const all = out.dynamic.concat(out.session);
   assert.strictEqual(new Set(all.map((r) => r.id)).size, all.length);
-  assert.ok(out.dynamic[0].priority > out.session[0].priority);
+  const top = out.dynamic.find((r) => r.action.requestHeaders && r.action.requestHeaders[0].value === '1' && r.action.requestHeaders[0].header === 'A');
+  assert.ok(top.priority > out.session[0].priority);
   const allowB = out.dynamic.find((r) => r.action.type === 'allow');
   assert.ok(allowB.priority < out.session[0].priority, 'exclusion of a lower profile must not override higher ones');
 });
@@ -268,4 +269,147 @@ test('curl command: headers quoted for the shell, removes as -H "Name:", cookies
     '# not in curl (browser only): response header set X-Resp\n' +
     '# not in curl (browser only): redirect /old/ -> /new/\n' +
     "curl 'https://api.example.com/v1?x=1&y=2' \\\n  -H 'Authorization: Bearer it'\\''s' \\\n  -H 'User-Agent:' \\\n  -b 'a=1; b=2'");
+});
+
+test('a "Never on" URL filter keeps lower profiles on: their rules are copied above the allow rule', () => {
+  const out = HD.compile(state([
+    { name: 'Top', headers: [hdr('X-Top', '1')] },
+    { name: 'A', headers: [hdr('X-A', '1')], filters: [{ kind: 'exclude', type: 'pattern', value: '*/health' }] },
+    { name: 'B', headers: [hdr('X-B', '1')], filters: [{ kind: 'include', type: 'domain', value: 'api.com' }], resourceTypes: ['xmlhttprequest'] },
+  ]));
+  const by = (h) => out.dynamic.filter((r) => r.action.requestHeaders && r.action.requestHeaders[0].header === h);
+  const allow = out.dynamic.find((r) => r.action.type === 'allow');
+  const [b, copy] = by('X-B').sort((x, y) => x.priority - y.priority);
+  assert.ok(b.priority < allow.priority);
+  assert.ok(copy.priority > allow.priority && copy.priority < by('X-Top')[0].priority);
+  assert.deepStrictEqual(copy.condition, { resourceTypes: ['xmlhttprequest'], requestDomains: ['api.com'], urlFilter: '*/health' });
+  assert.strictEqual(out.problems.length, 0);
+});
+
+test('lower profiles that cannot be copied get a warning; a profile with exclusions at the bottom needs none', () => {
+  let out = HD.compile(state([
+    { name: 'A', headers: [hdr('X-A', '1')], filters: [{ kind: 'exclude', type: 'pattern', value: '*/health' }] },
+    { name: 'B', headers: [hdr('X-B', '1')], filters: [{ kind: 'include', type: 'pattern', value: '*/api/*' }] },
+  ]));
+  assert.strictEqual(out.problems.length, 1);
+  assert.match(out.problems[0].message, /"A" has a "Never on" URL filter \(\*\/health\).*"B" has "Only on" URL filters, so it cannot be kept on there\. Move "A" below "B"/);
+  out = HD.compile(state([
+    { name: 'B', headers: [hdr('X-B', '1')], filters: [{ kind: 'include', type: 'pattern', value: '*/api/*' }] },
+    { name: 'A', headers: [hdr('X-A', '1')], filters: [{ kind: 'exclude', type: 'pattern', value: '*/health' }] },
+  ]));
+  assert.strictEqual(out.problems.length, 0);
+  assert.strictEqual(out.dynamic.length, 3);
+});
+
+test('"Page domain" filters become initiatorDomains / excludedInitiatorDomains on every rule of the profile', () => {
+  const out = HD.compile(state([{ headers: [hdr('X', '1')], redirects: [{ from: 'a.js', to: 'b.js' }], filters: [
+    { kind: 'include', type: 'initiator', value: 'LocalHost' },
+    { kind: 'include', type: 'pattern', value: '||api.com^' },
+    { kind: 'exclude', type: 'initiator', value: 'admin.localhost' },
+    { kind: 'exclude', type: 'regex', value: 'x' },
+    { kind: 'include', type: 'initiator', value: 'bad domain!' },
+  ] }]));
+  assert.strictEqual(out.dynamic.length, 3);
+  for (const r of out.dynamic) {
+    assert.deepStrictEqual(r.condition.initiatorDomains, ['localhost'], r.action.type);
+    assert.deepStrictEqual(r.condition.excludedInitiatorDomains, ['admin.localhost'], r.action.type);
+  }
+  assert.strictEqual(out.dynamic.find((r) => r.action.type === 'modifyHeaders').condition.urlFilter, '||api.com^');
+  assert.ok(out.problems.some((p) => /bad domain!.*example\.com/.test(p.message)));
+});
+
+// A small model of how browsers pick declarativeNetRequest rules for one request,
+// enough for the filters below: rules above the highest matching allow rule apply,
+// and for a header the highest-priority "set" wins.
+function urlFilterRe(f) {
+  let s = f.replace(/[.+?${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\^/g, '(?:[/?:]|$)');
+  if (s.startsWith('||')) s = '^[a-z]+://(?:[^/]*\\.)?' + s.slice(2);
+  return new RegExp(s);
+}
+const domainMatch = (host, list) => list.some((d) => host === d || host.endsWith('.' + d));
+function ruleMatches(c, q) {
+  if (!c.resourceTypes.includes(q.type)) return false;
+  if (c.requestMethods && !c.requestMethods.includes(q.method)) return false;
+  if (c.requestDomains && !domainMatch(q.host, c.requestDomains)) return false;
+  if (c.excludedRequestDomains && domainMatch(q.host, c.excludedRequestDomains)) return false;
+  if (c.initiatorDomains && !(q.initiator && domainMatch(q.initiator, c.initiatorDomains))) return false;
+  if (c.excludedInitiatorDomains && q.initiator && domainMatch(q.initiator, c.excludedInitiatorDomains)) return false;
+  if (c.urlFilter && !urlFilterRe(c.urlFilter).test(q.url)) return false;
+  if (c.regexFilter && !new RegExp(c.regexFilter).test(q.url)) return false;
+  return true;
+}
+function simulate(rules, q) {
+  const hits = rules.filter((r) => ruleMatches(r.condition, q));
+  const floor = Math.max(0, ...hits.filter((r) => r.action.type === 'allow').map((r) => r.priority));
+  const got = {};
+  for (const r of hits.filter((x) => x.action.type === 'modifyHeaders' && x.priority > floor).sort((a, b) => b.priority - a.priority)) {
+    for (const h of r.action.requestHeaders) if (!(h.header in got)) got[h.header] = h.value;
+  }
+  return got;
+}
+// What the user means: each profile applies if its own filters say so; the first one wins.
+function intended(profiles, q) {
+  const got = {};
+  for (const p of profiles) {
+    const f = (kind, type) => p.filters.filter((x) => x.kind === kind && x.type === type).map((x) => x.value);
+    const incUrl = p.filters.filter((x) => x.kind === 'include' && x.type !== 'initiator');
+    if (p.resourceTypes.length && !p.resourceTypes.includes(q.type)) continue;
+    if (incUrl.length && !(domainMatch(q.host, f('include', 'domain')) || f('include', 'pattern').some((v) => urlFilterRe(v).test(q.url)) ||
+      f('include', 'regex').some((v) => new RegExp(v).test(q.url)))) continue;
+    if (domainMatch(q.host, f('exclude', 'domain'))) continue;
+    if (f('exclude', 'pattern').some((v) => urlFilterRe(v).test(q.url)) || f('exclude', 'regex').some((v) => new RegExp(v).test(q.url))) continue;
+    if (f('include', 'initiator').length && !(q.initiator && domainMatch(q.initiator, f('include', 'initiator')))) continue;
+    if (q.initiator && domainMatch(q.initiator, f('exclude', 'initiator'))) continue;
+    for (const h of p.headers) if (!(h.name in got)) got[h.name] = h.value;
+  }
+  return got;
+}
+
+test('random profiles: the compiled rules do what the filters say, unless a warning says otherwise', () => {
+  let seed = 7;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+  const pick = (a) => a[rnd(a.length)];
+  const FILTERS = [
+    { type: 'pattern', value: '*/health*' }, { type: 'pattern', value: '||api.com^' }, { type: 'regex', value: '\\?debug' },
+    { type: 'domain', value: 'api.com' }, { type: 'domain', value: 'cdn.net' }, { type: 'initiator', value: 'app.dev' },
+  ];
+  const URLS = ['https://api.com/health', 'https://api.com/v1?debug', 'https://x.api.com/a', 'https://cdn.net/health', 'https://cdn.net/lib.js', 'https://other.org/'];
+  let checked = 0, warned = 0;
+  for (let n = 0; n < 400; n++) {
+    const profiles = Array.from({ length: 2 + rnd(3) }, (_, i) => ({
+      name: 'P' + i, headers: [hdr('X-Shared', 'P' + i), hdr('X-P' + i, '1')],
+      filters: Array.from({ length: rnd(3) }, () => Object.assign({ kind: rnd(2) ? 'include' : 'exclude' }, pick(FILTERS))),
+      resourceTypes: rnd(3) ? [] : ['xmlhttprequest'],
+    }));
+    const st = state(profiles);
+    const out = HD.compile(st);
+    if (out.problems.length) { warned++; continue; }
+    const rules = out.dynamic.concat(out.session);
+    for (const url of URLS) {
+      for (const type of ['main_frame', 'xmlhttprequest']) {
+        for (const initiator of [null, 'app.dev']) {
+          const q = { url, type, method: 'get', host: new URL(url).hostname, initiator };
+          assert.deepStrictEqual(simulate(rules, q), intended(st.profiles, q), JSON.stringify({ q, profiles }));
+          checked++;
+        }
+      }
+    }
+  }
+  // About half the random states put "Never on" URL filters in two profiles, which DNR cannot express.
+  assert.ok(checked > 4000 && warned < 250, `checked ${checked}, warned ${warned}`);
+});
+
+test('lower profile with redirects keeps its headers (copied) and gets a redirect warning; two exclusion profiles warn', () => {
+  let out = HD.compile(state([
+    { name: 'A', headers: [hdr('X-A', '1')], filters: [{ kind: 'exclude', type: 'regex', value: 'health' }] },
+    { name: 'B', headers: [hdr('X-B', '1')], redirects: [{ from: 'a.js', to: 'b.js' }] },
+  ]));
+  assert.strictEqual(out.dynamic.filter((r) => r.action.requestHeaders && r.action.requestHeaders[0].header === 'X-B').length, 2);
+  assert.strictEqual(out.problems.length, 1);
+  assert.match(out.problems[0].message, /"B" keeps its headers there, but its redirects stay off/);
+  out = HD.compile(state([
+    { name: 'A', headers: [hdr('X-A', '1')], filters: [{ kind: 'exclude', type: 'regex', value: 'health' }] },
+    { name: 'B', headers: [hdr('X-B', '1')], filters: [{ kind: 'exclude', type: 'pattern', value: '*/x' }] },
+  ]));
+  assert.match(out.problems[0].message, /"B" also has "Never on" URL filters.*Domain exclusion in one of the two/);
 });

@@ -87,7 +87,7 @@ function headerRow(p, h) {
 
 function filterRow(p, f) {
   const prob = f.enabled ? HD.filterProblem(f) : '';
-  const ph = { pattern: '||api.example.com^ or */v1/*', regex: '^https://.*\\.example\\.com/', domain: 'example.com' }[f.type];
+  const ph = { pattern: '||api.example.com^ or */v1/*', regex: '^https://.*\\.example\\.com/', domain: 'example.com', initiator: 'localhost (the page making the request)' }[f.type];
   return el('div', { class: 'frow' + (prob ? ' bad' : ''), dataset: { id: f.id } },
     el('input', { type: 'checkbox', checked: f.enabled, 'aria-label': 'Enabled', onchange: (e) => { f.enabled = e.target.checked; save(true); } }),
     el('select', { 'aria-label': 'Include or exclude', onchange: (e) => { f.kind = e.target.value; save(true); } },
@@ -96,7 +96,8 @@ function filterRow(p, f) {
     el('select', { 'aria-label': 'Filter type', onchange: (e) => { f.type = e.target.value; save(true); } },
       el('option', { value: 'pattern', selected: f.type === 'pattern' }, 'URL pattern'),
       el('option', { value: 'regex', selected: f.type === 'regex' }, 'URL regex'),
-      el('option', { value: 'domain', selected: f.type === 'domain' }, 'Domain')),
+      el('option', { value: 'domain', selected: f.type === 'domain' }, 'Domain'),
+      el('option', { value: 'initiator', selected: f.type === 'initiator', title: 'The site of the page that made the request' }, 'Page domain')),
     el('input', { type: 'text', class: 'val', value: f.value, placeholder: ph, spellcheck: false, title: prob || '',
       'aria-label': 'Filter value', oninput: (e) => {
         f.value = e.target.value; save();
@@ -236,7 +237,8 @@ function renderEditor() {
         p.filters.push(HD.newFilter('include', { type: 'domain', value: new URL(tab.url).hostname })); save(true);
       } }, '+ Only on ' + new URL(tab.url).hostname)),
     el('p', { class: 'hint' }, 'Pattern: ', el('code', {}, '||example.com^'), ' matches a domain and its subdomains, ',
-      el('code', {}, '*'), ' is a wildcard. With no "Only on" filter the profile applies everywhere.'),
+      el('code', {}, '*'), ' is a wildcard. With no "Only on" filter the profile applies everywhere. ',
+      el('b', {}, 'Page domain'), ' matches requests made by pages on that site (its fetches, scripts, images and the links it opens), not addresses you type.'),
     tabOnly,
     el('p', { class: 'hint' }, 'Request types (none ticked = all, including page loads):'), types,
     el('p', { class: 'hint' }, 'Methods (none ticked = all). CORS preflights are OPTIONS requests:'), methods);

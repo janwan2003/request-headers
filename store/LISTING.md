@@ -26,7 +26,7 @@ Features:
 • Profiles with colours. Run several at once; one switch (or Alt+Shift+D) pauses everything
 • Set, append or remove, on requests and on responses
 • URL redirects: send requests for one URL to another (e.g. a production script to localhost), including ModHeader URL replacements
-• Filters: domains, URL patterns, regular expressions, exclusions, request types, or a single tab
+• Filters: domains, URL patterns, regular expressions, the page that made the request, exclusions, request types, methods, or a single tab
 • Timed headers that switch themselves off after 15 minutes, an hour or a day
 • Cookies by name: send an extra cookie with matching requests, or store one in the browser as if the server set it
 • Copy a profile as a curl command for the current page

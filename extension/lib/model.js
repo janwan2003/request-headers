@@ -16,7 +16,7 @@
   const NAME_RE = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
   const COLORS = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#ea580c', '#0891b2', '#ca8a04', '#db2777'];
   const OPS = ['set', 'append', 'remove'];
-  const FILTER_TYPES = ['pattern', 'regex', 'domain'];
+  const FILTER_TYPES = ['pattern', 'regex', 'domain', 'initiator'];
   // Redirect modes: "replace" swaps the first occurrence of some text in the URL;
   // "regex" is a regular expression with \\1-style groups in the target.
   const REDIRECT_MODES = ['replace', 'regex'];
@@ -190,7 +190,7 @@
     if (f.type === 'regex') {
       try { new RegExp(v); } catch (e) { return 'invalid regular expression'; }
     }
-    if (f.type === 'domain' && !/^[a-z0-9.-]+$/i.test(v)) return 'domain must look like example.com';
+    if ((f.type === 'domain' || f.type === 'initiator') && !/^[a-z0-9.-]+$/i.test(v)) return 'domain must look like example.com';
     return '';
   }
 
@@ -257,6 +257,36 @@
     return out.filter(Boolean);
   }
 
+  const DOMAIN_KEYS = ['requestDomains', 'initiatorDomains'];
+  const intersect = (a, b) => a.filter((x) => b.includes(x));
+  /**
+   * The condition matching requests that match both a and b, or null when nothing can
+   * (no common request type, method or tab), or false when DNR cannot express it.
+   */
+  function combine(a, b) {
+    if ((a.urlFilter || a.regexFilter) && (b.urlFilter || b.regexFilter)) return false;
+    const c = Object.assign({}, a, b);
+    c.resourceTypes = intersect(a.resourceTypes, b.resourceTypes);
+    if (!c.resourceTypes.length) return null;
+    if (a.requestMethods && b.requestMethods) {
+      c.requestMethods = intersect(a.requestMethods, b.requestMethods);
+      if (!c.requestMethods.length) return null;
+    }
+    if (a.tabIds && b.tabIds) {
+      c.tabIds = intersect(a.tabIds, b.tabIds);
+      if (!c.tabIds.length) return null;
+    }
+    for (const k of DOMAIN_KEYS) {
+      // Lists match subdomains too, so only identical lists combine safely.
+      if (a[k] && b[k] && a[k].join() !== b[k].join()) return false;
+    }
+    for (const k of ['excludedRequestDomains', 'excludedInitiatorDomains']) {
+      const all = [...new Set([].concat(a[k] || [], b[k] || []))];
+      if (all.length) c[k] = all; else delete c[k];
+    }
+    return c;
+  }
+
   /**
    * Compile state into DNR rules.
    * opts.now: timestamp (ms); opts.resourceTypes: types the browser supports.
@@ -292,7 +322,9 @@
     if (state.paused) return out;
 
     const active = state.profiles.filter((p) => p.active);
-    active.forEach((p, idx) => {
+    // First work out each profile's rules, then give them priorities from the bottom up.
+    const built = [];
+    active.forEach((p) => {
       let live = liveHeaders(p, now);
       // Firefox rejects a whole rule if one header is set to an empty value, which would
       // switch off every other header in the profile; skip just that row instead.
@@ -326,49 +358,92 @@
       const exc = filters.filter((f) => f.kind === 'exclude');
       const types = p.resourceTypes.length ? p.resourceTypes.filter((t) => supported.includes(t)) : supported;
       const base = { resourceTypes: types.length ? types : supported };
-      const excludedDomains = exc.filter((f) => f.type === 'domain').map((f) => f.value.trim().toLowerCase());
-      if (excludedDomains.length) base.excludedRequestDomains = excludedDomains;
+      const domains = (list, type) => list.filter((f) => f.type === type).map((f) => f.value.trim().toLowerCase());
+      if (domains(exc, 'domain').length) base.excludedRequestDomains = domains(exc, 'domain');
+      // "Page domain" filters match the page that made the request (its initiator), so
+      // they narrow every other condition rather than adding alternatives.
+      if (domains(inc, 'initiator').length) base.initiatorDomains = domains(inc, 'initiator');
+      if (domains(exc, 'initiator').length) base.excludedInitiatorDomains = domains(exc, 'initiator');
       if (p.tabId != null) base.tabIds = [p.tabId];
       if (p.requestMethods.length) base.requestMethods = p.requestMethods.slice();
 
       const conditions = [];
-      const incDomains = inc.filter((f) => f.type === 'domain').map((f) => f.value.trim().toLowerCase());
-      if (incDomains.length) conditions.push({ requestDomains: incDomains });
+      if (domains(inc, 'domain').length) conditions.push({ requestDomains: domains(inc, 'domain') });
       for (const f of inc) {
         if (f.type === 'regex') conditions.push({ regexFilter: f.value.trim() });
         if (f.type === 'pattern') conditions.push({ urlFilter: f.value.trim() });
       }
       if (!conditions.length) conditions.push({});
 
-      const target = p.tabId != null ? out.session : out.dynamic;
-      const priority = (active.length - idx) * 2;
-      if (requestHeaders.length || responseHeaders.length) {
-        for (const c of conditions) {
-          target.push({ id: nextId++, priority, action, condition: Object.assign({}, base, c) });
-        }
-      }
+      const mods = (requestHeaders.length || responseHeaders.length)
+        ? conditions.map((c) => ({ action, condition: Object.assign({}, base, c) })) : [];
       // Redirects carry their own URL match, so "Only on" filters do not narrow them;
       // exclusions, the tab, request types and methods still do.
-      for (const r of redirects) {
+      const redirs = redirects.map((r) => {
         const { regexFilter, regexSubstitution } = redirectAction(r);
-        target.push({ id: nextId++, priority, action: { type: 'redirect', redirect: { regexSubstitution } },
-          condition: Object.assign({}, base, { regexFilter }) });
-      }
+        return { action: { type: 'redirect', redirect: { regexSubstitution } }, condition: Object.assign({}, base, { regexFilter }) };
+      });
       // URL-level exclusions become "allow" rules one step above this profile.
-      for (const f of exc) {
-        if (f.type === 'domain') continue;
+      const allows = exc.filter((f) => f.type === 'pattern' || f.type === 'regex').map((f) => {
         const c = Object.assign({}, base, f.type === 'regex' ? { regexFilter: f.value.trim() } : { urlFilter: f.value.trim() });
         delete c.excludedRequestDomains;
-        target.push({ id: nextId++, priority: priority + 1, action: { type: 'allow' }, condition: c });
-      }
+        return { action: { type: 'allow' }, condition: c, label: f.value.trim() };
+      });
+      built.push({ p, mods, redirs, allows });
     });
+
+    // An "allow" rule switches off every rule below it, not just its own profile's. So
+    // for each profile with URL exclusions, the profiles below it get copies of their
+    // header rules, limited to the excluded URLs and placed just above the allow rule.
+    // Copies are only possible where the two conditions can be combined into one.
+    const push = (r, priority) => {
+      const rule = { id: nextId++, priority, action: r.action, condition: r.condition };
+      (r.condition.tabIds ? out.session : out.dynamic).push(rule);
+    };
+    let cur = 1;
+    for (let i = built.length - 1; i >= 0; i--) {
+      const b = built[i];
+      const priority = cur;
+      b.mods.forEach((r) => push(r, priority));
+      b.redirs.forEach((r) => push(r, priority));
+      b.allows.forEach((r) => push(r, priority + 1));
+      cur = priority + 2;
+      if (!b.allows.length) continue;
+      for (let j = built.length - 1; j > i; j--) {
+        const lower = built[j];
+        const copies = [];
+        const urls = b.allows.map((a) => a.label).join(', ');
+        const warn = (text) => out.problems.push({ profileId: lower.p.id, message: `"${b.p.name}" has a "Never on" URL filter (${urls}), ` +
+          `and browsers then skip the profiles below it on those URLs too. ${text}` });
+        if (lower.allows.length) {
+          warn(`"${lower.p.name}" also has "Never on" URL filters, so it cannot be kept on there. Use a Domain exclusion in one of the two profiles.`);
+          continue;
+        }
+        let combinable = true;
+        for (const r of lower.mods) {
+          for (const a of b.allows) {
+            const c = combine(r.condition, a.condition);
+            if (c === false) combinable = false;
+            else if (c) copies.push({ action: r.action, condition: c });
+          }
+        }
+        if (!combinable) {
+          warn(`"${lower.p.name}" has "Only on" URL filters, so it cannot be kept on there. Move "${b.p.name}" below "${lower.p.name}", or use a Domain exclusion.`);
+          continue;
+        }
+        if (lower.redirs.length) {
+          warn(`"${lower.p.name}" keeps its headers there, but its redirects stay off. Move "${b.p.name}" below "${lower.p.name}" to keep them.`);
+        }
+        if (copies.length) { copies.forEach((r) => push(r, cur)); cur++; }
+      }
+    }
     return out;
   }
 
   root.HeaderDial = Object.assign(root.HeaderDial || {}, {
     SCHEMA, RESOURCE_TYPES, METHODS, APPENDABLE_REQUEST, COLORS, OPS, REDIRECT_MODES, uid, newHeader, newFilter,
     newRedirect, newCookie, newProfile, normalizeCookie, cookieProblem, cookieInfo, liveCookies, defaultState, normalizeState, normalizeProfile, normalizeHeader, normalizeFilter,
-    normalizeRedirect, headerProblem, filterProblem, redirectProblem, redirectAction, liveHeaders,
+    normalizeRedirect, combine, headerProblem, filterProblem, redirectProblem, redirectAction, liveHeaders,
     compile,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = root.HeaderDial;
