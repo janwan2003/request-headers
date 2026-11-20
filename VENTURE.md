@@ -159,7 +159,7 @@ What exists:
   share page, how-to guides plus a hub, sitemap.xml, robots.txt, `/download/headerdial.zip`.
 - `store/LISTING.md` (CWS/Edge text + AMO notes), `store/amo-listing.json`, two 1280×800 screenshots.
 
-Verified on 2026-11-20 (0.6.0) locally (see Log, session 6): unit 33/33 (incl. a 400-state property test comparing compiled
+Verified on 2026-11-20 (0.6.0) locally and in CI run 44760751411 (see Log, session 6): unit 33/33 (incl. a 400-state property test comparing compiled
 rules to intended per-profile behaviour); Chromium e2e 27/27 (Chrome for Testing 159.0.8154.6); Firefox e2e 18/18 in Firefox 158.0.1 over WebDriver BiDi
 (request set/remove/override, response header, fetch, domain/regex/method filters, URL redirects in
 both modes, cookie rows, empty-value rows, pause, no change without host access, access banner, shortcut).
@@ -325,4 +325,5 @@ that is how the incumbent died.
   VPN Central, fetched with curl; I spot-checked THN for Stripe OLT, 7.0.18, the domain) and modify-headers-one-tab-only (measured
   in Chrome 159/Firefox 158: other tabs, window.open, target=_blank, service worker requests do not get the header; cross-origin
   iframes do; closing the tab turns the profile off). CWS draft upload 0.6.0 SUCCESS. Listing texts, README, landing filters card
-  updated.
+  updated. CI 44760751411 (commit 3e80ce4) passed (test, firefox, deploy). Live (curl): 3 new guides 200, sitemap 31 URLs,
+  /download/headerdial.zip is 0.6.0 with initiatorDomains in lib/model.js; `gsc.py submit` 204.
