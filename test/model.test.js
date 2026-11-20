@@ -220,3 +220,52 @@ test('emptyValues:false (Firefox) skips empty set rows instead of losing the who
   assert.match(ff.problems[0].message, /^"X-Empty": this browser cannot send an empty value/);
   assert.strictEqual(ff.liveCount, 2);
 });
+
+test('cookie rows: request cookies become one Cookie append, response cookies one Set-Cookie each', () => {
+  const out = HD.compile(state([{ headers: [hdr('X-A', '1')], cookies: [
+    { name: 'a', value: '1' }, { name: 'b', value: ' 2 ' }, { name: 'off', value: 'x', enabled: false },
+    { target: 'response', name: 's', value: 'v', attrs: '; Path=/; Max-Age=60' }, { target: 'response', name: 't', value: 'w', attrs: '' },
+    { name: 'bad name', value: '1' }, { name: 'semi', value: 'a;b' }] }]));
+  const a = out.dynamic[0].action;
+  assert.deepStrictEqual(a.requestHeaders, [{ header: 'X-A', operation: 'set', value: '1' },
+    { header: 'cookie', operation: 'append', value: 'a=1; b=2' }]);
+  assert.deepStrictEqual(a.responseHeaders, [{ header: 'set-cookie', operation: 'append', value: 's=v; Path=/; Max-Age=60' },
+    { header: 'set-cookie', operation: 'append', value: 't=w' }]);
+  assert.strictEqual(out.liveCount, 5);
+  assert.deepStrictEqual(out.problems.map((p) => p.message), ['cookie "bad name": invalid cookie name',
+    'cookie "semi": a cookie value cannot contain ";" or a line break']);
+});
+
+test('cookie rows fold into a Cookie header row, so Cookie never gets two operations', () => {
+  const ck = [{ name: 'a', value: '1' }];
+  const one = (headers) => HD.compile(state([{ headers, cookies: ck }])).dynamic[0].action.requestHeaders;
+  assert.deepStrictEqual(one([hdr('Cookie', 'x=9')]), [{ header: 'Cookie', operation: 'set', value: 'x=9; a=1' }]);
+  assert.deepStrictEqual(one([hdr('Cookie', '', { op: 'remove' })]), [{ header: 'Cookie', operation: 'set', value: 'a=1' }]);
+  assert.deepStrictEqual(one([hdr('Cookie', 'x=9', { op: 'append' })]), [{ header: 'Cookie', operation: 'append', value: 'x=9; a=1' }]);
+  // A profile with only cookies still makes a rule.
+  assert.strictEqual(HD.compile(state([{ headers: [], cookies: ck }])).dynamic.length, 1);
+});
+
+test('ModHeader cookieHeaders and setCookieHeaders import as cookie rows', () => {
+  const res = HD.parseImport(JSON.stringify([{ title: 'C', headers: [],
+    cookieHeaders: [{ enabled: true, name: 'session', value: 'abc' }],
+    setCookieHeaders: [{ enabled: false, name: 'theme', value: 'dark; Path=/; Max-Age=600' }, { name: 'plain', value: '1' }] }]));
+  const c = res.profiles[0].cookies.map(({ target, name, value, attrs, enabled }) => ({ target, name, value, attrs, enabled }));
+  assert.deepStrictEqual(c, [{ target: 'request', name: 'session', value: 'abc', attrs: '', enabled: true },
+    { target: 'response', name: 'theme', value: 'dark', attrs: 'Path=/; Max-Age=600', enabled: false },
+    { target: 'response', name: 'plain', value: '1', attrs: 'Path=/', enabled: true }]);
+  assert.deepStrictEqual(res.warnings, []);
+  // Round trip through HeaderDial's own export keeps them.
+  const again = HD.parseImport(HD.exportJSON(res.profiles));
+  assert.deepStrictEqual(again.profiles[0].cookies.map((x) => x.name), ['session', 'theme', 'plain']);
+});
+
+test('curl command: headers quoted for the shell, removes as -H "Name:", cookies as -b, browser-only parts as comments', () => {
+  const p = state([{ headers: [hdr('Authorization', "Bearer it's"), hdr('User-Agent', '', { op: 'remove' }),
+    hdr('X-Off', '1', { enabled: false }), hdr('X-Resp', '1', { target: 'response' })],
+  cookies: [{ name: 'a', value: '1' }, { name: 'b', value: '2' }], redirects: [{ from: '/old/', to: '/new/' }] }]).profiles[0];
+  assert.strictEqual(HD.curlCommand(p, 'https://api.example.com/v1?x=1&y=2'),
+    '# not in curl (browser only): response header set X-Resp\n' +
+    '# not in curl (browser only): redirect /old/ -> /new/\n' +
+    "curl 'https://api.example.com/v1?x=1&y=2' \\\n  -H 'Authorization: Bearer it'\\''s' \\\n  -H 'User-Agent:' \\\n  -b 'a=1; b=2'");
+});

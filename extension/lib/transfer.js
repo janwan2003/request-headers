@@ -12,6 +12,8 @@
       name: p.name, color: p.color, active: p.active,
       headers: p.headers.map((h) => ({ enabled: h.enabled, target: h.target, name: h.name,
         value: blank ? '' : h.value, op: h.op, comment: h.comment })),
+      cookies: (p.cookies || []).map((c) => ({ enabled: c.enabled, target: c.target, name: c.name,
+        value: blank ? '' : c.value, attrs: c.attrs })),
       redirects: (p.redirects || []).map((r) => ({ enabled: r.enabled, mode: r.mode, from: r.from, to: r.to })),
       filters: p.filters.map((f) => ({ enabled: f.enabled, kind: f.kind, type: f.type, value: f.value })),
       resourceTypes: p.resourceTypes.slice(),
@@ -73,12 +75,21 @@
     const redirects = (Array.isArray(m.urlReplacements) ? m.urlReplacements : [])
       .filter((u) => u && u.name)
       .map((u) => HD.newRedirect({ enabled: u.enabled !== false, from: String(u.name), to: String(u.value == null ? '' : u.value) }));
-    for (const k of ['cookieHeaders', 'setCookieHeaders']) {
-      if (Array.isArray(m[k]) && m[k].length) note(`${k} (${m[k].length}) are not supported yet and were skipped`);
+    // ModHeader's request cookies add name=value to the Cookie header; its response
+    // cookies are Set-Cookie values, possibly with attributes after the first ";".
+    const cookies = [];
+    for (const [k, target] of [['cookieHeaders', 'request'], ['setCookieHeaders', 'response']]) {
+      for (const c of Array.isArray(m[k]) ? m[k] : []) {
+        if (!c || !c.name) continue;
+        const raw = c.value == null ? '' : String(c.value);
+        const cut = target === 'response' ? raw.indexOf(';') : -1;
+        cookies.push(HD.newCookie(target, { enabled: c.enabled !== false, name: String(c.name).trim(),
+          value: cut < 0 ? raw : raw.slice(0, cut).trim(), attrs: cut < 0 ? (target === 'response' ? 'Path=/' : '') : raw.slice(cut + 1).trim() }));
+      }
     }
-    const p = HD.newProfile(i, { name, headers, redirects, filters, resourceTypes: [...types].filter((t) => HD.RESOURCE_TYPES.includes(t)) });
+    const p = HD.newProfile(i, { name, headers, cookies, redirects, filters, resourceTypes: [...types].filter((t) => HD.RESOURCE_TYPES.includes(t)) });
     if (typeof m.backgroundColor === 'string' && /^#[0-9a-f]{6}$/i.test(m.backgroundColor)) p.color = m.backgroundColor;
-    if (!headers.length && !redirects.length) note('no headers');
+    if (!headers.length && !redirects.length && !cookies.length) note('no headers');
     return HD.normalizeProfile(p, i);
   }
 
@@ -108,6 +119,7 @@
         headers: (p.headers || []).map((h) => Object.assign({}, h, { id: null, expiresAt: null })),
         filters: (p.filters || []).map((f) => Object.assign({}, f, { id: null })),
         redirects: (p.redirects || []).map((r) => Object.assign({}, r, { id: null })),
+        cookies: (p.cookies || []).map((c) => Object.assign({}, c, { id: null })),
       }), i));
       return { source: 'HeaderDial', profiles, warnings };
     }
@@ -121,6 +133,30 @@
     throw new Error('Unrecognised format. Paste a HeaderDial export, a share link, or a ModHeader profile export.');
   }
 
-  Object.assign(HD, { FORMAT, SHARE_BASE, exportJSON, shareLink, parseImport, b64urlEncode, b64urlDecode });
+  // Quote one argument for a POSIX shell.
+  const shq = (t) => "'" + String(t).replace(/'/g, "'\\''") + "'";
+
+  /**
+   * A curl command that sends what this profile sends (request headers and cookies) to
+   * url. Removed headers become -H 'Name:' (curl then drops its own copy). Response
+   * changes and redirects are browser-side, so they are listed as comments.
+   */
+  function curlCommand(profile, url, opts) {
+    const now = (opts && opts.now) || Date.now();
+    const lines = [];
+    const notes = [];
+    for (const h of HD.liveHeaders(profile, now)) {
+      if (h.target === 'response') { notes.push(`response header ${h.op} ${h.name.trim()}`); continue; }
+      lines.push('-H ' + shq(h.op === 'remove' ? h.name.trim() + ':' : h.name.trim() + ': ' + h.value));
+    }
+    const sent = HD.liveCookies(profile).filter((c) => c.target === 'request').map((c) => c.name.trim() + '=' + c.value.trim());
+    if (sent.length) lines.push('-b ' + shq(sent.join('; ')));
+    for (const c of HD.liveCookies(profile)) if (c.target === 'response') notes.push(`response cookie ${c.name.trim()}`);
+    for (const r of profile.redirects || []) if (r.enabled && r.from.trim()) notes.push(`redirect ${r.from.trim()} -> ${r.to.trim()}`);
+    const cmd = ['curl ' + shq(url || 'https://example.com/')].concat(lines).join(' \\\n  ');
+    return (notes.length ? notes.map((n) => '# not in curl (browser only): ' + n).join('\n') + '\n' : '') + cmd;
+  }
+
+  Object.assign(HD, { FORMAT, SHARE_BASE, exportJSON, curlCommand, shareLink, parseImport, b64urlEncode, b64urlDecode });
   if (typeof module !== 'undefined' && module.exports) module.exports = HD;
 })(typeof self !== 'undefined' ? self : globalThis);

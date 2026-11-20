@@ -2,12 +2,12 @@
 <title>ModHeader alternative: import your ModHeader profiles – HeaderDial</title><meta name="description" content="ModHeader was pulled from the Chrome and Edge stores in July 2026. How to import your exported profiles into HeaderDial and how to vet a header extension.">
 <link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/modheader-alternative-import.html">
 <link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to import ModHeader profiles into HeaderDial","description":"Move profiles exported from ModHeader into HeaderDial, an open-source header editor for Chrome and Edge, and check what was converted.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"supply":[{"@type":"HowToSupply","name":"A ModHeader profile export (.json)"}],"step":[{"@type":"HowToStep","name":"Find your export","text":"Locate the JSON file you exported from ModHeader's popup, or the JSON text you copied."},{"@type":"HowToStep","name":"Open Import","text":"Open HeaderDial and click Import in the footer."},{"@type":"HowToStep","name":"Paste or choose the file","text":"Paste the JSON or choose the .json file. Tick Replace existing profiles if you want only the imported ones."},{"@type":"HowToStep","name":"Read the warnings","text":"Review the list of parts that could not be imported, such as tab, window or time filters, cookie headers and URL redirects."},{"@type":"HowToStep","name":"Grant site access and test","text":"Allow HeaderDial on the sites you need and check each profile."}]}</script></head>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to import ModHeader profiles into HeaderDial","description":"Move profiles exported from ModHeader into HeaderDial, an open-source header editor for Chrome and Edge, and check what was converted.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"supply":[{"@type":"HowToSupply","name":"A ModHeader profile export (.json)"}],"step":[{"@type":"HowToStep","name":"Find your export","text":"Locate the JSON file you exported from ModHeader's popup, or the JSON text you copied."},{"@type":"HowToStep","name":"Open Import","text":"Open HeaderDial and click Import in the footer."},{"@type":"HowToStep","name":"Paste or choose the file","text":"Paste the JSON or choose the .json file. Tick Replace existing profiles if you want only the imported ones."},{"@type":"HowToStep","name":"Read the warnings","text":"Review the list of parts that could not be imported, such as tab, tab-group, window or time filters."},{"@type":"HowToStep","name":"Grant site access and test","text":"Allow HeaderDial on the sites you need and check each profile."}]}</script></head>
 <body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
 <p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
 <article>
 <h1>ModHeader alternative: import your ModHeader profiles</h1>
-<p>If you used ModHeader and need a replacement, HeaderDial can read a ModHeader profile export directly. Open HeaderDial, click <strong>Import…</strong>, and paste the JSON or choose the <code>.json</code> file. Profile names, colours, request and response headers, URL filters and resource types carry over. Anything that can't be converted is listed in a warning, so nothing is dropped silently.</p>
+<p>If you used ModHeader and need a replacement, HeaderDial can read a ModHeader profile export directly. Open HeaderDial, click <strong>Import…</strong>, and paste the JSON or choose the <code>.json</code> file. Profile names, colours, request and response headers, request and response cookies, URL replacements, URL filters and resource types carry over. Anything that can't be converted is listed in a warning, so nothing is dropped silently.</p>
 
 <h2>What happened</h2>
 <p>ModHeader was removed from Microsoft Edge Add-ons on 2026-07-03 and from the Chrome Web Store on 2026-07-10, after a dormant data collector was found in the extension. See <a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News report</a> for details. If you still have it installed, read that report and decide whether to remove it. A header editor sees every request it is allowed to modify, so it deserves more scrutiny than most extensions.</p>
@@ -34,6 +34,8 @@
 <tr><td>URL filters (<code>urls</code>)</td><td><strong>Only on</strong> rows of type <strong>URL regex</strong></td></tr>
 <tr><td>Exclude URL filters (<code>excludeUrls</code>)</td><td><strong>Never on</strong> rows of type <strong>URL regex</strong></td></tr>
 <tr><td>Resource-type filters</td><td>Request-type checkboxes</td></tr>
+<tr><td>Request cookies (<code>cookieHeaders</code>)</td><td><strong>Cookies</strong> rows set to <strong>Send</strong> (since HeaderDial 0.4.0): added after the cookies the browser already sends</td></tr>
+<tr><td>Response cookies (<code>setCookieHeaders</code>)</td><td><strong>Cookies</strong> rows set to <strong>Store</strong> (since 0.4.0); anything after the first <code>;</code> in the value becomes the row's attributes</td></tr>
 <tr><td>URL replacements (<code>urlReplacements</code>)</td><td><strong>URL redirects</strong> of type <strong>Replace</strong> (since HeaderDial 0.3.0; see <a href="redirect-url-to-localhost.html">redirecting a URL</a>)</td></tr>
 </table>
 <p>Imported profiles start out active. Use each profile's <strong>Active</strong> switch to turn off the ones you don't need straight away.</p>
@@ -42,7 +44,6 @@
 <p>These have no equivalent yet. The import warning lists each one it found:</p>
 <ul>
 <li>Tab, tab-group, window and time filters. For a per-tab profile, tick <strong>Only in this tab (until it closes)</strong>; for time limits, use the expiry select on each header row (<strong>15 min</strong> to <strong>1 day</strong>).</li>
-<li>Cookie headers (the separate cookie and set-cookie lists). You can still add a <code>Cookie</code> request header row by hand.</li>
 </ul>
 
 <h2>Things to check after importing</h2>

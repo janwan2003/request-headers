@@ -240,6 +240,25 @@ async function launch() {
   await s.setState(`p.redirects = [];`);
   ok('Firefox: URL redirect (text and regex with groups) applies to page loads and fetch(), and headers still apply');
 
+  // Cookie rows: Send appends to the browser's Cookie header, Store saves via Set-Cookie.
+  await s.go(A + '/');
+  await s.run(`(document.cookie = 'pre=0; Path=/', document.cookie = 'dup=browser; Path=/', 1)`);
+  st = await s.setState(`p.cookies = [HeaderDial.newCookie('request', { name: 'hd', value: '1' }), HeaderDial.newCookie('request', { name: 'dup', value: 'ext' })];`);
+  assert.deepStrictEqual(st.problems, [], 'cookie rule accepted: ' + JSON.stringify(st.problems));
+  got = await s.echo();
+  assert.strictEqual(got.cookie, 'pre=0; dup=browser; hd=1; dup=ext', 'Firefox Cookie header: ' + got.cookie);
+  st = await s.setState(`p.cookies = [HeaderDial.newCookie('response', { name: 'hd', value: '1' }), HeaderDial.newCookie('response', { name: 'dup', value: 'ext' })];`);
+  assert.deepStrictEqual(st.problems, [], 'set-cookie rule accepted: ' + JSON.stringify(st.problems));
+  await s.go(A + '/');
+  await s.run(`fetch('/echo?store').then(() => 1)`);
+  const jar = await s.run('document.cookie');
+  assert.match(jar, /(^|; )hd=1(;|$)/, 'Firefox stored hd: ' + jar);
+  assert.match(jar, /(^|; )dup=ext(;|$)/, 'Firefox dup replaced: ' + jar);
+  await s.setState(`p.cookies = [];`);
+  await s.go(A + '/');
+  await s.run(`(['pre', 'dup', 'hd'].forEach((c) => { document.cookie = c + '=; Max-Age=0; Path=/'; }), 1)`);
+  ok('Firefox: cookie rows (Send appends to the Cookie header, Store saves via Set-Cookie)');
+
   // Firefox rejects a rule with an empty "set" value; only that row may be lost.
   st = await s.setState(`p.headers.push(HeaderDial.newHeader('request', { name: 'X-Empty', value: '' }));`);
   assert.strictEqual(st.problems.length, 1, JSON.stringify(st.problems));

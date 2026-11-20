@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "HeaderDial – Modify HTTP Request & Response Headers",
   "short_name": "HeaderDial",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Add, change or remove request and response headers, or redirect URLs. Profiles, filters, timed headers. Open source, no tracking.",
   "homepage_url": "https://janwan2003.github.io/request-headers/",
   "permissions": ["declarativeNetRequest", "storage", "alarms", "activeTab"],

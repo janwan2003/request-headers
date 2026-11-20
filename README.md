@@ -8,6 +8,8 @@ HTTP request and response headers. Website: https://janwan2003.github.io/request
 - Filters: domains, URL patterns, URL regexes, exclusions, request types, a single tab
 - Timed headers that switch themselves off (15 min to 1 day)
 - URL redirects: replace text in the URL or use a regex with groups (DNR `redirect` rules)
+- Cookie rows: send `name=value` after the browser's own cookies (one DNR `append` on `Cookie`), or store a cookie through an added `Set-Cookie` line
+- Copy a profile as a `curl` command for the current tab's URL
 - Import ModHeader profile exports; export and import JSON; share a profile as a link
   (the profile is encoded after `#`, nothing is uploaded)
 - No account, no analytics, no network requests, no remote code

@@ -134,6 +134,36 @@ function redirectRow(p, r) {
   return row;
 }
 
+function cookieRow(p, c) {
+  const prob = c.enabled && c.name.trim() ? HD.cookieProblem(c) : '';
+  const row = el('div', { class: 'crow' + (c.enabled ? '' : ' disabled') + (prob ? ' bad' : ''), dataset: { id: c.id } });
+  const check = () => {
+    const bad = c.enabled && c.name.trim() ? HD.cookieProblem(c) : '';
+    row.classList.toggle('bad', !!bad); row.querySelector('input.name').title = bad;
+  };
+  const res = c.target === 'response';
+  row.append(
+    el('input', { type: 'checkbox', checked: c.enabled, 'aria-label': 'Enabled', title: 'Enabled',
+      onchange: (e) => { c.enabled = e.target.checked; save(true); } }),
+    el('select', { 'aria-label': 'Cookie direction',
+      title: 'Send: add the cookie to requests. Store: make the browser save it, as if the server had sent Set-Cookie.',
+      onchange: (e) => { c.target = e.target.value; if (c.target === 'response' && !c.attrs) c.attrs = 'Path=/'; save(true); } },
+      el('option', { value: 'request', selected: !res }, 'Send'),
+      el('option', { value: 'response', selected: res }, 'Store')),
+    el('input', { type: 'text', class: 'name', value: c.name, placeholder: 'Cookie name', spellcheck: false,
+      title: prob || '', 'aria-label': 'Cookie name', oninput: (e) => { c.name = e.target.value; save(); check(); } }),
+    el('span', { class: 'arrow', 'aria-hidden': 'true' }, '='),
+    el('input', { type: 'text', class: 'value', value: c.value, placeholder: 'Value', spellcheck: false,
+      'aria-label': 'Cookie value', oninput: (e) => { c.value = e.target.value; save(); check(); } }),
+    // row.append is the DOM method, which would print "false"; pass '' when there is no field.
+    !res ? '' : el('input', { type: 'text', class: 'attrs', value: c.attrs, placeholder: 'Path=/; Max-Age=3600', spellcheck: false,
+      'aria-label': 'Cookie attributes', title: 'Set-Cookie attributes, e.g. Path=/; Max-Age=3600; Secure',
+      oninput: (e) => { c.attrs = e.target.value; save(); check(); } }),
+    el('button', { class: 'icon', type: 'button', title: 'Delete', 'aria-label': 'Delete cookie',
+      onclick: () => { p.cookies = p.cookies.filter((x) => x !== c); save(true); } }, '×'));
+  return row;
+}
+
 function renderProfiles() {
   const nav = $('profiles');
   nav.replaceChildren(...state.profiles.map((p) => el('button', {
@@ -154,12 +184,13 @@ function profileMenu(p, anchor) {
   const list = el('div', { class: 'menu-list', role: 'menu' },
     item('Duplicate', () => {
       const copy = HD.normalizeProfile(JSON.parse(JSON.stringify(Object.assign({}, p, { id: null, name: p.name + ' copy', tabId: null,
-        headers: p.headers.map((h) => Object.assign({}, h, { id: null })), redirects: p.redirects.map((r) => Object.assign({}, r, { id: null })), filters: p.filters.map((f) => Object.assign({}, f, { id: null })) }))), state.profiles.length);
+        headers: p.headers.map((h) => Object.assign({}, h, { id: null })), cookies: p.cookies.map((c) => Object.assign({}, c, { id: null })), redirects: p.redirects.map((r) => Object.assign({}, r, { id: null })), filters: p.filters.map((f) => Object.assign({}, f, { id: null })) }))), state.profiles.length);
       state.profiles.splice(idx + 1, 0, copy); state.selectedId = copy.id; save(true);
     }),
     idx > 0 && item('Move left (higher priority)', () => { state.profiles.splice(idx, 1); state.profiles.splice(idx - 1, 0, p); save(true); }),
     idx < state.profiles.length - 1 && item('Move right', () => { state.profiles.splice(idx, 1); state.profiles.splice(idx + 1, 0, p); save(true); }),
     item('Share as link…', () => openShare(p)),
+    item('Copy as curl…', () => openCurl(p)),
     item('Export this profile', () => download(HD.exportJSON([p]), slug(p.name) + '.headerdial.json')),
     state.profiles.length > 1 && item('Delete profile', () => {
       if (!confirm(`Delete "${p.name}"?`)) return;
@@ -225,6 +256,13 @@ function renderEditor() {
     el('h3', {}, 'Response headers'),
     el('div', { class: 'rows', id: 'res-rows' }, res.length ? res.map((h) => headerRow(p, h)) : el('div', { class: 'empty' }, 'None.')),
     el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-res', onclick: () => addHeader(p, 'response') }, '+ Response header')),
+    ...(p.cookies.length ? [
+      el('h3', {}, 'Cookies'),
+      el('div', { class: 'rows', id: 'cookie-rows' }, p.cookies.map((c) => cookieRow(p, c))),
+      el('p', { class: 'hint' }, 'Send adds name=value after the cookies the browser sends. If it already has one with that name, the server gets both, ',
+        'the browser\'s first. Store saves the cookie in the browser, as Set-Cookie would, replacing one with the same name and path.'),
+    ] : []),
+    el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-cookie', onclick: () => addCookie(p) }, '+ Cookie')),
     ...(p.redirects.length ? [
       el('h3', {}, 'URL redirects'),
       el('div', { class: 'rows', id: 'redir-rows' }, p.redirects.map((r) => redirectRow(p, r))),
@@ -240,6 +278,14 @@ function addHeader(p, target) {
   p.headers.push(h);
   save(true);
   const input = document.querySelector(`[data-id="${h.id}"] input.name`);
+  if (input) input.focus();
+}
+
+function addCookie(p) {
+  const c = HD.newCookie('request');
+  p.cookies.push(c);
+  save(true);
+  const input = document.querySelector(`[data-id="${c.id}"] input.name`);
   if (input) input.focus();
 }
 
@@ -317,6 +363,19 @@ function openShare(p) {
   upd();
   d.showModal();
 }
+
+function openCurl(p) {
+  const url = tab && tab.url && /^https?:/.test(tab.url) ? tab.url : 'https://example.com/';
+  $('curl-text').value = HD.curlCommand(p, url);
+  $('curl-msg').textContent = '';
+  $('curl-dialog').showModal();
+}
+
+$('curl-copy').addEventListener('click', async (e) => {
+  e.preventDefault();
+  try { await navigator.clipboard.writeText($('curl-text').value); } catch (_) { $('curl-text').select(); document.execCommand('copy'); }
+  $('curl-msg').className = 'msg ok'; $('curl-msg').textContent = 'Copied.';
+});
 
 $('share-copy').addEventListener('click', async (e) => {
   e.preventDefault();

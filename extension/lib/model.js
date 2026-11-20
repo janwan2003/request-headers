@@ -39,10 +39,18 @@
     return Object.assign({ id: uid(), enabled: true, mode: 'replace', from: '', to: '' }, o || {});
   }
 
+  // A cookie row: "request" sends name=value in the Cookie header (added to the cookies
+  // the browser already sends); "response" stores it, as if the server sent Set-Cookie.
+  function newCookie(target, o) {
+    const response = target === 'response';
+    return Object.assign({ id: uid(), enabled: true, target: response ? 'response' : 'request',
+      name: '', value: '', attrs: response ? 'Path=/' : '' }, o || {});
+  }
+
   function newProfile(index, o) {
     const i = index || 0;
     return Object.assign({ id: uid(), name: 'Profile ' + (i + 1), color: COLORS[i % COLORS.length], active: true,
-      headers: [newHeader('request')], redirects: [], filters: [], resourceTypes: [], requestMethods: [], tabId: null, tabLabel: '' }, o || {});
+      headers: [newHeader('request')], cookies: [], redirects: [], filters: [], resourceTypes: [], requestMethods: [], tabId: null, tabLabel: '' }, o || {});
   }
 
   function defaultState() {
@@ -89,6 +97,18 @@
     };
   }
 
+  function normalizeCookie(c) {
+    c = c && typeof c === 'object' ? c : {};
+    return {
+      id: str(c.id, '') || uid(),
+      enabled: bool(c.enabled, true),
+      target: c.target === 'response' ? 'response' : 'request',
+      name: str(c.name, ''),
+      value: str(c.value, ''),
+      attrs: str(c.attrs, ''),
+    };
+  }
+
   function normalizeProfile(p, i) {
     p = p && typeof p === 'object' ? p : {};
     return {
@@ -97,6 +117,7 @@
       color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : COLORS[i % COLORS.length],
       active: bool(p.active, true),
       headers: Array.isArray(p.headers) ? p.headers.map(normalizeHeader) : [],
+      cookies: Array.isArray(p.cookies) ? p.cookies.map(normalizeCookie) : [],
       redirects: Array.isArray(p.redirects) ? p.redirects.map(normalizeRedirect) : [],
       filters: Array.isArray(p.filters) ? p.filters.map(normalizeFilter) : [],
       resourceTypes: Array.isArray(p.resourceTypes) ? p.resourceTypes.filter((t) => RESOURCE_TYPES.includes(t)) : [],
@@ -121,6 +142,46 @@
     if (!NAME_RE.test(name)) return 'invalid header name';
     if (h.op !== 'remove' && /[\r\n\0]/.test(h.value)) return 'value contains a line break';
     return '';
+  }
+
+  // Returns a problem message for a cookie row, or '' if it can be applied.
+  function cookieProblem(c) {
+    const name = c.name.trim();
+    if (!name) return '';
+    if (!NAME_RE.test(name)) return 'invalid cookie name';
+    if (/[;\r\n\0]/.test(c.value)) return 'a cookie value cannot contain ";" or a line break';
+    if (c.target === 'response' && /[\r\n\0]/.test(c.attrs)) return 'attributes contain a line break';
+    return '';
+  }
+
+  function liveCookies(p) {
+    return (p.cookies || []).filter((c) => c.enabled && c.name.trim() && !cookieProblem(c));
+  }
+
+  // The header row a cookie row becomes.
+  function cookieInfo(c) {
+    const pair = c.name.trim() + '=' + c.value.trim();
+    if (c.target === 'request') return { header: 'cookie', operation: 'append', value: pair };
+    const attrs = c.attrs.trim().replace(/^;\s*/, '');
+    return { header: 'set-cookie', operation: 'append', value: attrs ? pair + '; ' + attrs : pair };
+  }
+
+  // Request cookie rows become one "name=value; ..." string. It is appended to the Cookie
+  // header the browser sends; if a header row sets or removes Cookie, the cookies are
+  // folded into that row instead, so one rule never has two operations on Cookie.
+  function withCookies(list, pairs) {
+    if (!pairs.length) return list;
+    const joined = pairs.join('; ');
+    const i = list.findIndex((x) => x.header.toLowerCase() === 'cookie' && x.operation !== 'append');
+    if (i < 0) {
+      const j = list.findIndex((x) => x.header.toLowerCase() === 'cookie');
+      if (j < 0) return list.concat({ header: 'cookie', operation: 'append', value: joined });
+      list[j] = Object.assign({}, list[j], { value: list[j].value ? list[j].value + '; ' + joined : joined });
+      return list;
+    }
+    const x = list[i];
+    list[i] = { header: x.header, operation: 'set', value: x.operation === 'set' && x.value ? x.value + '; ' + joined : joined };
+    return list;
   }
 
   function filterProblem(f) {
@@ -219,6 +280,10 @@
         const prob = f.enabled ? filterProblem(f) : '';
         if (prob) out.problems.push({ profileId: p.id, filterId: f.id, message: `filter "${f.value.trim()}": ${prob}` });
       }
+      for (const c of p.cookies || []) {
+        const prob = c.enabled && c.name.trim() ? cookieProblem(c) : '';
+        if (prob) out.problems.push({ profileId: p.id, cookieId: c.id, message: `cookie "${c.name.trim()}": ${prob}` });
+      }
       for (const r of p.redirects) {
         const prob = r.enabled ? redirectProblem(r) : '';
         if (prob) out.problems.push({ profileId: p.id, redirectId: r.id, message: `redirect "${r.from.trim()}": ${prob}` });
@@ -245,10 +310,13 @@
         }
       }
       const redirects = liveRedirects(p);
-      if (!live.length && !redirects.length) return;
-      out.liveCount += live.length + redirects.length;
-      const requestHeaders = dedupe(live.filter((h) => h.target === 'request').map((h) => headerInfo(h, out.problems, p)));
-      const responseHeaders = dedupe(live.filter((h) => h.target === 'response').map((h) => headerInfo(h, out.problems, p)));
+      const cookies = liveCookies(p);
+      if (!live.length && !redirects.length && !cookies.length) return;
+      out.liveCount += live.length + redirects.length + cookies.length;
+      const requestHeaders = withCookies(dedupe(live.filter((h) => h.target === 'request').map((h) => headerInfo(h, out.problems, p))),
+        cookies.filter((c) => c.target === 'request').map((c) => cookieInfo(c).value));
+      const responseHeaders = dedupe(live.filter((h) => h.target === 'response').map((h) => headerInfo(h, out.problems, p))
+        .concat(cookies.filter((c) => c.target === 'response').map(cookieInfo)));
       const action = { type: 'modifyHeaders' };
       if (requestHeaders.length) action.requestHeaders = requestHeaders;
       if (responseHeaders.length) action.responseHeaders = responseHeaders;
@@ -299,7 +367,7 @@
 
   root.HeaderDial = Object.assign(root.HeaderDial || {}, {
     SCHEMA, RESOURCE_TYPES, METHODS, APPENDABLE_REQUEST, COLORS, OPS, REDIRECT_MODES, uid, newHeader, newFilter,
-    newRedirect, newProfile, defaultState, normalizeState, normalizeProfile, normalizeHeader, normalizeFilter,
+    newRedirect, newCookie, newProfile, normalizeCookie, cookieProblem, cookieInfo, liveCookies, defaultState, normalizeState, normalizeProfile, normalizeHeader, normalizeFilter,
     normalizeRedirect, headerProblem, filterProblem, redirectProblem, redirectAction, liveHeaders,
     compile,
   });

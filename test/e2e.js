@@ -258,6 +258,51 @@ async function fetchVia(page, url) {
   assert.match(await page.evaluate(() => document.cookie), /sc=1/, 'control: without the rule the cookie is stored');
   ok('Origin can be set on fetch, and removing Set-Cookie stops the cookie being stored');
 
+  // Cookie rows typed in the UI. Measured: what the server receives when the browser
+  // already has cookies (including one with the same name), and what a "Store" row saves.
+  await page.goto(A + '/');
+  await page.evaluate(() => { document.cookie = 'sc=; Max-Age=0; Path=/'; document.cookie = 'pre=0; Path=/'; document.cookie = 'dup=browser; Path=/'; });
+  const liveBefore = (await status()).live;
+  await ui.click('#add-cookie');
+  await ui.locator('#cookie-rows .crow').nth(0).locator('input.name').fill('hd');
+  await ui.locator('#cookie-rows .crow').nth(0).locator('input.value').fill('1');
+  await ui.click('#add-cookie');
+  await ui.locator('#cookie-rows .crow').nth(1).locator('input.name').fill('dup');
+  await ui.locator('#cookie-rows .crow').nth(1).locator('input.value').fill('ext');
+  await settle();
+  await until(async () => (await status()).live === liveBefore + 2, 'two cookie rows live');
+  assert.doesNotMatch(await ui.locator('#cookie-rows').innerText(), /false|null|undefined/, 'no stray text in cookie rows');
+  const sentCookie = (await fetchVia(page, A + '/echo?cookie')).body.cookie;
+  assert.strictEqual(sentCookie, 'pre=0; dup=browser; hd=1; dup=ext', 'Cookie header: ' + sentCookie);
+  assert.strictEqual((await echoVia(page, A + '/echo')).cookie, 'pre=0; dup=browser; hd=1; dup=ext', 'page loads too');
+  // With no browser cookies at all, the row still creates the header.
+  const noJar = await page.evaluate(async (u) => (await (await fetch(u, { credentials: 'omit' })).json()).cookie || null, B + '/echo?nojar');
+  assert.strictEqual(noJar, 'hd=1; dup=ext', 'credentials: omit still gets the added cookies: ' + noJar);
+  // "Store" rows: two Set-Cookie lines added to a response; the browser saves both,
+  // and the stored one replaces a cookie with the same name.
+  await ui.locator('#cookie-rows .crow').nth(0).locator('select').selectOption('response');
+  await ui.locator('#cookie-rows .crow').nth(1).locator('select').selectOption('response');
+  await settle();
+  await until(async () => ((await sw.evaluate(() => chrome.declarativeNetRequest.getDynamicRules()))
+    .flatMap((r) => (r.action.responseHeaders || [])).filter((h) => h.header === 'set-cookie')).length === 2, 'two set-cookie rules');
+  await page.evaluate(() => fetch('/echo?store'));
+  const jar = await page.evaluate(() => document.cookie);
+  assert.match(jar, /(^|; )hd=1(;|$)/, 'stored hd: ' + jar);
+  assert.match(jar, /(^|; )dup=ext(;|$)/, 'dup replaced: ' + jar);
+  assert.doesNotMatch(jar, /dup=browser/);
+  // Copy as curl shows this profile's request headers.
+  await ui.locator('.pbar .menu button').click();
+  await ui.getByRole('button', { name: 'Copy as curl…' }).click();
+  const curl = await ui.locator('#curl-text').inputValue();
+  assert.match(curl, /^# not in curl \(browser only\): response cookie hd/m);
+  assert.match(curl, /-H 'X-HeaderDial: on'/);
+  await ui.locator('#curl-dialog button[value=cancel]').click();
+  while (await ui.locator('#cookie-rows .crow').count()) await ui.locator('#cookie-rows button[aria-label="Delete cookie"]').first().click();
+  await settle();
+  await until(async () => (await status()).live === liveBefore, 'cookie rows deleted');
+  await page.evaluate(() => { for (const c of ['pre', 'dup', 'hd']) document.cookie = c + '=; Max-Age=0; Path=/'; });
+  ok('cookie rows: Send adds to the browser\'s cookies (same name: both sent, browser\'s first), Store saves and replaces; copy as curl');
+
   // Remove and override existing headers.
   await ui.click('#add-req');
   await ui.locator('#req-rows .hrow').nth(1).locator('input.name').fill('Accept-Language');

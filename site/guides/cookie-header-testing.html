@@ -39,12 +39,28 @@
 <tr><td>set to <code>h=secret; Path=/</code> (HttpOnly dropped)</td><td><code>h</code>, now visible in <code>document.cookie</code></td></tr>
 </table>
 <p>So in both browsers, cookie storage follows the modified header. That is unlike <a href="cache-control-header-testing.html">Cache-Control</a>, where Chrome's cache ignores response overrides. In every case, <code>response.headers.get('set-cookie')</code> in the page returned <code>null</code>: browsers never show <code>Set-Cookie</code> to scripts.</p>
-<p>Uses: see how the site behaves when a cookie is refused (remove), try a different expiry, <code>SameSite</code> or <code>Path</code> before changing the server (set), or temporarily expose an HttpOnly cookie to your own debugging script. Our tests used plain cookies over HTTP. We did not test how the browser treats rewritten <code>Secure</code>, <code>Domain</code> or <code>SameSite</code> attributes, or a response with several <code>Set-Cookie</code> lines.</p>
+<p>Uses: see how the site behaves when a cookie is refused (remove), try a different expiry, <code>SameSite</code> or <code>Path</code> before changing the server (set), or temporarily expose an HttpOnly cookie to your own debugging script. Our tests used plain cookies over HTTP. We did not test how the browser treats rewritten <code>Secure</code>, <code>Domain</code> or <code>SameSite</code> attributes.</p>
+
+<h2 id="cookie-rows">One cookie by name: Cookie rows (HeaderDial 0.4.0)</h2>
+<p>Since version 0.4.0 you don't have to write the header yourself. Click <strong>+ Cookie</strong>, type a name and a value, and pick:</p>
+<ul>
+<li><strong>Send</strong>: adds <code>name=value</code> after the cookies the browser already sends. The browser's jar is not touched.</li>
+<li><strong>Store</strong>: adds a <code>Set-Cookie</code> line to matching responses, so the browser saves the cookie. The extra field holds its attributes (default <code>Path=/</code>; for example <code>Path=/; Max-Age=3600</code>).</li>
+</ul>
+<p>Measured with HeaderDial 0.4.0 in Chrome 159 and Firefox 158 (these checks run in the extension's automated tests). The page already had two cookies, <code>pre=0</code> and <code>dup=browser</code>; two rows were added, <code>hd=1</code> and <code>dup=ext</code>:</p>
+<table>
+<tr><th>Rows</th><th>Result, both browsers</th></tr>
+<tr><td>Send <code>hd=1</code>, Send <code>dup=ext</code></td><td>Server received <code>pre=0; dup=browser; hd=1; dup=ext</code> on page loads and <code>fetch()</code></td></tr>
+<tr><td>Same, on a <code>fetch()</code> with <code>credentials: 'omit'</code> (Chrome)</td><td>Server received <code>hd=1; dup=ext</code>: the browser's cookies were left out, the rows were still sent</td></tr>
+<tr><td>Store <code>hd=1</code>, Store <code>dup=ext</code> (two <code>Set-Cookie</code> lines on one response)</td><td>Both stored; <code>dup=ext</code> replaced <code>dup=browser</code></td></tr>
+</table>
+<p>Note the duplicate: when the browser already has a cookie with the same name, <strong>Send</strong> does not replace it. The server receives both, the browser's first, and which one your framework reads depends on its cookie parser. To replace a cookie for real, use <strong>Store</strong>, or a <code>Cookie</code> header row with <strong>set</strong>. If a profile has both a <code>Cookie</code> header row and Send rows, HeaderDial folds the rows into that header, after its value.</p>
+<p>ModHeader's request and response cookie lists import as Send and Store rows. To get the same request in a terminal, open the profile's <strong>⋯</strong> menu and choose <strong>Copy as curl…</strong>: Send rows become one <code>-b</code> argument.</p>
 
 <h2>Steps</h2>
 <ol>
 <li>Click the HeaderDial icon. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
-<li>For requests: click <strong>+ Request header</strong>, type <code>Cookie</code> (it is in the suggestions), and pick <strong>set</strong>, <strong>append</strong> or <strong>remove</strong>. A value holds one or more <code>name=value</code> pairs separated by <code>; </code>.</li>
+<li>For one cookie by name: click <strong>+ Cookie</strong> and choose <strong>Send</strong> or <strong>Store</strong> (see above). For the whole header: click <strong>+ Request header</strong>, type <code>Cookie</code> (it is in the suggestions), and pick <strong>set</strong>, <strong>append</strong> or <strong>remove</strong>. A value holds one or more <code>name=value</code> pairs separated by <code>; </code>.</li>
 <li>For responses: create a second profile with <strong>+</strong>, click <strong>+ Response header</strong> and type <code>Set-Cookie</code>. Use <strong>remove</strong>, or <strong>set</strong> with a full cookie line such as <code>theme=dark; Path=/; Max-Age=3600</code>.</li>
 <li>Open <strong>Where it applies</strong> and use <strong>+ Only on…</strong> with type <strong>Domain</strong>. For a response rule, a <strong>URL pattern</strong> for the one endpoint that sets the cookie is safer.</li>
 <li>Reload, then compare the server log with DevTools: Application › Cookies in Chrome and Edge, Storage › Cookies in Firefox.</li>

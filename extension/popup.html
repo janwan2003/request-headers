@@ -63,6 +63,19 @@
   </form>
 </dialog>
 
+<dialog id="curl-dialog">
+  <form method="dialog" class="dlg">
+    <h2>Copy as curl</h2>
+    <p class="muted">The same request headers and cookies this profile sends, for the current tab's URL. It includes header values such as tokens, so treat it like a password.</p>
+    <textarea id="curl-text" rows="7" readonly spellcheck="false"></textarea>
+    <p id="curl-msg" class="msg" role="status"></p>
+    <div class="row end">
+      <button value="cancel">Close</button>
+      <button id="curl-copy" value="default" class="primary">Copy</button>
+    </div>
+  </form>
+</dialog>
+
 <datalist id="header-names">
   <option value="Authorization"><option value="Accept"><option value="Accept-Language"><option value="Cache-Control">
   <option value="Content-Type"><option value="Cookie"><option value="Origin"><option value="Referer">
