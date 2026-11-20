@@ -99,7 +99,7 @@ about 500K Chrome users. The rest is fragmented into small or copycat listings.
 
 ## Status
 
-HeaderDial 0.5.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
+HeaderDial 0.6.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
 - **Firefox Add-ons:** submitted 2026-11-20 through the AMO API, slug `headerdial`, id
   `headerdial@plainbyte`, https://addons.mozilla.org/firefox/addon/headerdial/. Version 0.2.0
   with Markdown description and 2 screenshots; add-on status `nominated`, file `unreviewed`
@@ -107,11 +107,11 @@ HeaderDial 0.5.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and sit
   0.1.0 was superseded. **0.3.x/0.4.0 are deliberately not on AMO yet**: wait until 0.2.0 is approved
   so the first review is not disturbed, then `publish-amo.py` (version) and `--listing` (the
   description in `store/amo-listing.json` already mentions redirects, cookies and curl). Still
-  `nominated` on 2026-11-20 (session 4 and session 5 rechecks). `amo-listing.json` now also mentions ModHeader
+  `nominated` on 2026-11-20 (session 4, 5 and 6 rechecks). `amo-listing.json` now also mentions ModHeader
   recovery.
-- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0 and 0.5.0 (session 5), uploaded through the API on 2026-11-20 as a draft, item id
+- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5) and 0.6.0 (session 6), uploaded through the API on 2026-11-20 as a draft, item id
   `hfacpfgfdcpacffioinklbocgjiglhig` (`store/cws-item.json`, upload state SUCCESS). Publishing
-  fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in sessions 4 and 5) listing
+  fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in sessions 4, 5 and 6) listing
   privacy practices, certification, language, category, icon, screenshot, description and a
   verified publisher contact email. Exact text for every field: `store/chrome-privacy.md`
   (inbox line added). Promo tiles: `store/promo-small-440x280.png`, `store/promo-marquee-1400x560.png`
@@ -125,7 +125,8 @@ What exists:
 - `extension/`: popup and full-tab editor (`popup.html?page=1`). Profiles (several can be
   active; the leftmost wins), request and response headers with set/append/remove, timed
   headers (15 min to 1 day, via `chrome.alarms`), filters (domain, URL pattern, regex,
-  "Never on" exclusions, request types, **request methods**, one tab), global pause (switch
+  "Never on" exclusions, request types, **request methods**, **Page domain** = the requesting page's site via DNR
+  `initiatorDomains`/`excludedInitiatorDomains` (0.6.0), one tab), global pause (switch
   or **Alt+Shift+D**), a badge with the active-header count, "Applied to N requests in this
   tab" (`getMatchedRules` via activeTab), optional site access requested from the popup (all
   sites or the current one), **URL redirects** (0.3.0: "Replace" text in the URL or "Regex" with
@@ -143,7 +144,10 @@ What exists:
   and by the extension's Import dialog (choose the .ldb/.log files). Fixtures in `test/fixtures/` were written by
   Chromium 159 through `test/make-leveldb-fixture.js` (old copy in a snappy .ldb, a 900-header profile spanning
   log blocks, localStorage UTF-16 keys).
-- `extension/lib/model.js` compiles profiles into DNR rules (`modifyHeaders`, `redirect`, `allow` for exclusions). `background.js` applies them;
+- `extension/lib/model.js` compiles profiles into DNR rules (`modifyHeaders`, `redirect`, `allow` for exclusions). Since 0.6.0 priorities
+  are assigned bottom-up, and a profile's URL exclusion (an `allow` rule, which cuts *every* lower rule) gets copies of the lower
+  profiles' header rules just above it, limited to the excluded URLs (`combine()`); where DNR cannot express that (two profiles with
+  URL exclusions, or an Only-on URL filter below) the popup shows a warning naming both profiles. `background.js` applies them;
   if the browser rejects the batch it adds rules one at a time and reports the bad ones.
 - `scripts/build.js` emits `dist/extension` + zip (Chrome/Edge) and `dist/firefox` + zip (the
   same files, Firefox manifest: event-page background, gecko id, `data_collection_permissions:
@@ -155,8 +159,8 @@ What exists:
   share page, how-to guides plus a hub, sitemap.xml, robots.txt, `/download/headerdial.zip`.
 - `store/LISTING.md` (CWS/Edge text + AMO notes), `store/amo-listing.json`, two 1280×800 screenshots.
 
-Verified on 2026-11-20 (0.5.0) locally and in CI runs 44755800168 and 44756703436 (see Log): unit 28/28; Chromium
-e2e 25/25 (Chrome for Testing 159.0.8154.6); Firefox e2e 16/16 in Firefox 158.0.1 over WebDriver BiDi
+Verified on 2026-11-20 (0.6.0) locally (see Log, session 6): unit 33/33 (incl. a 400-state property test comparing compiled
+rules to intended per-profile behaviour); Chromium e2e 27/27 (Chrome for Testing 159.0.8154.6); Firefox e2e 18/18 in Firefox 158.0.1 over WebDriver BiDi
 (request set/remove/override, response header, fetch, domain/regex/method filters, URL redirects in
 both modes, cookie rows, empty-value rows, pause, no change without host access, access banner, shortcut).
 The Chromium e2e also opens the real toolbar popup (`chrome.action.openPopup()` over CDP) with
@@ -179,7 +183,8 @@ check the binding and call the handler).
    AMO daily users in Metrics.
 3. **Search Console:** `python3 scripts/gsc.py status` from about 2026-11-27 for indexing and the
    first impressions; record them in Metrics. Write guides for the queries that show up.
-4. Features next: tab-group / window filters (the last ModHeader import warnings), and an
+4. Features next: tab-group / window filters (the last ModHeader import warnings; tab/window ids do not survive a restart, so
+   import value is low), and an
    "edit one cookie" mode that really replaces a same-named browser cookie (DNR cannot rewrite part of a
    header; would need the `cookies` permission, so weigh it against the minimal-permission promise).
 5. Guard the guides, continued: session 5 added e2e guards for Sec-Fetch-Site settable and Host/Connection
@@ -191,7 +196,10 @@ check the binding and call the handler).
 7. Guard the cross-profile cookie result found in session 4 (Chrome and Firefox disagree when a Send
    row and a Cookie header row are in different profiles; table in `send-cookie-with-request.html`)
    with e2e assertions in both browsers.
-8. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
+8. Guard the one-tab guide (session 6): an e2e check that a site's service worker request does not get a tab-only profile's
+   header in Chrome (the claim most likely to change). Decide whether tab-bound profiles should be cleared on extension
+   reload/update too (now only on browser start, `runtime.onStartup`).
+9. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
    the chrome scope) and the matched-request count (needs an activeTab grant from a real click).
 
 ## Metrics
@@ -206,6 +214,10 @@ check the binding and call the handler).
 - 2026-11-20 (session 5): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py
   --status`; CWS `--publish` 400, dashboard unfilled). `gsc.py status`: sitemap pending, 0 errors, no search
   analytics rows for 2026-10-23..11-20. Sitemap: 28 URLs (live, curl).
+
+- 2026-11-20 (session 6): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS
+  `--publish` 400, dashboard unfilled; draft now 0.6.0). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows
+  for 2026-10-23..11-20. Sitemap: 31 URLs (build output).
 
 ## Monetization plan
 
@@ -300,3 +312,17 @@ that is how the incumbent died.
   js/leveldb.js 200, zip 0.5.0, sitemap 28 URLs, resubmitted (`gsc.py submit` 204). CWS draft upload 0.5.0
   SUCCESS. Listing texts (LISTING.md, amo-listing.json), landing page, guides hub and import guide link the
   recovery page.
+- 2026-11-20 builder (session 6): channels unchanged (AMO `nominated`, CWS `--publish` 400, GSC no rows). Found and fixed a real
+  bug: a "Never on" URL filter compiles to a DNR `allow` rule, which cuts *every* lower-priority rule, so one profile's exclusion
+  silently switched off the profiles below it (probe in Chrome 159: lower profile's header missing on the excluded URL). The
+  compiler now assigns priorities bottom-up and copies lower profiles' header rules above the allow rule, limited to the excluded
+  URLs; where DNR cannot express it (both profiles have URL exclusions, or an Only-on URL filter below) the popup warns, naming
+  both profiles. Added the **Page domain** filter (DNR `initiatorDomains`/`excludedInitiatorDomains`; measured: header on a fetch
+  from a localhost page, not from a 127.0.0.1 page or a typed address, in Chrome 159 and Firefox 158). 0.6.0. Tests: 5 unit tests
+  plus a property test (400 random states, 4,632 request checks, a small DNR evaluator vs intended behaviour); e2e for both fixes in
+  both browsers (a first Firefox failure was a test bug: BiDi returns JS null as undefined). Unit 33/33, Chromium e2e 27/27,
+  Firefox e2e 18/18 locally. Guide headers-only-from-one-site (mine); subagent wrote is-modheader-safe (sourced from THN, Cybernews,
+  VPN Central, fetched with curl; I spot-checked THN for Stripe OLT, 7.0.18, the domain) and modify-headers-one-tab-only (measured
+  in Chrome 159/Firefox 158: other tabs, window.open, target=_blank, service worker requests do not get the header; cross-origin
+  iframes do; closing the tab turns the profile off). CWS draft upload 0.6.0 SUCCESS. Listing texts, README, landing filters card
+  updated.

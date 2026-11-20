@@ -1,0 +1,62 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to modify headers in only one tab in Chrome, Edge or Firefox – HeaderDial</title><meta name="description" content="Send a request header from one browser tab only, while other tabs on the same site stay unchanged. What the tab setting covers (iframes, navigation to other sites) and what it misses (popups, new tabs, service workers), measured in Chrome 159 and Firefox 158.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/modify-headers-one-tab-only.html">
+<meta property="og:title" content="How to modify headers in only one tab"><meta property="og:description" content="Bind a header profile to one tab in Chrome, Edge or Firefox: what it covers and what it misses, measured."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to modify headers in only one tab","description":"Bind a HeaderDial profile to one browser tab so its request and response headers apply there and nowhere else, until the tab closes.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open the tab","text":"Go to the tab you want to change and load the site."},{"@type":"HowToStep","name":"Open the toolbar popup","text":"Click the HeaderDial toolbar icon while that tab is in front, and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Add the headers","text":"Add the request or response headers to a profile. A new profile keeps your other profiles as they are."},{"@type":"HowToStep","name":"Bind it to the tab","text":"Under Where it applies, tick Only in this tab (until it closes)."},{"@type":"HowToStep","name":"Reload","text":"Reload the tab. Other tabs, and new tabs or popups opened from this one, are not changed."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to modify headers in only one tab</h1>
+<p>To change headers in one tab only, open that tab, click the HeaderDial icon, and tick <strong>Only in this tab (until it closes)</strong> under <strong>Where it applies</strong>. The profile's headers then go on every request that tab makes, on any site it visits. Other tabs are left alone, even on the same URL, and so are new tabs and popups the tab opens. When you close the tab, HeaderDial switches the profile off. This is useful when you want two tabs side by side, one with a header and one without. Examples: a feature flag on and off, a logged-out view next to a logged-in one, or two <code>Accept-Language</code> values.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Go to the tab you want to change and load the site.</li>
+<li>Click the HeaderDial icon in the toolbar while that tab is in front. Use the toolbar popup, not the full-tab editor: in the editor the checkbox is greyed out, because the editor tab is the only tab it knows about. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Add the headers to a profile. The tab setting belongs to the whole profile, so click <strong>+</strong> next to the profile chips for a new one if your other profiles should keep working everywhere.</li>
+<li>Open <strong>Where it applies</strong> and tick <strong>Only in this tab (until it closes)</strong>. The label changes to "Only in one tab: <em>page title</em> (this tab)", the heading reads <strong>Where it applies (1 filter)</strong>, and the profile chip gets a <strong>⧉</strong> mark. Ticking it also switches the profile on.</li>
+<li>Reload the tab.</li>
+</ol>
+<p>Everything in the profile is limited to the tab: request and response headers, cookie rows and URL redirects. Other filters still apply on top. With <strong>+ Only on…</strong> <code>staging.example.com</code> as well, the headers go only on that host's requests, and only from that tab.</p>
+
+<h2>What it covers, measured</h2>
+<p>We tested in November 2026 with HeaderDial 0.5.0 in Chrome for Testing 159.0.8154.6 and Firefox 158.0.1 on Linux. A profile with one request header, <code>X-Tab: 1</code>, was bound to one tab, and a local server logged whether each request carried it. In Chrome we ticked the box in the real toolbar popup. In Firefox we set the same profile through the extension's storage, because a test cannot open Firefox's toolbar popup.</p>
+<table>
+<tr><th>Request</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td>Page load in the chosen tab</td><td>sent</td><td>sent</td></tr>
+<tr><td><code>fetch()</code> from the chosen tab</td><td>sent</td><td>sent</td></tr>
+<tr><td>A second tab on the same URL, page load and <code>fetch()</code></td><td>not sent</td><td>not sent</td></tr>
+<tr><td>A cross-origin iframe inside the chosen tab</td><td>sent</td><td>sent</td></tr>
+<tr><td>Chosen tab navigates to another host (<code>127.0.0.1</code> to <code>localhost</code>)</td><td>sent</td><td>sent</td></tr>
+<tr><td>Chosen tab reloaded</td><td>sent</td><td>sent</td></tr>
+<tr><td><code>window.open()</code> from the chosen tab, new tab</td><td>not sent</td><td>not sent</td></tr>
+<tr><td><code>window.open()</code> from the chosen tab, popup window</td><td>not sent</td><td>not sent</td></tr>
+<tr><td>A <code>target="_blank"</code> link clicked in the chosen tab</td><td>not sent</td><td>not tested</td></tr>
+<tr><td>A duplicate of the chosen tab, reloaded</td><td>not sent</td><td>not tested</td></tr>
+<tr><td>A request the site's service worker makes, even one passed on from the page's <code>fetch()</code></td><td>not sent (sent when the profile was not tab-bound)</td><td>not tested</td></tr>
+<tr><td>Any tab, after the chosen tab was closed</td><td>not sent</td><td>not sent</td></tr>
+</table>
+<p>The browser identifies a tab by a number, not by its address. That is why the header follows the tab to another site, and why a new tab or window opened from it does not get it, even when it is on the same site.</p>
+
+<h2>When the tab closes</h2>
+<p>In both browsers, closing the tab switched the profile off within a second. Its switch read <strong>Off</strong>, the checkbox went back to <strong>Only in this tab (until it closes)</strong>, unticked, and no rule was left in the browser. In Chrome we also saw the <strong>⧉</strong> mark disappear. The headers stay in the profile, so to use them again, open the popup on another tab and tick the box again.</p>
+<p>Tab numbers are not kept across a browser restart, so HeaderDial also switches tab-bound profiles off when the browser starts. We read this from the code but did not test a real restart.</p>
+
+<h2>Pitfalls</h2>
+<ul>
+<li><strong>Sign-in and payment popups don't carry it.</strong> If your flow opens a popup or a new tab, the header is missing there. Use an <strong>+ Only on…</strong> domain filter without the tab setting instead.</li>
+<li><strong>Service workers.</strong> Requests a site's service worker makes on its own have no tab, so a tab-bound profile misses them (measured in Chrome). If some requests lack the header on a site with a service worker, unregister the worker while testing, or use a domain filter.</li>
+<li><strong>Cookies are still shared.</strong> Removing <code>Cookie</code> in one tab gives a logged-out view there, but any <code>Set-Cookie</code> that tab receives still changes the cookies for every tab.</li>
+<li><strong>Back and forward may not send a request.</strong> In our Chrome test, going back showed a cached copy of the page, so no request reached the server. Reload when you check whether the header was sent.</li>
+<li><strong>Duplicating the tab makes a new tab.</strong> It is not covered, as the table shows.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="feature-flag-headers-staging.html">Send custom headers to staging</a></li>
+<li><a href="remove-request-header.html">Remove a request header</a></li>
+<li><a href="chrome-devtools-override-headers.html">Override headers in Chrome DevTools</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

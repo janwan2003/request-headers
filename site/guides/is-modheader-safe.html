@@ -1,0 +1,87 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Is ModHeader safe? What was found in July 2026, and how to check any header extension – HeaderDial</title><meta name="description" content="Why Google and Microsoft removed ModHeader in July 2026, what the researchers found and did not find, what to do if you used it, and how to check the permissions and network traffic of any header-editing extension yourself.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/is-modheader-safe.html">
+<meta property="og:title" content="Is ModHeader safe? What was found, and how to check a header extension yourself"><meta property="og:description" content="A sourced summary of the July 2026 ModHeader removal, what to do if you used it, and how to check any header extension's permissions and network requests."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Is ModHeader safe? What was found, and how to check a header extension yourself","description":"A sourced summary of why ModHeader was removed from the Chrome and Edge stores in July 2026, what to do if you used it, and how to check the permissions and network requests of any header-editing extension.","datePublished":"2026-11-20","dateModified":"2026-11-20","author":{"@type":"Organization","name":"HeaderDial"},"citation":["https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html","https://cybernews.com/security/modheader-chrome-extension-hidden-tracker/","https://vpncentral.com/modheader-extension-with-1-6-million-installs-contained-dormant-data-exfiltration-code/"]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Is ModHeader safe? What was found, and how to check a header extension yourself</h1>
+<p>In July 2026 Microsoft and Google removed ModHeader from their extension stores. Researchers had found a browsing-history collector inside the genuine store version. The collector was switched off, and the published reports found no evidence that it collected or sent anyone's browsing data. But it was complete, and an ordinary update could have switched it on, so all three reports below advise removing the extension. If you still have it: recover your profiles first if you need them, then remove it, and replace any secrets you typed into it. This page summarises the reports as of 20 November 2026. It then shows how to check any header extension yourself.</p>
+
+<h2>What was reported</h2>
+<p>Three reports from July 2026, each linked where it is used: <a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a> (13 July), <a href="https://cybernews.com/security/modheader-chrome-extension-hidden-tracker/">Cybernews</a> (15 July, updated 21 July) and <a href="https://vpncentral.com/modheader-extension-with-1-6-million-installs-contained-dormant-data-exfiltration-code/">VPN Central</a> (16 July). All three describe the same analysis, by researchers at Stripe OLT.</p>
+<ul>
+<li><strong>Removed from both stores.</strong> Microsoft took down the Edge Add-ons listing on 3 July 2026 and Google the Chrome Web Store listing on 10 July (<a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a>, <a href="https://vpncentral.com/modheader-extension-with-1-6-million-installs-contained-dormant-data-exfiltration-code/">VPN Central</a>). On 20 November 2026 the Chrome Web Store address for ModHeader's extension ID, <code>idgpnmonknjnojddfkpgkljpfnnfcklj</code>, still showed no listing (we checked).</li>
+<li><strong>It was the real extension.</strong> The researchers analysed Chrome version 7.0.18. They matched its code against the Chrome Web Store's own signature data, so the code came from the official package and not from a fake copy. The Chrome listing had about 900,000 users, and third-party estimates add about 700,000 on Edge (<a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a>, <a href="https://vpncentral.com/modheader-extension-with-1-6-million-installs-contained-dormant-data-exfiltration-code/">VPN Central</a>).</li>
+<li><strong>What the hidden code was built to do.</strong> The background script still edited headers as normal. Mixed in with that code was a second system. It creates a device identifier, takes the domain of each page you open, encrypts it with a key built into the extension, and keeps up to 1,000 domains locally. About once a day it would upload them to an outside server and clear the local copy (<a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a>, <a href="https://cybernews.com/security/modheader-chrome-extension-hidden-tracker/">Cybernews</a>, <a href="https://vpncentral.com/modheader-extension-with-1-6-million-installs-contained-dormant-data-exfiltration-code/">VPN Central</a>).</li>
+<li><strong>Why it was dormant.</strong> Collection only ran if the browser matched an internal allow-list, and that list was empty in version 7.0.18. The check always failed, so no domain was recorded (<a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a>, <a href="https://vpncentral.com/modheader-extension-with-1-6-million-installs-contained-dormant-data-exfiltration-code/">VPN Central</a>). Cybernews quotes the researchers as saying they did not observe browsing history leaving the browser in that build (<a href="https://cybernews.com/security/modheader-chrome-extension-hidden-tracker/">Cybernews</a>).</li>
+<li><strong>What did run.</strong> On install, update and uninstall, the extension reported its name, version and browser to a second domain. It had also stored real request details on the local disk (<a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a>, <a href="https://vpncentral.com/modheader-extension-with-1-6-million-installs-contained-dormant-data-exfiltration-code/">VPN Central</a>). VPN Central notes that this local record does not prove that headers or credentials were sent anywhere.</li>
+<li><strong>Why it matters anyway.</strong> Turning the collector on needed only an update that filled the allow-list, with no new permission and no prompt. Automated scanners had rated the extension low risk (<a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a>, <a href="https://cybernews.com/security/modheader-chrome-extension-hidden-tracker/">Cybernews</a>).</li>
+<li><strong>The developer.</strong> The Hacker News reported that the developer had not responded publicly as of its publication on 13 July. We have not checked for a later statement.</li>
+</ul>
+<p>For network teams, the reports name the two domains involved, <code>api.stanfordstudies[.]com</code> (no link to Stanford University, per both reports) and <code>extensions-hub[.]com</code>, and suggest searching DNS and proxy logs for them (<a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a>, <a href="https://vpncentral.com/modheader-extension-with-1-6-million-installs-contained-dormant-data-exfiltration-code/">VPN Central</a>).</p>
+
+<h2>What to do if you used ModHeader</h2>
+<ol>
+<li><strong>Keep your profiles if you need them.</strong> Removing an extension deletes its stored data. If you never exported your profiles, <a href="recover-modheader-profiles.html">recover them from ModHeader's data folder</a> first. That page runs locally and uploads nothing.</li>
+<li><strong>Remove it</strong> from every Chrome and Edge profile you use. Check that browser sync, or an extension policy on a work machine, does not install it again (<a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a>, <a href="https://vpncentral.com/modheader-extension-with-1-6-million-installs-contained-dormant-data-exfiltration-code/">VPN Central</a>).</li>
+<li><strong>Replace secrets you put in it.</strong> If your profiles held API keys, bearer tokens or session cookies, revoke and reissue them. The reports say the extension's header history stored full headers on disk (<a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a>, <a href="https://vpncentral.com/modheader-extension-with-1-6-million-installs-contained-dormant-data-exfiltration-code/">VPN Central</a>).</li>
+<li><strong>Import your profiles into another tool.</strong> HeaderDial reads ModHeader exports and the recovered JSON. See <a href="modheader-alternative-import.html">import your ModHeader profiles</a> for what carries over.</li>
+</ol>
+<p>Whatever you install next, check it with the steps below. For HeaderDial, here is what you will find:</p>
+<ul>
+<li>Permissions: <code>declarativeNetRequest</code>, <code>storage</code>, <code>alarms</code> and <code>activeTab</code>. Access to sites is optional. It is not granted at install, and you grant it from the popup for all sites or for the current site only.</li>
+<li>No <code>webRequest</code>, no content scripts, no <code>tabs</code> or <code>history</code> permission.</li>
+<li>The extension's code makes no network requests, and there are no analytics and no account.</li>
+<li>The source is public under the MIT licence on <a href="https://github.com/janwan2003/request-headers">GitHub</a>, so you can check all of the above.</li>
+</ul>
+<p>On <code>chrome://extensions</code> in Chrome 159, HeaderDial's details page lists one permission, "Block content on any page", which is how Chrome describes <code>declarativeNetRequest</code>.</p>
+
+<h2>How to check any header-editing extension yourself</h2>
+<p>We checked the labels below in Chrome for Testing 159.0.8154.6 and Firefox 158.0.1 in November 2026. Other versions may word them differently.</p>
+
+<h3>1. Read its permissions</h3>
+<p>Open <code>chrome://extensions</code> (in Edge, <code>edge://extensions</code>) and click <strong>Details</strong> on the extension. Look at two parts of that page:</p>
+<ul>
+<li><strong>Permissions</strong> lists what the extension asked for, in plain words. "Block content on any page" is <code>declarativeNetRequest</code>. "Read and change your browsing history on all your signed-in devices" appeared for a test extension that asked for <code>history</code> and <code>tabs</code>. A header editor does not need that.</li>
+<li><strong>Site access</strong> shows whether it can reach the pages you visit. If it reads "Allow this extension to read and change all your data on websites you visit", with the options <strong>On click</strong>, <strong>On specific sites</strong> and <strong>On all sites</strong>, the extension asked for every site at install. Choose <strong>On specific sites</strong> and add only the hosts you test.</li>
+</ul>
+<p>In Firefox, open <code>about:addons</code>, click the extension and open its <strong>Permissions and data</strong> tab. It lists required and optional permissions.</p>
+
+<h3>2. declarativeNetRequest or webRequest?</h3>
+<p>Both let an extension work with requests, in different ways:</p>
+<table>
+<tr><th>The extension uses</th><th>What its code sees</th></tr>
+<tr><td><code>declarativeNetRequest</code></td><td>It gives the browser a list of rules, such as "set this header on requests to example.com", and the browser applies them. The extension's code is not told which pages you open or what the requests contain.</td></tr>
+<tr><td><code>webRequest</code> plus access to all sites</td><td>Its code is called for requests to every site, with the URL and headers. Some tools have good reasons for this. But that code then sees your traffic, so what it does with it matters more.</td></tr>
+</table>
+<p>The details page does not always tell these apart. A test extension with <code>webRequest</code> and access to all sites showed no separate line for <code>webRequest</code> in Chrome 159; only the Site access text appeared. To be sure, read the extension's <code>manifest.json</code>: in its public source, or in the <code>Extensions</code> folder of your browser profile (<code>chrome://version</code> shows the profile path). Content scripts that match <code>&lt;all_urls&gt;</code> also mean its code runs inside every page.</p>
+
+<h3>3. Watch its own network requests</h3>
+<p>In Chrome or Edge:</p>
+<ol>
+<li>On <code>chrome://extensions</code>, turn on <strong>Developer mode</strong>. Each extension card now shows its ID and an <strong>Inspect views</strong> line.</li>
+<li>Click <strong>service worker</strong> next to <strong>Inspect views</strong>. This should open DevTools for the extension's background script.</li>
+<li>In that DevTools window, open the Network panel and use the extension as normal. Requests the background script makes are listed there while the window stays open.</li>
+</ol>
+<p>In Firefox, open <code>about:debugging</code>, choose <strong>This Firefox</strong>, and click <strong>Inspect</strong> on the extension's entry. This should open developer tools for the extension; use the Network panel there in the same way.</p>
+
+<div class="callout">None of these checks proves that an extension is safe. ModHeader's collector was switched off, so its Network tab would have shown no browsing data being sent. What the checks show is how much an extension <em>could</em> see. That is how much you are trusting its next update.</div>
+
+<h3>4. Other signs worth a look</h3>
+<ul>
+<li><strong>Public source</strong> with readable recent history, so others can see what changed between versions.</li>
+<li><strong>Who publishes it.</strong> A change of owner, or a new business model such as ads, is a reason to look again.</li>
+<li><strong>No account and no analytics</strong> for a tool that runs entirely in your browser.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="recover-modheader-profiles.html">Recover ModHeader profiles without an export</a></li>
+<li><a href="modheader-alternative-import.html">ModHeader alternative: import your ModHeader profiles</a></li>
+<li><a href="headers-browsers-wont-let-you-change.html">Which headers browsers won't let an extension change</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>
