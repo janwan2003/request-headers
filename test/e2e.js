@@ -21,6 +21,12 @@ function serve() {
         res.end('<!doctype html><script>parent.postMessage("framed-loaded", "*")</script>');
         return;
       }
+      if (req.url.startsWith('/cspsite')) {
+        // A page with its own enforced CSP that records every violation (guide: csp-builder.html).
+        res.writeHead(200, { 'content-type': 'text/html', 'content-security-policy': "img-src 'none'" });
+        res.end('<!doctype html><script>window.v=[];document.addEventListener("securitypolicyviolation",(e)=>v.push([e.disposition,e.originalPolicy]))</script><img src="/img-probe">');
+        return;
+      }
       if (req.url.startsWith('/nocors')) {
         // No CORS headers at all; answers preflights with an empty 204 (or 404 for /nocors404).
         res.writeHead(req.method === 'OPTIONS' ? (req.url.startsWith('/nocors404') ? 404 : 204) : 200, req.method === 'OPTIONS' ? {} : { 'content-type': 'application/json' });
@@ -611,6 +617,24 @@ async function fetchVia(page, url) {
     await until(() => ui.locator('#start').isVisible(), 'start card on first run');
     assert.doesNotMatch(await ui.locator('#editor').innerText(), /\bfalse\b|\bnull\b/, 'no stray false/null text');
     if (SHOTS) await ui.locator('#start').screenshot({ path: path.join(SHOTS, 'start.png') });
+    {
+      // Browsers cap toolbar popups at 600px tall. In a clean profile the fresh popup measured 594px with the
+      // access banner (55px) in 0.9.1; this test page measures ~27px taller for layout reasons outside the
+      // editor, so guard the layout that keeps it short (chips on one line, add buttons sharing a row) and
+      // a loose ceiling.
+      const vp = ui.viewportSize();
+      await ui.setViewportSize({ width: 700, height: 600 });
+      const m = await ui.evaluate(() => ({
+        h: document.body.scrollHeight,
+        chipTops: [...document.querySelectorAll('#start .start-recipes > button')].map((c) => Math.round(c.getBoundingClientRect().top)),
+        w: [document.querySelector('#start .start-recipes').clientWidth, ...[...document.querySelectorAll('#start .start-recipes > *')].map((c) => Math.round(c.getBoundingClientRect().width))],
+        addTops: ['#add-res', '#add-cookie', '#add-redir'].map((q) => Math.round(document.querySelector(q).getBoundingClientRect().top)),
+      }));
+      assert.ok(m.h <= 600, `fresh popup fits 600px (height ${m.h})`);
+      assert.equal(new Set(m.chipTops).size, 1, 'start card chips on one line ' + JSON.stringify(m.w));
+      assert.equal(new Set(m.addTops).size, 1, '+ Response header, + Cookie and + URL redirect share a row');
+      if (vp) await ui.setViewportSize(vp);
+    }
     await ui.click('#start-modheader');
     assert.ok(await ui.locator('#import-dialog').evaluate((d) => d.open), 'ModHeader opens the import dialog');
     assert.match(await ui.locator('#import-msg').innerText(), /\.ldb and \.log/);
@@ -653,6 +677,30 @@ async function fetchVia(page, url) {
     await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
     await settle();
     ok('guide claim holds: framing needs both X-Frame-Options and CSP frame-ancestors removed');
+  }
+
+  // Guide guard (csp-builder.html): the rows the CSP builder makes do what the page says.
+  // Report-Only adds a reporting policy next to the site's enforced one; ticking "remove"
+  // leaves only the Report-Only one; enforce mode's set replaces the site's policy.
+  {
+    const CB = require('../site/js/csp-build.js');
+    const saved = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state);
+    const mine = 'img-src https://nowhere.example';
+    const violations = async (opts) => {
+      await ui.evaluate(async (hs) => chrome.storage.local.set({ state: HeaderDial.normalizeState({ profiles: [{ id: 'c', name: 'C', active: true,
+        headers: hs.map((h) => Object.assign({ target: 'response' }, h)), filters: [{ kind: 'include', type: 'domain', value: '127.0.0.1' }] }] }) }), CB.testRows(mine, opts));
+      await settle();
+      await page.goto(A + '/cspsite');
+      await sleep(400);
+      // Distinct ones: an image that is not blocked can be reported twice (before the request and on the response).
+      return [...new Set((await page.evaluate(() => window.v)).map((x) => x.join(' | ')))].sort();
+    };
+    assert.deepStrictEqual(await violations({}), ["enforce | img-src 'none'", 'report | ' + mine], 'Report-Only: both policies apply');
+    assert.deepStrictEqual(await violations({ removeExisting: true }), ['report | ' + mine], 'site CSP removed: only the report');
+    assert.deepStrictEqual(await violations({ mode: 'enforce' }), ['enforce | ' + mine], 'enforce: set replaces the site CSP');
+    await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
+    await settle();
+    ok('guide claim holds: CSP builder rows (Report-Only next to the site policy, remove, enforce replaces it)');
   }
 
   if (SHOTS) {
@@ -818,6 +866,55 @@ async function fetchVia(page, url) {
     assert.deepStrictEqual(p.filters.map((f) => [f.type, f.value]), [['domain', 'shop.example.com']]);
     assert.deepStrictEqual(errors, []);
     ok('security headers checker: example gets verdicts, share link holds Report-Only CSP and fixes for its host, no network');
+    await browser.close();
+  }
+
+  // ---- 8. The CSP builder (no extension): a preset fills the builder, a pasted policy loads
+  // into it, and the share link carries the Report-Only row (plus the remove row) for the host.
+  {
+    const browser = await chromium.launch({ executablePath: fs.existsSync(CHROME) ? CHROME : undefined, headless: true });
+    const page = await (await browser.newContext()).newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    page.on('request', (r) => { if (!/^file:|\/favicon\.png$/.test(r.url())) errors.push('network request: ' + r.url()); });
+    await page.goto('file://' + path.join(root, 'dist/site/guides/csp-builder.html'));
+    // Opens on the strict starter.
+    assert.match(await page.locator('#output').innerText(), /^default-src 'self'; img-src 'self' data:; object-src 'none'/);
+    await page.click('#preset-cdn');
+    const cdn = "default-src 'self'; script-src 'self' https://cdn.example.com; style-src 'self' 'unsafe-inline' https://cdn.example.com; img-src 'self' https: data:; font-src 'self' https://cdn.example.com; connect-src 'self' https://api.example.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'";
+    assert.strictEqual(await page.locator('#output').innerText(), cdn);
+    assert.strictEqual(await page.locator('#warns li[data-level=warn]').count(), 0, 'the CDN preset has no weak spots');
+    // Toggling a chip edits the output and adds a warning.
+    await page.locator('tr[data-dir="script-src"] input[data-chip="unsafe-inline"]').check();
+    assert.match(await page.locator('#output').innerText(), /script-src 'self' 'unsafe-inline' https:\/\/cdn\.example\.com;/);
+    assert.match(await page.locator('#warns').innerText(), /script-src has 'unsafe-inline' without a nonce or hash/);
+    await page.selectOption('#fmt', 'nginx');
+    assert.match(await page.locator('#output').innerText(), /^add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' /);
+    await page.selectOption('#fmt', 'value');
+    // Share link: Report-Only row limited to the host, plus the remove row when ticked.
+    await page.fill('#host', 'www.example.com');
+    await page.check('#remove-own');
+    await page.click('#copy');
+    let link = await page.locator('#link').inputValue();
+    let p = await page.evaluate((l) => HeaderDial.parseImport(l).profiles[0], link);
+    const value = await page.locator('#output').innerText();
+    assert.deepStrictEqual(p.headers.map((h) => [h.target, h.name, h.op, h.value]), [
+      ['response', 'Content-Security-Policy', 'remove', ''], ['response', 'Content-Security-Policy-Report-Only', 'set', value]]);
+    assert.deepStrictEqual(p.filters.map((f) => [f.type, f.value]), [['domain', 'www.example.com']]);
+    // A pasted <meta> policy loads into the builder; enforce mode sets the real header.
+    await page.fill('#paste', '<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; img-src &#39;self&#39;; sandbox allow-forms">');
+    await page.click('#load');
+    assert.match(await page.locator('#paste-status').innerText(), /Loaded 3 directives from a <meta> tag \(enforced\)/);
+    assert.ok(await page.locator('tr[data-dir="img-src"] input[data-chip="self"]').isChecked());
+    assert.strictEqual(await page.locator('#extra').inputValue(), 'sandbox allow-forms');
+    assert.strictEqual(await page.locator('#output').innerText(), "default-src 'none'; img-src 'self'; sandbox allow-forms");
+    assert.ok(await page.locator('#remove-own').isDisabled(), 'no remove row in enforce mode');
+    await page.click('#copy');
+    link = await page.locator('#link').inputValue();
+    p = await page.evaluate((l) => HeaderDial.parseImport(l).profiles[0], link);
+    assert.deepStrictEqual(p.headers.map((h) => [h.name, h.op, h.value]), [['Content-Security-Policy', 'set', "default-src 'none'; img-src 'self'; sandbox allow-forms"]]);
+    assert.deepStrictEqual(errors, []);
+    ok('CSP builder: presets and chips build the header, a pasted <meta> policy loads, share link holds the rows for the host, no network');
     await browser.close();
   }
 

@@ -1,0 +1,374 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSP builder: generate a Content Security Policy and test it in your browser – HeaderDial</title><meta name="description" content="Build a Content-Security-Policy header with toggles, or paste one to edit, and see its weak spots in one line each. Then test it on your real site as Report-Only in your own browser before you deploy. Runs locally.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/csp-builder.html">
+<meta property="og:title" content="CSP builder: generate a Content Security Policy and test it before deploying"><meta property="og:description" content="A Content Security Policy generator with presets, paste-to-edit and plain warnings, that turns the policy into a Report-Only header rule for your own browser, so you see what it would block on the live site first. Nothing is uploaded."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<style>
+#tool { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--soft); margin: 16px 0; }
+#tool .big { display: block; font-weight: 600; margin: 4px 0 6px; }
+#tool h3 { margin: 22px 0 8px; }
+#tool .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 4px; }
+#tool button { font: inherit; font-size: 15px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+#tool button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#tool button[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+#tool button:disabled { opacity: .5; cursor: default; }
+.mono, #paste, #tool input[type=text], #extra { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+#paste { width: 100%; min-height: 64px; resize: vertical; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
+#tool input[type=text], #extra { width: 100%; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+#paste-status.err { color: #b91c1c; }
+#dirs { table-layout: fixed; background: var(--bg); margin-top: 6px; }
+#dirs col.use { width: 40px; } #dirs col.n { width: 30%; }
+#dirs td { overflow-wrap: anywhere; }
+#dirs td.n code { font-weight: 600; }
+#dirs .help { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+#dirs input[type=checkbox] { width: 17px; height: 17px; margin: 3px 0 0; }
+#dirs tr.off td.n code, #dirs tr.off .chips { opacity: .55; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 5px; border: 1px solid var(--line); border-radius: 999px; font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; cursor: pointer; background: var(--soft); white-space: nowrap; }
+.chip input { width: 13px !important; height: 13px !important; margin: 0 !important; }
+.chip:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+#dirs .sub { display: block; font-size: 13px; color: var(--muted); margin: 6px 0 2px; }
+#mode-row, #fmt-row { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; margin: 6px 0; }
+#mode-row label { white-space: nowrap; }
+#fmt { font: inherit; font-size: 15px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+#output { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; border: 1px solid var(--line); background: var(--bg); min-height: 3em; }
+#warns { list-style: none; padding: 0; margin: 10px 0; }
+#warns li { margin: 6px 0; padding-left: 64px; text-indent: -64px; font-size: 15px; }
+.badge { display: inline-block; width: 56px; text-indent: 0; text-align: center; margin-right: 8px; padding: 0 6px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.b-weak { background: #fef3c7; color: #92400e; } .b-note { background: var(--code); color: var(--muted); } .b-good { background: #dcfce7; color: #166534; }
+@media (prefers-color-scheme: dark) { #paste-status.err { color: #f87171; } .b-weak { background: #78350f; color: #fde68a; } .b-good { background: #14532d; color: #bbf7d0; } }
+#test-opts label { display: block; margin: 6px 0; }
+#host { width: 16em !important; display: inline-block; }
+#endpoint { margin-top: 3px; }
+#link { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+@media (max-width: 600px) {
+  #dirs, #dirs tbody { display: block; } #dirs thead { display: none; }
+  #dirs tr { display: grid; grid-template-columns: 34px 1fr; border: 1px solid var(--line); border-top: 0; }
+  #dirs tr:first-child { border-top: 1px solid var(--line); }
+  #dirs td { border: 0; padding: 6px; } #dirs td:nth-child(3) { grid-column: 1 / -1; padding-top: 0; }
+  #warns li { padding-left: 0; text-indent: 0; }
+}
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Build a Content Security Policy and test it on your site before deploying","description":"Generate a Content-Security-Policy with presets and toggles or paste an existing one, then try it on the live site in your own browser as a Report-Only response header with HeaderDial, before changing the server.","tool":[{"@type":"HowToTool","name":"This page (runs locally in your browser)"},{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Start from a preset or your current policy","text":"Click a starter such as Strict starter or Typical site with a CDN, or paste the policy your site sends now and click Load into the builder."},{"@type":"HowToStep","name":"Adjust the directives","text":"Tick source keywords and type your hosts for each directive. The header value and a list of weak spots update as you go."},{"@type":"HowToStep","name":"Make a test profile","text":"Enter your site's host, keep the mode on Report-Only, and click Copy share link or Download JSON. Import it into HeaderDial."},{"@type":"HowToStep","name":"Browse your site with DevTools open","text":"Each resource the policy would block is logged in the Console, but nothing is blocked. Add the sources you trust and repeat."},{"@type":"HowToStep","name":"Deploy","text":"Switch the test to enforce to see the page under the policy, then send the same header from your server, first as Report-Only and then enforced."}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can I test a Content Security Policy without deploying it?","acceptedAnswer":{"@type":"Answer","text":"Yes. A browser extension that modifies response headers can add the policy to the pages your browser receives from the live site. Sent as Content-Security-Policy-Report-Only, it only logs what it would block in the DevTools Console. Only your browser is affected."}},{"@type":"Question","name":"Is Content-Security-Policy-Report-Only safe to send in production?","acceptedAnswer":{"@type":"Answer","text":"It blocks nothing, so it cannot break the page. It costs a console message per violation, and network requests if you set report-to or report-uri. It also protects nothing, so it is a step towards an enforced policy, not a replacement."}},{"@type":"Question","name":"Do I need report-uri or report-to to see violations?","acceptedAnswer":{"@type":"Answer","text":"No. Browsers log violations in the DevTools Console without them. Reporting directives are for collecting violations from other people's browsers on your server."}},{"@type":"Question","name":"Why can't a nonce-based policy be tested with a fixed header?","acceptedAnswer":{"@type":"Answer","text":"A nonce must be a new random value on every response, generated by the server and repeated in each script tag's nonce attribute. A header rule in the browser always sends the same text, so it cannot match the server's nonces."}}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>CSP builder: write a Content Security Policy and test it before you deploy</h1>
+<p>Build a <code>Content-Security-Policy</code> header from presets and toggles, or paste the one your site sends now to edit it. Each weak spot is explained in one line as you go. Then the step a generator alone cannot give you: the page turns the policy into a <a href="../">HeaderDial</a> profile that adds it to your real site <strong>in your own browser</strong>, as <code>Content-Security-Policy-Report-Only</code>, so the DevTools Console shows what it would block before you change the server. Everything runs <strong>in this page</strong>: it makes no network requests after it has loaded, and nothing you paste is sent anywhere.</p>
+
+<div id="tool">
+  <span class="big">Start from</span>
+  <div class="actions" id="presets"></div>
+  <p class="note" id="preset-about"></p>
+
+  <label class="big" for="paste">Or paste an existing policy to edit</label>
+  <textarea id="paste" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.example.com&#10;(a bare value, a <meta> tag, or an nginx add_header / Apache Header line also works)"></textarea>
+  <div class="actions"><button type="button" id="load">Load into the builder</button><button type="button" id="clear">Clear all</button></div>
+  <p class="note" id="paste-status" role="status">Read locally. Nothing you paste leaves this tab.</p>
+  <ul class="note" id="paste-notes"></ul>
+
+  <table id="dirs"><colgroup><col class="use"><col class="n"><col></colgroup>
+    <thead><tr><th><span class="note">Use</span></th><th>Directive</th><th>Sources <span class="note">(toggle keywords; type hosts, schemes or hashes separated by spaces)</span></th></tr></thead><tbody></tbody></table>
+  <label class="big" for="extra">Other directives <span class="note">(kept as typed, for example <code>script-src-attr 'none'; require-trusted-types-for 'script'</code>)</span></label>
+  <input type="text" id="extra" spellcheck="false" autocomplete="off" autocapitalize="off">
+
+  <h3>Your policy</h3>
+  <div id="mode-row" role="radiogroup" aria-label="Header">
+    <label><input type="radio" name="mode" value="report" checked> Report-Only <span class="note">(reports, blocks nothing)</span></label>
+    <label><input type="radio" name="mode" value="enforce"> Enforce</label>
+  </div>
+  <div id="fmt-row"><label for="fmt">Show as</label> <select id="fmt">
+    <option value="value">header value</option><option value="header">header line</option><option value="nginx">nginx add_header</option>
+    <option value="apache">Apache Header set</option><option value="meta">HTML &lt;meta&gt; tag</option></select>
+    <button type="button" id="copy-value">Copy</button></div>
+  <pre id="output" class="mono" aria-live="polite"></pre>
+  <p class="note" id="fmt-note"></p>
+  <p id="warn-sum"></p>
+  <ul id="warns"></ul>
+
+  <h3 id="test">Test it on your site with HeaderDial</h3>
+  <div id="test-opts">
+    <label>Only on <input type="text" id="host" spellcheck="false" autocomplete="off" placeholder="www.example.com" aria-label="Host for the Domain filter"> <span class="note">(a Domain filter; subdomains included. Leave empty to apply everywhere.)</span></label>
+    <label><input type="checkbox" id="remove-own"> Also remove the site's own <code>Content-Security-Policy</code> header while testing</label>
+  </div>
+  <p class="note" id="mode-note"></p>
+  <div class="actions"><button type="button" class="primary" id="copy">Copy share link</button><button type="button" id="download">Download JSON</button></div>
+  <p class="note" id="rows-note"></p>
+  <p class="note" id="link-wrap" hidden><label for="link">Share link (opens the share page, which shows the profile and imports into HeaderDial):</label><br><input id="link" readonly></p>
+</div>
+
+<div class="callout"><strong>Your browser only.</strong> The profile changes the headers your browser receives from the host you name. Visitors keep getting the server's headers until you deploy the change, so a test cannot break the site for anyone else.</div>
+
+<h2>What a Content Security Policy is</h2>
+<p>A Content Security Policy is a response header that tells the browser which sources a page may load scripts, styles, images, frames and connections from, and whether inline code may run. If an attacker manages to inject a <code>&lt;script&gt;</code> into your page (cross-site scripting), a policy that does not allow it stops it from running. It is defined in the W3C's <em>Content Security Policy Level 3</em>, and all current browsers apply it; the warnings note the few directives where support differs.</p>
+<p>A policy is a list of <em>directives</em> separated by semicolons. Each directive names a kind of resource (<code>script-src</code>, <code>img-src</code>…) and lists allowed <em>sources</em>: keywords in single quotes such as <code>'self'</code> (the page's own origin) and <code>'none'</code>, schemes such as <code>https:</code> or <code>data:</code>, hosts such as <code>https://cdn.example.com</code> or <code>*.example.com</code>, and nonces or hashes for specific inline scripts. A <code>-src</code> directive you leave out falls back to <code>default-src</code>. <code>base-uri</code>, <code>form-action</code> and <code>frame-ancestors</code> do not fall back: without them, nothing is restricted.</p>
+
+<h2 id="rollout">Roll out a policy with Report-Only</h2>
+<p>A new policy almost always blocks something you forgot: an analytics snippet, a font host, an inline <code>onclick</code>. <code>Content-Security-Policy-Report-Only</code> takes the same value but blocks nothing; the browser only reports what the policy would have blocked. The usual order:</p>
+<ol>
+<li><strong>Try it in your own browser.</strong> Build the policy above, enter your host, keep <strong>Report-Only</strong>, and import the profile into HeaderDial. Browse the pages that matter with DevTools open, including logged-in pages and checkout.</li>
+<li><strong>Fix the list.</strong> For each report, either add the source you trust to the right directive, or change the page (move inline scripts into files, replace <code>onclick=""</code> attributes with <code>addEventListener</code>). Click <strong>Copy share link</strong> again and re-import, or edit the row in HeaderDial directly.</li>
+<li><strong>Enforce it in your browser.</strong> Switch the mode to <strong>Enforce</strong> and check that the pages still work.</li>
+<li><strong>Deploy as Report-Only.</strong> Send the header from your server with <code>report-to</code> (and <code>report-uri</code>) so you collect violations from real visitors' browsers, extensions and pages you did not visit.</li>
+<li><strong>Enforce on the server</strong> when the reports are only things you want blocked. Keep reporting on.</li>
+</ol>
+
+<h2 id="devtools">See violations in DevTools</h2>
+<ul>
+<li><strong>Chrome and Edge:</strong> open DevTools (<kbd>F12</kbd>), <strong>Console</strong> panel, and reload. Each violation is a message naming the blocked URL and the directive; for a Report-Only policy, Chrome starts it with <code>[Report Only]</code>. The <strong>Issues</strong> panel groups them as Content Security Policy issues.</li>
+<li><strong>Firefox:</strong> the <strong>Console</strong> panel also logs a message per violation, naming the blocked resource and the directive. If you see nothing, check that the Console's error and warning filters are on.</li>
+<li>To see the header itself, open the <strong>Network</strong> panel, select the document request and look under <strong>Response Headers</strong>. The header added by HeaderDial is listed there.</li>
+<li>Reload rather than navigate inside a single-page app: a policy applies when the document loads. Tick <strong>Disable cache</strong> in the Network panel, and bypass any service worker (<strong>Application › Service workers</strong>), or a cached page may not get the new header.</li>
+</ul>
+
+<h2 id="how">What the HeaderDial test does</h2>
+<p>The profile sets your policy with a response-header row whose operation is <strong>set</strong>, limited to your host by a Domain filter (the line under the buttons lists every row it will hold). A <strong>set</strong> row replaces any header of the same name the server sends (the same behaviour as in <a href="modify-response-headers-csp.html">modify Content-Security-Policy and other response headers</a>). What that means for each mode:</p>
+<ul>
+<li><strong>Report-Only</strong> sets <code>Content-Security-Policy-Report-Only</code>. If the site already sends an enforced <code>Content-Security-Policy</code>, that policy keeps applying next to yours: browsers apply every policy they receive, so a resource must pass the site's policy as before, and yours only reports. Tick <strong>Also remove the site's own Content-Security-Policy</strong> to add a <strong>remove</strong> row for it, which shows your policy's reports without the old one in the way. While that profile is on, the site runs without its own enforced policy in your browser.</li>
+<li><strong>Enforce</strong> sets <code>Content-Security-Policy</code>, which replaces the site's own header of that name, so your policy is enforced instead of the site's. A <code>Content-Security-Policy-Report-Only</code> header the site sends keeps reporting.</li>
+<li>A policy in a <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> tag is part of the HTML, not a header. A header rule neither removes nor replaces it, so it applies as well. Look in the page source if violations persist.</li>
+<li>When the policy uses <code>report-to</code> and you enter an endpoint URL in that row, the profile also sets <code>Reporting-Endpoints</code>, so the browser knows where to send reports. Reports then go from your browser to that URL.</li>
+<li>Nonces cannot be tested this way: a header rule sends the same text on every response, while the server writes a new nonce into its <code>&lt;script nonce&gt;</code> attributes each time. Test a nonce-based policy on a staging server instead, or test the rest of the policy with HeaderDial first.</li>
+</ul>
+
+<h2 id="mistakes">Common mistakes</h2>
+<ul>
+<li><strong>Keywords without quotes.</strong> <code>script-src self</code> allows a host named <code>self</code>, not your origin. Keywords take single quotes: <code>'self'</code>, <code>'none'</code>, <code>'unsafe-inline'</code>.</li>
+<li><strong><code>'unsafe-inline'</code> in <code>script-src</code>.</strong> Without a nonce or hash it lets any injected inline script run, which removes most of the protection. With a nonce or hash in the same list, browsers ignore <code>'unsafe-inline'</code>, so the pair is a normal fallback for old browsers.</li>
+<li><strong>Broad script sources.</strong> <code>*</code>, <code>https:</code> or <code>data:</code> in <code>script-src</code> lets an attacker load a script from almost anywhere. List hosts.</li>
+<li><strong>Forgetting the directives without a fallback.</strong> <code>object-src</code> falls back to <code>default-src</code>, but <code>base-uri</code>, <code>form-action</code> and <code>frame-ancestors</code> do not. <code>object-src 'none'; base-uri 'self'</code> belongs in almost every policy.</li>
+<li><strong><code>'none'</code> with other sources.</strong> It is ignored when anything else is listed in the same directive.</li>
+<li><strong>Wildcards and schemes.</strong> <code>*.example.com</code> matches subdomains but not <code>example.com</code> itself, and <code>'self'</code> does not include subdomains. A host without a scheme uses the page's scheme: on an https page, <code>cdn.example.com</code> means <code>https://cdn.example.com</code>.</li>
+<li><strong>Header-only directives in <code>&lt;meta&gt;</code>.</strong> Browsers ignore <code>frame-ancestors</code>, <code>report-uri</code> and <code>sandbox</code> in a meta tag, and Report-Only cannot be set with one at all.</li>
+<li><strong><code>report-to</code> alone.</strong> It names a group defined in a <code>Reporting-Endpoints</code> header; without that header no reports are sent. Browsers that do not support <code>report-to</code> only send reports to <code>report-uri</code>, so many sites set both while <code>report-uri</code> is still supported.</li>
+<li><strong>Two policies.</strong> When a server (or a CDN, or a framework) sends two <code>Content-Security-Policy</code> headers, both are enforced and a resource must pass each one. Adding sources to one of them does not loosen the other.</li>
+<li><strong>A fixed nonce.</strong> A nonce in a static config file is the same on every page, so an attacker can copy it. It has to come from the server, freshly generated per response.</li>
+</ul>
+
+<h2 id="limits">What this builder does not do</h2>
+<ul>
+<li>It does not load your site. Which sources your pages need is what the HeaderDial test shows you.</li>
+<li>It checks the weak spots listed above, not the full grammar: a malformed host or a typo in a hash is passed through as typed.</li>
+<li>It does not compute hashes of inline scripts. Chrome's Console message for a blocked inline script includes the <code>'sha256-…'</code> value to add.</li>
+<li>Directives without a row here (<code>script-src-elem</code>, <code>sandbox</code>, Trusted Types…) are kept in <strong>Other directives</strong> and only checked for removed or unknown names.</li>
+</ul>
+
+<h2 id="faq">Questions</h2>
+<h3>Can I test a Content Security Policy without deploying it?</h3>
+<p>Yes. A browser extension that modifies response headers can add the policy to the pages your browser receives from the live site. Sent as <code>Content-Security-Policy-Report-Only</code>, it only logs what it would block in the DevTools Console. Only your browser is affected. HeaderDial does this in Chrome, Edge and Firefox 128 or later; the share link above sets it up.</p>
+<h3>Is Content-Security-Policy-Report-Only safe to send in production?</h3>
+<p>It blocks nothing, so it cannot break the page. It costs a console message per violation, and network requests if you set <code>report-to</code> or <code>report-uri</code>. It also protects nothing, so it is a step towards an enforced policy, not a replacement.</p>
+<h3>Do I need report-uri or report-to to see violations?</h3>
+<p>No. Browsers log violations in the DevTools Console without them. Reporting directives are for collecting violations from other people's browsers on your server.</p>
+<h3>Why does the old policy still block things during my test?</h3>
+<p>In Report-Only mode the site's own enforced policy still applies, and it may block things your new policy would allow. Tick <strong>Also remove the site's own Content-Security-Policy</strong>, or switch to <strong>Enforce</strong>, which replaces it. If that does not help, the page has a policy in a <code>&lt;meta&gt;</code> tag, or a cached or service-worker response did not get the new header.</p>
+<h3>Why can't a nonce-based policy be tested with a fixed header?</h3>
+<p>A nonce must be a new random value on every response, generated by the server and repeated in each script tag's <code>nonce</code> attribute. A header rule in the browser always sends the same text, so it cannot match the server's nonces.</p>
+
+<h2>Sources</h2>
+<p class="note">The warnings follow these documents; the wording on this page is our own.</p>
+<ul class="note">
+<li>W3C, <a href="https://www.w3.org/TR/CSP3/">Content Security Policy Level 3</a> (directive fallback, <code>'strict-dynamic'</code>, nonces and hashes disabling <code>'unsafe-inline'</code>, directives ignored in <code>&lt;meta&gt;</code>)</li>
+<li>MDN, <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy">Content-Security-Policy</a>, <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy-Report-Only">Content-Security-Policy-Report-Only</a>, <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/report-to">report-to</a> and <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Reporting-Endpoints">Reporting-Endpoints</a></li>
+<li>W3C, <a href="https://www.w3.org/TR/upgrade-insecure-requests/">Upgrade Insecure Requests</a>; W3C, <a href="https://www.w3.org/TR/reporting-1/">Reporting API</a></li>
+<li>web.dev, <a href="https://web.dev/articles/strict-csp">Mitigate cross-site scripting with a strict Content Security Policy</a> (the nonce + <code>'strict-dynamic'</code> preset)</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="security-headers-checker.html">Security headers checker: paste the response headers</a></li>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="allow-iframe-x-frame-options.html">Embed a site in an iframe: remove X-Frame-Options and frame-ancestors</a></li>
+<li><a href="chrome-devtools-override-headers.html">Override response headers in Chrome DevTools, and when to use an extension</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div>
+<script src="../js/model.js"></script><script src="../js/transfer.js"></script><script src="../js/csp-build.js"></script>
+<script>
+(function () {
+  'use strict';
+  var HD = window.HeaderDial, CB = window.CspBuild;
+  var $ = function (id) { return document.getElementById(id); };
+  var tbody = document.querySelector('#dirs tbody');
+  var b = null;              // builder state: { rows: { name: { on, chips, other } }, extra }
+  var endpoint = '';         // Reporting-Endpoints URL for report-to
+  var rowEls = {};           // name -> { tr, use, chips: { key: input }, other }
+  var current = [];          // directives of the current policy
+
+  function el(tag, text, cls) { var e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
+  function mode() { return document.querySelector('input[name=mode]:checked').value; }
+
+  // ---- the directive table, built once
+  CB.DIRECTIVES.forEach(function (d) {
+    var tr = el('tr'); tr.setAttribute('data-dir', d.name);
+    var use = document.createElement('input'); use.type = 'checkbox'; use.setAttribute('aria-label', 'Use ' + d.name);
+    var td = el('td'); td.appendChild(use); tr.appendChild(td);
+    var n = el('td', null, 'n'); n.appendChild(el('code', d.name)); n.appendChild(el('span', d.help, 'help')); tr.appendChild(n);
+    var v = el('td');
+    var refs = { tr: tr, use: use, chips: {}, other: null };
+    if (d.chips.length) {
+      var wrap = el('div', null, 'chips');
+      d.chips.forEach(function (k) {
+        var lab = el('label', null, 'chip');
+        var box = document.createElement('input'); box.type = 'checkbox'; box.setAttribute('data-chip', k);
+        lab.appendChild(box); lab.appendChild(document.createTextNode(CB.CHIPS[k].label));
+        if (k === 'nonce') lab.title = 'Adds ' + CB.NONCE_PLACEHOLDER + ', a placeholder your server replaces with a fresh value per response';
+        box.addEventListener('change', function () { chip(d.name, k, box.checked); });
+        refs.chips[k] = box; wrap.appendChild(lab);
+      });
+      v.appendChild(wrap);
+    }
+    if (d.kind !== 'flag') {
+      var inp = document.createElement('input'); inp.type = 'text'; inp.spellcheck = false; inp.autocomplete = 'off';
+      inp.placeholder = d.kind === 'urls' ? 'https://example.com/csp-reports' : d.kind === 'group' ? 'csp-endpoint' : 'more sources, e.g. https://cdn.example.com';
+      inp.setAttribute('aria-label', d.kind === 'urls' ? 'report-uri URLs' : d.kind === 'group' ? 'report-to group name' : 'Other sources for ' + d.name);
+      inp.addEventListener('input', function () { var r = b.rows[d.name]; r.other = inp.value; if (inp.value.trim()) r.on = true; fillRow(d.name); update(); });
+      refs.other = inp; v.appendChild(inp);
+    }
+    if (d.kind === 'group') {
+      v.appendChild(el('span', 'Endpoint URL for the Reporting-Endpoints header (https only):', 'sub'));
+      var ep = document.createElement('input'); ep.type = 'text'; ep.id = 'endpoint'; ep.spellcheck = false; ep.autocomplete = 'off';
+      ep.placeholder = 'https://example.com/csp-reports'; ep.setAttribute('aria-label', 'Reporting endpoint URL');
+      ep.addEventListener('input', function () { endpoint = ep.value; update(); });
+      v.appendChild(ep);
+    }
+    tr.appendChild(v);
+    use.addEventListener('change', function () { b.rows[d.name].on = use.checked; fillRow(d.name); update(); });
+    rowEls[d.name] = refs;
+    tbody.appendChild(tr);
+  });
+
+  function chip(name, key, on) {
+    var r = b.rows[name];
+    r.chips = r.chips.filter(function (k) { return k !== key; });
+    if (on) {
+      // 'none' only means something on its own.
+      if (key === 'none') r.chips = [];
+      else r.chips = r.chips.filter(function (k) { return k !== 'none'; });
+      r.chips.push(key);
+      r.on = true;
+    }
+    fillRow(name); update();
+  }
+
+  function fillRow(name) {
+    var r = b.rows[name], refs = rowEls[name];
+    refs.use.checked = r.on;
+    refs.tr.className = r.on ? '' : 'off';
+    Object.keys(refs.chips).forEach(function (k) { refs.chips[k].checked = r.chips.indexOf(k) >= 0; });
+    if (refs.other && refs.other.value !== r.other) refs.other.value = r.other;
+  }
+
+  function load(directives) {
+    b = CB.toBuilder(directives);
+    CB.DIRECTIVES.forEach(function (d) { fillRow(d.name); });
+    $('extra').value = b.extra;
+    update();
+  }
+
+  // ---- presets
+  CB.PRESETS.forEach(function (p) {
+    var btn = el('button', p.label); btn.type = 'button'; btn.id = 'preset-' + p.key; btn.setAttribute('aria-pressed', 'false');
+    btn.addEventListener('click', function () { preset(p.key); });
+    $('presets').appendChild(btn);
+  });
+  function preset(key) {
+    var p = CB.PRESETS.filter(function (x) { return x.key === key; })[0];
+    Array.prototype.forEach.call(document.querySelectorAll('#presets button'), function (x) { x.setAttribute('aria-pressed', String(x.id === 'preset-' + key)); });
+    $('preset-about').textContent = p ? p.about : '';
+    load(p ? CB.parsePolicy(p.policy).directives : []);
+  }
+  function unpress() { Array.prototype.forEach.call(document.querySelectorAll('#presets button'), function (x) { x.setAttribute('aria-pressed', 'false'); }); $('preset-about').textContent = ''; }
+
+  // ---- paste
+  var FROM = { header: 'a header line', meta: 'a <meta> tag', nginx: 'an nginx add_header line', apache: 'an Apache Header line', value: 'a policy value' };
+  $('load').addEventListener('click', function () {
+    var st = $('paste-status'), notes = $('paste-notes');
+    notes.textContent = '';
+    var r = CB.parsePolicy($('paste').value);
+    if (!r.directives.length) { st.textContent = 'No directives found. Paste a value like "default-src \'self\'; img-src \'self\' data:".'; st.className = 'note err'; return; }
+    unpress();
+    if (r.mode) document.querySelector('input[name=mode][value=' + r.mode + ']').checked = true;
+    load(r.directives);
+    st.className = 'note';
+    st.textContent = 'Loaded ' + r.directives.length + ' directive' + (r.directives.length === 1 ? '' : 's') + ' from ' + FROM[r.from] +
+      (r.mode ? ' (' + (r.mode === 'report' ? 'Report-Only' : 'enforced') + ')' : '') + (b.extra ? '. Directives without a row are under Other directives.' : '.');
+    r.notes.forEach(function (t) { notes.appendChild(el('li', t)); });
+  });
+  $('clear').addEventListener('click', function () {
+    $('paste').value = ''; $('paste-notes').textContent = ''; $('paste-status').className = 'note';
+    $('paste-status').textContent = 'Read locally. Nothing you paste leaves this tab.';
+    unpress(); load([]);
+  });
+  $('extra').addEventListener('input', function () { b.extra = this.value; update(); });
+
+  // ---- output
+  function update() {
+    current = CB.fromBuilder(b);
+    var value = CB.serialize(current), m = mode();
+    var sn = CB.snippet(current, $('fmt').value, m);
+    $('output').textContent = value ? sn.text : '(empty policy)';
+    $('fmt-note').textContent = value ? sn.note : '';
+    var ws = CB.warnings(current, { mode: m }), list = $('warns');
+    list.textContent = '';
+    ws.forEach(function (w) {
+      var li = el('li'); li.setAttribute('data-level', w.level);
+      li.appendChild(el('span', w.level === 'warn' ? 'weak' : 'note', 'badge ' + (w.level === 'warn' ? 'b-weak' : 'b-note')));
+      li.appendChild(document.createTextNode(w.text));
+      list.appendChild(li);
+    });
+    var weak = ws.filter(function (w) { return w.level === 'warn'; }).length;
+    $('warn-sum').innerHTML = '';
+    if (value) {
+      $('warn-sum').appendChild(el('span', weak ? 'weak' : 'ok', 'badge ' + (weak ? 'b-weak' : 'b-good')));
+      $('warn-sum').appendChild(document.createTextNode(weak ? weak + ' weak spot' + (weak === 1 ? '' : 's') + ' and ' + (ws.length - weak) + ' note' + (ws.length - weak === 1 ? '' : 's') + '.'
+        : 'No weak spots from the checks below' + (ws.length ? '; ' + ws.length + ' note' + (ws.length === 1 ? '' : 's') + '.' : '.')));
+    }
+    // Test section
+    var enforce = m === 'enforce', rm = $('remove-own');
+    rm.disabled = enforce;
+    $('mode-note').textContent = enforce
+      ? 'Enforce: sets Content-Security-Policy, which replaces the header of that name the site sends. Whatever your policy does not allow stops working on that host while the profile is on.'
+      : rm.checked
+        ? 'Report-Only, with the site\'s own Content-Security-Policy header removed: your policy only reports, and the site runs without its enforced header in your browser while the profile is on.'
+        : 'Report-Only: sets Content-Security-Policy-Report-Only and blocks nothing. If the site already enforces a Content-Security-Policy header, that one still applies next to yours.';
+    var rows = CB.testRows(value, opts());
+    $('rows-note').textContent = rows.length ? 'Profile rows: ' + rows.map(function (r) { return r.op + ' ' + r.name; }).join(', ') + '.' : '';
+    $('copy').disabled = $('download').disabled = !rows.length;
+    $('link-wrap').hidden = true;
+  }
+  function opts() { return { host: $('host').value, mode: mode(), removeExisting: $('remove-own').checked, endpoint: endpoint }; }
+  function profile() { return CB.buildProfile(CB.serialize(current), opts()); }
+
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=mode]'), function (r) { r.addEventListener('change', update); });
+  $('fmt').addEventListener('change', update);
+  $('host').addEventListener('input', update);
+  $('remove-own').addEventListener('change', update);
+
+  function copyText(btn, text, label, fallback) {
+    var done = function (t) { btn.textContent = t; setTimeout(function () { btn.textContent = label; }, 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done('Copied'); }, function () { fallback(); done('Select and copy'); });
+    else { fallback(); done('Select and copy'); }
+  }
+  $('copy-value').addEventListener('click', function () {
+    var pre = $('output');
+    copyText(this, pre.textContent, 'Copy', function () { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); });
+  });
+  $('copy').addEventListener('click', function () {
+    var link = $('link');
+    link.value = HD.shareLink(profile());
+    $('link-wrap').hidden = false;
+    copyText(this, link.value, 'Copy share link', function () { link.select(); });
+  });
+  $('download').addEventListener('click', function () {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([HD.exportJSON([profile()])], { type: 'application/json' }));
+    a.download = 'headerdial-csp-' + (CB.cleanHost($('host').value) || 'test') + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  preset('strict');
+})();
+</script></body></html>

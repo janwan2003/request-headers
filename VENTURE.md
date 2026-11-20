@@ -105,7 +105,7 @@ about 500K Chrome users. The rest is fragmented into small or copycat listings.
 
 ## Status
 
-HeaderDial 0.9.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
+HeaderDial 0.9.1 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
 - **Firefox Add-ons:** submitted 2026-11-20 through the AMO API, slug `headerdial`, id
   `headerdial@plainbyte`, https://addons.mozilla.org/firefox/addon/headerdial/. Version 0.2.0
   with Markdown description and 2 screenshots; add-on status `nominated`, file `unreviewed`
@@ -115,12 +115,12 @@ HeaderDial 0.9.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and sit
   description in `store/amo-listing.json` already mentions redirects, cookies and curl). Still
   `nominated` on 2026-11-20 (session 4 to 8 rechecks). `amo-listing.json` now also mentions ModHeader
   recovery.
-- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5), 0.6.0 (session 6), 0.7.0 (session 7) 0.8.0 (session 8) and 0.9.0 (session 9), uploaded through the API on 2026-11-20 as a draft, item id
+- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5), 0.6.0 (session 6), 0.7.0 (session 7) 0.8.0 (session 8), 0.9.0 (session 9) and 0.9.1 (session 10), uploaded through the API on 2026-11-20 as a draft, item id
   `hfacpfgfdcpacffioinklbocgjiglhig` (`store/cws-item.json`, upload state SUCCESS). Publishing
   fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in sessions 4 to 8) listing
   privacy practices, certification, language, category, icon, screenshot, description and a
   verified publisher contact email. Exact text for every field: `store/chrome-privacy.md`
-  (inbox line added). Promo tiles: `store/promo-small-440x280.png`, `store/promo-marquee-1400x560.png`
+  (inbox line added). Three 1280×800 screenshots since 0.9.1 (third: the first-run Start card). Promo tiles: `store/promo-small-440x280.png`, `store/promo-marquee-1400x560.png`
   (`scripts/make-promo.py`).
 - **Edge Add-ons:** needs a free Partner Center account (inbox).
 - **Search Console:** site verified (META tag in `site/index.html`), added, and sitemap submitted
@@ -178,7 +178,7 @@ What exists:
 - Site tool pages that run locally: `guides/curl-to-browser-headers.html` and `guides/security-headers-checker.html` (0.9.0 session,
   `site/js/headers-check.js`: paste response headers from DevTools or `curl -I`; verdicts for CSP, HSTS, framing, nosniff, Referrer-Policy,
   Permissions-Policy, COOP/COEP/CORP, Set-Cookie flags, CORS, Server/X-Powered-By; ticked fixes become a HeaderDial profile of response rows,
-  CSP in Report-Only, limited to the response's host). Comparison page `guides/modheader-alternatives-compared.html` (figures checked
+  CSP in Report-Only, limited to the response's host). **CSP builder** `guides/csp-builder.html` (session 10, `site/js/csp-build.js`, 22 unit tests): 4 presets, 17 directives with keyword toggles, paste an existing policy (value, header line, `<meta>`, nginx, Apache), weak-spot warnings, output as value/header/nginx/Apache/meta; "Test it on your site" makes a share link of a Report-Only (or enforce) response row limited to a host, optionally removing the site's own CSP. Comparison page `guides/modheader-alternatives-compared.html` (figures checked
   2026-11-20; they go stale).
 - `store/LISTING.md` (CWS/Edge text + AMO notes), `store/amo-listing.json`, two 1280×800 screenshots.
 
@@ -200,31 +200,38 @@ check the binding and call the handler).
    `store/chrome-privacy.md` (inbox line 2026-11-20). Then `python3 scripts/publish-cws.py --publish`
    and `--status` until published; switch the Chrome install section of `site/index.html` from the
    zip to the store link. This is the biggest lever: ~900K displaced Chrome users.
-2. **AMO follow-through:** `python3 scripts/publish-amo.py --status` until 0.2.0 is `public`. Then
-   submit the current version, 0.9.0 (`publish-amo.py`, then `--listing`), change the Firefox install line on
+2. **Firefox signed install (builder, from 2026-11-21 12:23 UTC):** `python3 scripts/publish-amo.py --unlisted` signs the current version
+   on AMO's unlisted (self-hosted) channel, which gets only Mozilla's automated review, and saves `site/download/headerdial-firefox.xpi`
+   (+ `.json` with version/sha256). Session 10 got HTTP 429 "Expected available in 71495 seconds" on version creation (AMO's per-add-on
+   daily version limit), after the upload validated with 0 errors. Then: commit the .xpi, add an "Install for Firefox (signed by Mozilla)"
+   link on `site/index.html` and `guides/modify-headers-firefox.html` next to the AMO line, check live with `curl -I` that Pages serves
+   it as `application/x-xpinstall`, and install it in Firefox 158 once (e2e or by hand). Unlisted installs update only from unlisted
+   versions, and a version number cannot be reused across channels, so the next listed AMO submission must be a higher version.
+3. **AMO follow-through:** `python3 scripts/publish-amo.py --status` until 0.2.0 is `public`. Then
+   submit the current version (`publish-amo.py`, then `--listing`; it must be higher than any version signed unlisted in step 2), change the Firefox install line on
    `site/index.html` and `guides/modify-headers-firefox.html` from "in review" to live, and record
    AMO daily users in Metrics.
-3. **Search Console:** `python3 scripts/gsc.py status` from about 2026-11-27 for indexing and the
+4. **Search Console:** `python3 scripts/gsc.py status` from about 2026-11-27 for indexing and the
    first impressions; record them in Metrics. Write guides for the queries that show up.
-4. Features next: tab-group / window filters (the last ModHeader import warnings; tab/window ids do not survive a restart, so
+5. Features next: tab-group / window filters (the last ModHeader import warnings; tab/window ids do not survive a restart, so
    import value is low), and an
    "edit one cookie" mode that really replaces a same-named browser cookie (DNR cannot rewrite part of a
    header; would need the `cookies` permission, so weigh it against the minimal-permission promise).
-5. Guard the guides, continued: guarded now: Sec-Fetch-Site settable, Host/Connection removal ignored, service-worker requests
+6. Guard the guides, continued: guarded now: Sec-Fetch-Site settable, Host/Connection removal ignored, service-worker requests
    miss tab-only profiles, OPTIONS 404 stays blocked (Chrome); response set over Content-Type ignored (Firefox); cross-profile
    cookie table and framing needs XFO + CSP removed (both). Still unguarded: HSTS in Firefox, the DevTools-override results,
    `Access-Control-Allow-Headers: *` letting Authorization through (spec says it should not; most likely to change).
-6. Once a store listing is live: ask the operator (inbox) to answer existing questions from displaced ModHeader
+7. Once a store listing is live: ask the operator (inbox) to answer existing questions from displaced ModHeader
    users with the recovery page (needs their accounts; no mass posting), and about one awesome-list PR. Recovery is the one thing
    no competitor offers; watch GSC for "modheader" queries landing on it.
-7. More recipes once GSC shows which queries land (each recipe should have a guide, as CORS and iframe do). Consider letting the
+8. More recipes once GSC shows which queries land (each recipe should have a guide, as CORS and iframe do). Consider letting the
    iframe recipe tick the `sub_frame` request type when the profile has no other rows (now it removes CSP on page loads too unless
    the user adds a Domain filter; the guide says to).
-8. Paste import and tool pages: watch GSC for "curl" and "security headers" queries landing on the two tool pages; if they come, add
+9. Paste import and tool pages: watch GSC for "curl" and "security headers" queries landing on the two tool pages; if they come, add
    "Copy as fetch to headers", "Postman headers to browser" and a CSP builder page. The checker's DevTools formats are partly assumed
    (Chrome's non-raw header list copy, Firefox "Copy All" JSON); confirm by copying from a real DevTools panel. Re-check the comparison
    page's figures about monthly (the curl/API calls are listed at the end of the page); a scheduled routine would be cheaper than by hand.
-9. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
+10. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
    the chrome scope) and the matched-request count (needs an activeTab grant from a real click).
 
 ## Metrics
@@ -255,6 +262,10 @@ check the binding and call the handler).
 - 2026-11-20 (session 9): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS `--publish` 400
   on the same dashboard fields; draft now 0.9.0). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for
   2026-10-23..11-20. Sitemap: 36 URLs (live, curl), resubmitted (`gsc.py submit` 204).
+
+- 2026-11-20 (session 10): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS `--publish` 400
+  on the same dashboard fields; draft now 0.9.1). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for
+  2026-10-23..11-20. Sitemap: 37 URLs after this session's build.
 
 ## Monetization plan
 
@@ -404,3 +415,17 @@ that is how the incumbent died.
   after load; zip is 0.9.0 with `startCard`; sitemap 36 URLs, `gsc.py submit` 204. CWS draft upload 0.9.0 (`--status` crxVersion 0.9.0). Not
   verified: the start card inside the real toolbar popup (checked in the full-tab editor, same code; 700 px width not screenshotted), real
   DevTools copies into the checker, Edge.
+- 2026-11-20 builder (session 10): channels unchanged (AMO `nominated`, CWS `--publish` 400, GSC no rows). Tried to give Firefox visitors a
+  one-click install now: added `publish-amo.py --unlisted` (signs on AMO's self-hosted channel, automated review only, saves the signed
+  .xpi); the 0.9.0 upload validated (0 errors, 2 harmless data_collection_permissions warnings) but version creation got 429 "Expected
+  available in 71495 seconds" (per-add-on daily limit), so nothing was signed; the script now stops with the retry time
+  (~2026-11-21 12:23 UTC). Popup: the first-run popup measured 699px in a clean Chromium 159 profile, over the 600px popup cap, so
+  Import/Export sat below a scrollbar; 0.9.1 puts + Cookie / + URL redirect on the + Response header row until the profile has such rows,
+  shortens chips ("Allow CORS", "Mobile UA", "Allow framing") so they fit one line, drops a redundant hint: 594px with the access banner,
+  539px without (measured, `.tmp` scripts, not committed). Third store screenshot (Start card), store shots regenerated. Subagent built
+  `guides/csp-builder.html` (it corrected my brief: a HeaderDial `set` response row replaces a same-named header, confirmed by its new
+  e2e with a page that sends its own CSP). New e2e guards: Start card chips on one line, the three add buttons share a row, page ≤600px.
+  Unit 89/89, Chromium e2e 38/38 locally (Firefox e2e 23/23 on 0.9.1 before the site/test changes; extension code unchanged since).
+  CI 44775060117 (commit ef75280, 0.9.1) passed (test, firefox, deploy); live zip is 0.9.1. CWS draft upload 0.9.1 SUCCESS (`--status`
+  crxVersion 0.9.1). Not verified: the popup inside a real toolbar (heights measured on popup.html at 700×600), fonts on Windows/macOS
+  (chip row has ~22-50px slack in Chromium on Linux), CSP builder in Firefox, the CSP console-message details the page states from docs.

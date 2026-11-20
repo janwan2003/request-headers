@@ -29,7 +29,7 @@
 <p>For framing problems, add two rows: remove <code>X-Frame-Options</code>, and remove or replace <code>Content-Security-Policy</code>. Modern browsers give <code>frame-ancestors</code> precedence over <code>X-Frame-Options</code>, so removing only the older header is often not enough. Response headers apply to whatever response matches the filter, so put the filter on the <em>framed</em> site's domain, not the parent page's. We measured each combination in Chrome and Firefox in <a href="allow-iframe-x-frame-options.html">Embed a site in an iframe while testing</a>.</p>
 
 <h2>A safer way to try a stricter policy</h2>
-<p>To see what a new policy <em>would</em> block without breaking the page, add it as <code>Content-Security-Policy-Report-Only</code> instead. The browser reports violations in the Console but enforces nothing. When the console is quiet, move the policy into the real header on your server.</p>
+<p>To see what a new policy <em>would</em> block without breaking the page, add it as <code>Content-Security-Policy-Report-Only</code> instead. The browser reports violations in the Console but enforces nothing. When the console is quiet, move the policy into the real header on your server. The <a href="csp-builder.html">CSP builder</a> writes such a policy and turns it into a Report-Only profile for one host.</p>
 
 <h2>Inspecting headers with curl and DevTools</h2>
 <pre><code># see the CSP and framing headers a page sends
@@ -48,6 +48,7 @@ curl -sI https://www.example.com/ | grep -iE 'content-security-policy|x-frame-op
 <p><a class="btn" href="../#install">Get HeaderDial</a></p>
 </article>
 <div class="related"><h2>Related guides</h2><ul><li><a href="security-headers-checker.html">Security headers checker: paste response headers</a></li>
+<li><a href="csp-builder.html">CSP builder: write a policy and test it before deploying</a></li>
 <li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
 <li><a href="remove-request-header.html">Remove a request header in Chrome</a></li>
 <li><a href="feature-flag-headers-staging.html">Send custom headers to staging and feature-flag headers</a></li>

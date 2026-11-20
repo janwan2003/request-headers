@@ -94,6 +94,7 @@
 <li>Switch the mode to <strong>enforce</strong> to see the page with the policy applied. HeaderDial's <code>set</code> replaces the server's own <code>Content-Security-Policy</code> header with yours on that host. Then put the policy on the server.</li>
 </ol>
 <p>A policy in a <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> tag is part of the HTML, not a header, so this checker does not see it and a header rule does not replace it. Both apply.</p>
+<p>To write a policy from scratch, or edit one directive by directive with a warning for each weak spot, use the <a href="csp-builder.html">CSP builder</a>, which makes the same kind of Report-Only test profile.</p>
 
 <h3 id="framing">X-Frame-Options and frame-ancestors</h3>
 <p>Both decide which sites may show the page in an <code>&lt;iframe&gt;</code>, which stops clickjacking (a hidden frame of your page under a fake button). When an enforced CSP has <code>frame-ancestors</code>, browsers ignore <code>X-Frame-Options</code>, so the checker rates <code>frame-ancestors</code> first: <code>'none'</code>, <code>'self'</code> or a list of hosts is good; <code>*</code> or <code>https:</code> lets every site frame the page. Otherwise <code>X-Frame-Options: DENY</code> or <code>SAMEORIGIN</code> is good. <code>ALLOW-FROM</code> is obsolete and current browsers ignore it, so the page can be framed by anyone. If the header carries conflicting values (<code>DENY, SAMEORIGIN</code>), the HTML standard says to block framing entirely. To embed a site you are testing despite these headers, see <a href="allow-iframe-x-frame-options.html">remove X-Frame-Options and frame-ancestors while testing</a>.</p>
@@ -160,6 +161,7 @@
 </article>
 <div class="related"><h2>Related guides</h2><ul>
 <li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="csp-builder.html">CSP builder: write a policy and test it before deploying</a></li>
 <li><a href="hsts-header-testing.html">Remove or change Strict-Transport-Security (HSTS) while testing</a></li>
 <li><a href="allow-iframe-x-frame-options.html">Embed a site in an iframe: remove X-Frame-Options and frame-ancestors</a></li>
 <li><a href="cors-headers-for-local-development.html">Add Access-Control-Allow-Origin for local testing</a></li>
