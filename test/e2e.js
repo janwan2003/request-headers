@@ -600,6 +600,37 @@ async function fetchVia(page, url) {
     ok('recipes add working rows from the editor (and the token field gets focus)');
   }
 
+  // First run: an untouched profile shows the start card; a recipe chip or the × hides it.
+  {
+    const saved = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state);
+    const fresh = async () => {
+      await ui.evaluate(async () => { await chrome.storage.local.remove('startHidden'); await chrome.storage.local.set({ state: HeaderDial.defaultState() }); });
+      await ui.reload();
+    };
+    await fresh();
+    await until(() => ui.locator('#start').isVisible(), 'start card on first run');
+    assert.doesNotMatch(await ui.locator('#editor').innerText(), /\bfalse\b|\bnull\b/, 'no stray false/null text');
+    if (SHOTS) await ui.locator('#start').screenshot({ path: path.join(SHOTS, 'start.png') });
+    await ui.click('#start-modheader');
+    assert.ok(await ui.locator('#import-dialog').evaluate((d) => d.open), 'ModHeader opens the import dialog');
+    assert.match(await ui.locator('#import-msg').innerText(), /\.ldb and \.log/);
+    assert.strictEqual(await ui.evaluate(() => document.activeElement.id), 'import-text');
+    await ui.keyboard.press('Escape');
+    await ui.click('#start [data-recipe="bearer"]');
+    assert.strictEqual(await ui.evaluate(() => document.activeElement.value), 'Bearer ', 'token field focused');
+    assert.ok(!(await ui.locator('#start').count()), 'card gone once the profile has a header');
+    await fresh();
+    await ui.click('#start-close');
+    assert.ok(!(await ui.locator('#start').count()), 'closed');
+    await ui.reload();
+    await ui.locator('#editor h3').first().waitFor();
+    assert.ok(!(await ui.locator('#start').count()), 'stays closed after reopening');
+    await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
+    await ui.reload();
+    await settle();
+    ok('first run: start card opens import, adds a recipe, and stays closed once closed');
+  }
+
   // Guide guard (allow-iframe-x-frame-options.html): with both X-Frame-Options and CSP
   // frame-ancestors, removing X-Frame-Options alone still blocks the frame; removing both loads it.
   {
@@ -763,6 +794,30 @@ async function fetchVia(page, url) {
     assert.deepStrictEqual(p.filters.map((f) => [f.type, f.value]), [['domain', 'api.staging.example.com']]);
     assert.deepStrictEqual(errors, []);
     ok('curl tool page: example parsed locally, browser headers unticked, share link holds the ticked rows and the domain filter');
+    await browser.close();
+  }
+
+  // ---- 7. The security headers checker (no extension): the example gets verdicts, and the
+  // share link carries the ticked fixes as response rows limited to the response's host.
+  {
+    const browser = await chromium.launch({ executablePath: fs.existsSync(CHROME) ? CHROME : undefined, headless: true });
+    const page = await (await browser.newContext()).newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    page.on('request', (r) => { if (!/^file:|\/favicon\.png$/.test(r.url())) errors.push('network request: ' + r.url()); });
+    await page.goto('file://' + path.join(root, 'dist/site/guides/security-headers-checker.html'));
+    await page.click('#example');
+    await until(() => page.locator('#out').isVisible(), 'checker verdicts');
+    assert.match(await page.locator('#summary').innerText(), /\d+ good, \d+ weak, \d+ missing/);
+    assert.ok((await page.locator('#verdicts tbody tr').count()) >= 8, 'a verdict row per header');
+    await page.click('#copy');
+    const link = await page.locator('#link').inputValue();
+    const p = await page.evaluate((l) => HeaderDial.parseImport(l).profiles[0], link);
+    assert.ok(p.headers.length >= 2 && p.headers.every((h) => h.target === 'response' && h.op === 'set'), 'response set rows');
+    assert.ok(p.headers.some((h) => h.name === 'Content-Security-Policy-Report-Only'), 'CSP starts in Report-Only');
+    assert.deepStrictEqual(p.filters.map((f) => [f.type, f.value]), [['domain', 'shop.example.com']]);
+    assert.deepStrictEqual(errors, []);
+    ok('security headers checker: example gets verdicts, share link holds Report-Only CSP and fixes for its host, no network');
     await browser.close();
   }
 

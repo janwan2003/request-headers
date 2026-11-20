@@ -203,6 +203,13 @@
           } else if (!out.url) out.url = w;
       }
     }
+    // Firefox's POSIX "Copy as cURL" also writes & and | inside quotes as ^& and ^| (a
+    // Windows escape it applies on every platform). Its copies are the ones with Title-Case
+    // Sec-Fetch-* names; Chrome writes them in lower case.
+    if (!isCmd(text) && out.items.some((h) => /^Sec-Fetch-/.test(h.name))) {
+      for (const h of out.items) h.value = h.value.replace(/\^([&|])/g, '$1');
+      out.url = out.url.replace(/\^([&|])/g, '$1');
+    }
     if (skipped.has('body') && !out.method) out.method = 'POST';
     // curl reads [] and {} in URLs as globs; DevTools escapes them with a backslash.
     out.url = out.url.replace(/\\([[\]{}])/g, '$1');

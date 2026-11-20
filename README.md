@@ -6,6 +6,7 @@ HTTP request and response headers. Website: https://janwan2003.github.io/request
 - Profiles (several active at once, leftmost wins), each with request and response headers
 - Operations: set, append, remove
 - Recipes (`RECIPES` in `extension/lib/model.js`): CORS for the tab's origin, allow framing, Bearer token with a 1-hour timer, mobile User-Agent, no-cache, X-Forwarded-For
+- First run: a "Start here" card on the untouched profile offers Paste a request, Coming from ModHeader? (opens Import), and the recipes as one-click chips; closing it is remembered (`startHidden` in storage)
 - Filters: domains, URL patterns, URL regexes, the page that made the request ("Page domain"), exclusions, request types, methods, a single tab
 - Timed headers that switch themselves off (15 min to 1 day)
 - URL redirects: replace text in the URL or use a regex with groups (DNR `redirect` rules)

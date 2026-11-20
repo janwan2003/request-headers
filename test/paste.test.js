@@ -87,6 +87,15 @@ test('Firefox "Copy as cURL" (POSIX, verbatim generator layout): Title-Case name
   assert.ok(dropped(req).includes('sid'));
 });
 
+test('Firefox "Copy as cURL" writes & and | as ^& and ^| inside quotes; Chrome copies keep a literal ^&', () => {
+  const ff = "curl 'https://api.example.com/q?a=1^&b=2' -H 'X-Filter: a^&b^|c' -H 'Cookie: s=1' -H 'Sec-Fetch-Mode: cors'";
+  const req = HD.parseRequestText(ff);
+  assert.strictEqual(req.url, 'https://api.example.com/q?a=1&b=2');
+  assert.deepStrictEqual(kept(req), ['X-Filter=a&b|c']);
+  const chrome = "curl 'https://api.example.com/' -H 'x-filter: a^&b' -H 'sec-fetch-mode: cors'";
+  assert.deepStrictEqual(kept(HD.parseRequestText(chrome)), ['x-filter=a^&b']);
+});
+
 test('hand-written curl: everything it asks for is kept, -u becomes Basic auth, the body is left out', () => {
   const req = HD.parseRequestText(`$ curl -sSL -u alice:s3cret -H "X-Env: staging" -A 'MyAgent/1' --cookie 'flag=on' -H 'X-Drop:' -H 'X-Empty;' https://api.example.com/x -d '{"a":1}'`);
   assert.strictEqual(req.fromBrowser, false);

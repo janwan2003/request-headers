@@ -11,6 +11,7 @@ let status = null;
 let tab = null; // the tab the popup was opened over
 let saveTimer = null;
 let filtersOpen = null; // remembers whether the user opened or closed the filters section
+let startHidden = false; // the user closed the first-run card
 
 function el(tag, props, ...kids) {
   const n = document.createElement(tag);
@@ -252,6 +253,7 @@ function renderEditor() {
         el('input', { type: 'checkbox', id: 'profile-active', checked: p.active, onchange: (e) => { p.active = e.target.checked; save(true); } }),
         el('span', { class: 'track' }), p.active ? 'Active' : 'Off'),
       el('span', { class: 'menu' }, menuBtn)),
+    ...(isFresh(p) ? [startCard(p)] : []), // replaceChildren would print a false
     el('h3', {}, 'Request headers'),
     el('div', { class: 'rows', id: 'req-rows' }, req.length ? req.map((h) => headerRow(p, h)) : el('div', { class: 'empty' }, 'None.')),
     el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-req', onclick: () => addHeader(p, 'request') }, '+ Request header'),
@@ -276,6 +278,36 @@ function renderEditor() {
     ] : []),
     el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-redir', onclick: () => addRedirect(p) }, '+ URL redirect')),
     det);
+}
+
+// First run: one untouched profile. Offer the three ways people start: paste a request
+// from DevTools, bring profiles over from ModHeader, or a one-click recipe.
+const START_RECIPES = [['bearer', 'Bearer token'], ['cors', 'CORS for this page'], ['mobile', 'Mobile User-Agent'],
+  ['nocache', 'No cache'], ['iframe', 'Allow in an iframe'], ['xff', 'X-Forwarded-For']];
+function isFresh(p) {
+  return !startHidden && state.profiles.length === 1 && !p.headers.some((h) => h.name.trim()) &&
+    !p.cookies.length && !p.redirects.length && !p.filters.length;
+}
+function startCard(p) {
+  const openImport = (hint) => {
+    const msg = $('import-msg');
+    msg.className = 'msg'; msg.textContent = hint || '';
+    $('import-dialog').showModal();
+    $('import-text').focus();
+  };
+  return el('section', { class: 'start', id: 'start', 'aria-label': 'Start here' },
+    el('div', { class: 'start-head' }, el('strong', {}, 'Start here'), el('span', { class: 'spacer' }),
+      el('button', { class: 'icon', type: 'button', id: 'start-close', title: 'Hide this', 'aria-label': 'Hide the start card',
+        onclick: () => { startHidden = true; api.storage.local.set({ startHidden: true }); renderEditor(); } }, '×')),
+    el('div', { class: 'start-ways' },
+      el('button', { type: 'button', id: 'start-paste', onclick: () => openImport() },
+        el('b', {}, 'Paste a request'), el('span', {}, 'Copy as cURL or fetch in DevTools, paste it here, keep the headers you need')),
+      el('button', { type: 'button', id: 'start-modheader', onclick: () => openImport(
+        'From ModHeader: paste its exported JSON, or if ModHeader is disabled, choose the .ldb and .log files from its data folder.') },
+        el('b', {}, 'Coming from ModHeader?'), el('span', {}, 'Import its export, or recover profiles from a disabled ModHeader'))),
+    el('div', { class: 'start-recipes' }, el('span', { class: 'muted' }, 'Or in one click:'),
+      ...START_RECIPES.map(([k, label]) => el('button', { type: 'button', dataset: { recipe: k }, onclick: () => addRecipe(p, k) }, label))),
+    el('p', { class: 'hint' }, 'Or type a header name below.'));
 }
 
 function addHeader(p, target) {
@@ -489,8 +521,9 @@ api.storage.onChanged.addListener((changes, area) => {
 });
 
 (async function init() {
-  const got = await api.storage.local.get(['state', 'status']);
+  const got = await api.storage.local.get(['state', 'status', 'startHidden']);
   state = HD.normalizeState(got.state);
+  startHidden = !!got.startHidden;
   status = got.status || null;
   if (!got.state) await saveNow();
   if (!IS_PAGE) {

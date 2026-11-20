@@ -167,6 +167,19 @@ async function launch() {
   // ---- 1. Shipped manifest (host access optional, not granted): nothing changes.
   {
     const s = await session(false);
+    // First run: the start card shows on the untouched profile, and a recipe chip fills it in.
+    await s.go(`moz-extension://${UUID}/popup.html?page=1`);
+    const first = JSON.parse(await s.run(`(async () => {
+      for (let i = 0; i < 100 && !document.getElementById('start'); i++) await new Promise((r) => setTimeout(r, 50));
+      const card = !!document.getElementById('start');
+      const stray = /\\bfalse\\b|\\bnull\\b/.test(document.getElementById('editor').innerText);
+      document.querySelector('#start [data-recipe="xff"]').click();
+      const names = [...document.querySelectorAll('#req-rows input.name')].map((i) => i.value);
+      return JSON.stringify({ card, stray, names, after: !!document.getElementById('start') });
+    })()`));
+    assert.deepStrictEqual(first, { card: true, stray: false, names: ['X-Forwarded-For'], after: false });
+    ok('Firefox: first-run start card shows and its recipe chip adds the row');
+    await s.run(`chrome.storage.local.remove('state')`);
     const st = await s.setState(`p.headers = [HeaderDial.newHeader('request', { name: 'X-HeaderDial', value: 'on' })];`);
     assert.ok(st.rules > 0, 'rules were registered');
     const got = await s.echo();

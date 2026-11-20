@@ -1,0 +1,163 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ModHeader alternatives compared (2026): Requestly, Header Editor, Tweak, DevTools and more – HeaderDial</title><meta name="description" content="A sourced comparison of the realistic ModHeader replacements in 2026: Requestly, Header Editor, Simple Modify Headers, Modify Header Value, Tweak, FlexHeader, Chrome DevTools overrides and HeaderDial. Users, ratings, price, sign-in, source, Firefox and Edge, redirects and ModHeader import, checked 2026-11-20.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/modheader-alternatives-compared.html">
+<meta property="og:title" content="ModHeader alternatives compared (2026)"><meta property="og:description" content="Requestly, Header Editor, Simple Modify Headers, Modify Header Value, Tweak, FlexHeader, DevTools overrides and HeaderDial side by side: users, ratings, price, sign-in, source and ModHeader import, checked 2026-11-20."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"ModHeader alternatives compared (2026)","description":"A sourced comparison of header-editing extensions that can replace ModHeader: users, ratings, price, sign-in, open source, Firefox and Edge availability, request and response headers, redirects and ModHeader import, checked 2026-11-20.","datePublished":"2026-11-20","dateModified":"2026-11-20","author":{"@type":"Organization","name":"HeaderDial"},"citation":["https://chromewebstore.google.com/detail/mdnleldcmiljblolnjhpnblkcekpdkpa","https://chromewebstore.google.com/detail/eningockdidmgiojffjmkdblpjocbhgh","https://chromewebstore.google.com/detail/gjgiipmpldkpbdfjkgofildhapegmmic","https://chromewebstore.google.com/detail/cbdibdfhahmknbkkojljfncpnhmacdek","https://chromewebstore.google.com/detail/feahianecghpnipmhphmfgmpdodhcapi","https://chromewebstore.google.com/detail/gffpeamhhldhibdngenbfciboinanppf","https://requestly.com/pricing/","https://requestly.com/alternatives/modheader","https://tweak-extension.com/pricing","https://tweak-extension.com/faqs","https://developer.chrome.com/docs/devtools/overrides"]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>ModHeader alternatives compared (2026)</h1>
+<p>ModHeader was removed from Edge Add-ons on 3 July 2026 and from the Chrome Web Store on 10 July 2026, after researchers found a switched-off browsing-history collector in it (<a href="is-modheader-safe.html">what was found</a>). This page compares the tools people actually move to. Every user count, rating, price and update date below was <strong>checked 2026-11-20</strong> on the store listing or the vendor's own page. Sources are listed at the end.</p>
+<div class="callout">This page is written by the people who make HeaderDial, one of the tools compared. We have tried to say plainly where the others are better. If something here is wrong or out of date, <a href="https://github.com/janwan2003/request-headers/issues">open an issue</a> and we will fix it.</div>
+
+<h2>The short answer</h2>
+<ul>
+<li><strong>You want more than headers</strong> (mock API responses, an API client, team sharing): <strong>Requestly</strong>, or <strong>Tweak</strong> if you want cheap paid tiers and no account.</li>
+<li><strong>You want a free, open-source header and redirect tool that is in every store today:</strong> <strong>Header Editor</strong> (on Chrome it is called Header Editor Lite).</li>
+<li><strong>You only need to change one response header for a few minutes:</strong> <strong>Chrome DevTools</strong> can do it with nothing to install.</li>
+<li><strong>You want a small header editor with no account, no analytics and no network requests, and a way to get your ModHeader profiles back even without an export:</strong> <strong>HeaderDial</strong>. It is not in the Chrome Web Store or on Firefox Add-ons yet (details below).</li>
+</ul>
+
+<h2>Features at a glance</h2>
+<p>A <em>request header</em> is sent by the browser to the server (for example <code>Authorization</code>). A <em>response header</em> comes back from the server (for example <code>Access-Control-Allow-Origin</code>). A <em>redirect</em> rule sends a request to a different URL, for example from production to <code>localhost</code>. "ModHeader import" means the tool reads the JSON file that ModHeader's export button produced.</p>
+<div style="overflow-x:auto">
+<table>
+<tr><th>Tool</th><th>Request + response headers</th><th>Redirects</th><th>ModHeader import</th><th>Account needed</th><th>Open source</th><th>Price</th></tr>
+<tr><td>HeaderDial</td><td>Both</td><td>Yes</td><td>Yes, plus recovery without an export</td><td>No</td><td>Yes, MIT (<a href="https://github.com/janwan2003/request-headers">repo</a>)</td><td>Free</td></tr>
+<tr><td>Requestly</td><td>Both</td><td>Yes</td><td>Yes</td><td>Accounts exist (sharing, workspaces); signed-out use not checked</td><td>The browser interceptor, yes (<a href="https://github.com/requestly/requestly">repo</a>); the API client core, no</td><td>Header rules free; Enterprise by quote; API platform $10 or $15 per user per month</td></tr>
+<tr><td>Header Editor / Header Editor Lite</td><td>Both</td><td>Yes</td><td>Through a separate converter page (not tested by us)</td><td>No; optional cloud-drive backup</td><td>Yes, GPL-2.0 (<a href="https://github.com/FirefoxBar/HeaderEditor">repo</a>)</td><td>Free</td></tr>
+<tr><td>Simple Modify Headers</td><td>Both</td><td>Not described</td><td>Not listed (README lists its own files and the "Modifyheaders" format)</td><td>None mentioned</td><td>Yes, MPL-2.0 (<a href="https://github.com/didierfred/SimpleModifyHeaders">repo</a>)</td><td>Free</td></tr>
+<tr><td>Modify Header Value</td><td>Request only</td><td>Not described</td><td>Not described</td><td>None mentioned</td><td>MPL-2.0 licence on its Firefox listing; no repository linked</td><td>Free (donations)</td></tr>
+<tr><td>Tweak</td><td>Both</td><td>Yes</td><td>Not described</td><td>No (free plan)</td><td>No ("all rights reserved")</td><td>Free; Basic $2/month or $18/year; Max $4/month or $36/year</td></tr>
+<tr><td>FlexHeader</td><td>Both</td><td>Not described</td><td>Yes</td><td>None mentioned</td><td>Yes (<a href="https://github.com/harrisondeo/FlexHeader">repo</a>)</td><td>Free (no paid tier mentioned)</td></tr>
+<tr><td>Listings named "ModHeader …" (not the original)</td><td colspan="5">not checked; see <a href="#copycats">below</a></td><td>not checked</td></tr>
+<tr><td>Chrome DevTools overrides (built in)</td><td>Response only</td><td>No</td><td>No</td><td>No</td><td>Part of Chrome</td><td>Free</td></tr>
+</table>
+</div>
+<p class="note">"Not described" means the tool's listing, README or website did not mention the feature when we read it on 2026-11-20. It may still exist; we did not install every tool to check.</p>
+
+<h2>Users, ratings and stores</h2>
+<p>Each store counts differently. The Chrome Web Store shows a rounded number of <em>users</em>. Firefox Add-ons shows <em>daily users</em>, an average per day. Edge Add-ons reports <em>active installs</em>. So compare numbers within a column, not across columns. Ratings are out of 5, with the number of ratings in brackets. All figures checked 2026-11-20.</p>
+<div style="overflow-x:auto">
+<table>
+<tr><th>Tool</th><th>Chrome Web Store</th><th>Firefox Add-ons</th><th>Edge Add-ons</th></tr>
+<tr><td>HeaderDial</td><td>Not listed yet (submitted, pending). Chrome and Edge: install from the <a href="../#install">release zip</a></td><td>In review, not installable there yet</td><td>Not listed yet; the release zip loads in Edge</td></tr>
+<tr><td>Requestly</td><td>300,000 users, 4.7 (1.8K), updated 2026-09-30</td><td>Requestly's <a href="https://requestly.com/downloads/firefox/">Firefox page</a> links to a download from its own server, not to Firefox Add-ons</td><td>27,448 installs, 4.1 (16)</td></tr>
+<tr><td>Header Editor</td><td>Header Editor Lite: 200,000 users, 4.1 (84), updated 2026-11-13</td><td>Header Editor: 13,137 daily users, 4.71 (185), updated 2026-11-13. Lite: 466, no ratings</td><td>Header Editor: 630,066 installs, 4.0 (29), updated 2026-11-10</td></tr>
+<tr><td>Simple Modify Headers</td><td>40,000 users, 4.3 (23), updated 2024-06-10</td><td>6,165 daily users, 4.64 (39), updated 2024-07-14</td><td>No Edge listing linked by the author</td></tr>
+<tr><td>Modify Header Value</td><td>40,000 users, 3.3 (55), updated 2026-06-14</td><td>9,607 daily users, 3.64 (67), updated 2026-06-16</td><td>11,295 installs, 2.6 (5)</td></tr>
+<tr><td>Tweak</td><td>60,000 users, 4.5 (241), updated 2026-11-13</td><td>1,600 daily users, 4.17 (29), updated 2026-11-12</td><td>3,604 installs, 5.0 (1), updated 2026-11-12</td></tr>
+<tr><td>FlexHeader</td><td>7,000 users, 4.9 (31), updated 2026-09-11</td><td>481 daily users, 5.0 (2), updated 2026-08-22</td><td>not checked</td></tr>
+<tr><td>"ModHeader …" listings</td><td>10 listings, 35 to 30,000 users each, last updated 2026-07-15 to 2026-11-10</td><td>1 listing, 993 daily users</td><td>not checked</td></tr>
+<tr><td>DevTools overrides</td><td colspan="3">Built into Chrome since Chrome 113; nothing to install</td></tr>
+</table>
+</div>
+
+<h2>Each tool in short</h2>
+
+<h3>HeaderDial</h3>
+<p><strong>Best for:</strong> people who want a header editor and nothing else, with no account, no analytics and no network requests from the extension, and who want their ModHeader profiles back.</p>
+<ul>
+<li><strong>Headers and redirects:</strong> sets, appends or removes request and response headers, adds cookies, and redirects URLs. Filters by domain, URL pattern, regular expression, request type, request method, the page that made the request, or one tab. Headers can expire on a timer, from 15 minutes to 1 day.</li>
+<li><strong>From ModHeader:</strong> imports ModHeader's export file. If you never exported, the <a href="recover-modheader-profiles.html">recovery page</a> reads the profiles from ModHeader's data folder in your browser profile. As far as we know, no other tool on this page offers that.</li>
+<li><strong>Permissions:</strong> <code>declarativeNetRequest</code> (the browser's built-in rule engine for changing requests, so the extension's code never sees your traffic), <code>storage</code>, <code>alarms</code> and <code>activeTab</code>. Access to sites is optional and granted from the popup.</li>
+<li><strong>Where it is weaker:</strong> it is new. It has no store listing yet, so no ratings and no track record. It cannot mock responses, change response bodies, sync between computers or share rules with a team. There is no Safari version.</li>
+<li><strong>Install:</strong> on Chrome and Edge, from the <a href="../#install">release zip</a> on the home page (about a minute, with Developer mode). The Chrome Web Store and Edge Add-ons listings are on the way. On Firefox it was submitted to Firefox Add-ons on 2026-11-20 and becomes installable there once Mozilla's review is done.</li>
+</ul>
+
+<h3>Requestly</h3>
+<p><strong>Best for:</strong> teams who want headers plus much more: mock API responses, change request and response bodies, inject scripts, record and share sessions, and an API client (a tool for sending and testing API requests, like Postman).</p>
+<ul>
+<li>The largest alternative by users in the Chrome Web Store. Requestly says it is now part of BrowserStack.</li>
+<li>Imports ModHeader profiles as rules, and documents the steps.</li>
+<li>Has team workspaces, rule sharing, single sign-on and audit logs for companies. HeaderDial has none of these.</li>
+<li>Available for Chrome, Edge, Firefox (as a download from Requestly's site) and Safari, plus a desktop app.</li>
+<li>Price: its ModHeader comparison page lists a free plan with unlimited header rules and a custom-priced Enterprise plan. Its main pricing page lists the API platform at $10 (Team) or $15 (Team Pro) per user per month, billed annually.</li>
+</ul>
+
+<h3>Header Editor and Header Editor Lite</h3>
+<p><strong>Best for:</strong> a free, open-source rules tool for headers and redirects that is already in every store, with a long history.</p>
+<ul>
+<li>Changes request headers, response headers and URLs, and can cancel requests.</li>
+<li>Two editions from the same team. <em>Header Editor Lite</em> uses Manifest V3 (the current extension format that Chrome requires) and is the one in the Chrome Web Store. The full <em>Header Editor</em> adds custom JavaScript functions and response-body changes. The project recommends Lite unless you need those.</li>
+<li>Large on Edge: 630,066 active installs.</li>
+<li>No account needed. Its source shows optional backup of your rules to a cloud drive (OneDrive, Google Drive, Yandex Disk).</li>
+<li>For ModHeader, the team offers a separate converter page that takes a <code>ModHeader.json</code> file. We have not tested it with a current ModHeader export.</li>
+</ul>
+
+<h3>Simple Modify Headers</h3>
+<p><strong>Best for:</strong> a plain rules table for request and response headers on Firefox, from a long-standing open-source project.</p>
+<ul>
+<li>Adds, changes or removes request and response headers and cookies, with URL patterns.</li>
+<li>The last update was in mid-2024 on both stores. The author's README explains that the Chrome version has limits that the Firefox version does not, because of Manifest V3.</li>
+<li>Its README lists import of its own export files and of the "Modifyheaders" format, not ModHeader files.</li>
+</ul>
+
+<h3>Modify Header Value</h3>
+<p><strong>Best for:</strong> adding, changing or removing a request header on chosen sites, with a simple on/off switch.</p>
+<ul>
+<li>Its vendor describes it as changing request headers only.</li>
+<li>Its vendor page links to listings for Chrome, Firefox, Edge and Opera.</li>
+</ul>
+
+<h3>Tweak</h3>
+<p><strong>Best for:</strong> front-end developers who want to mock API responses and edit headers, with cheap paid plans.</p>
+<ul>
+<li>Free plan: header rules, redirects, and up to 12 mock rules, with no account. Paid plans add unlimited rules, changes to real responses, breakpoints, variables and environments.</li>
+<li>Its FAQ says rules stay in the browser and that basic usage analytics are collected. Its Firefox listing licence is "all rights reserved", so it is not open source.</li>
+<li>In all three stores.</li>
+</ul>
+
+<h3>FlexHeader</h3>
+<p><strong>Best for:</strong> an open-source header editor that also imports ModHeader files and syncs settings through your browser account.</p>
+<ul>
+<li>Request and response headers with URL and regular-expression filters, several active "pages" (profiles) at once, comments on headers.</li>
+<li>Smaller than the others (7,000 Chrome users), but highly rated.</li>
+</ul>
+
+<h3 id="copycats">Listings named "ModHeader" that are not ModHeader</h3>
+<p>A Chrome Web Store search for "modheader" on 2026-11-20 returned 10 listings with ModHeader in the name. None of them is at the original ModHeader address (extension ID <code>idgpnmonknjnojddfkpgkljpfnnfcklj</code>, which still shows no listing). They had between 35 and 30,000 users each, and all were last updated between July and November 2026, after the original was removed. One more is on Firefox Add-ons.</p>
+<p>We did not check who publishes them, what their code does, or whether they import ModHeader files. A familiar name tells you nothing about who wrote the code. If you are considering one, run the <a href="is-modheader-safe.html">checks for any header extension</a> first: read its permissions, look for public source, and watch its network requests.</p>
+
+<h3>Chrome DevTools response-header overrides</h3>
+<p><strong>Best for:</strong> trying one response header change quickly, with nothing to install.</p>
+<ul>
+<li>Since Chrome 113, the Network panel can override response headers, saved to a local folder you choose (Chrome's documentation).</li>
+<li>In <a href="chrome-devtools-override-headers.html">our test in Chrome 159</a>, overrides applied only in the tab whose DevTools was open, stopped when DevTools closed, and did not reach CORS preflight responses (the <code>OPTIONS</code> check a browser sends before some cross-site requests). DevTools overrides cannot change request headers.</li>
+</ul>
+
+<h2>How to choose</h2>
+<ol>
+<li><strong>Do you only need headers?</strong> If you also need mocks, body changes or an API client, choose Requestly or Tweak. Requestly if you need team features; Tweak if you want low prices and no account.</li>
+<li><strong>Must it come from a store today?</strong> On a managed work machine you may not be allowed to load an extension from a zip. Then choose a store-listed tool now: Header Editor, Requestly, Tweak or FlexHeader. You can switch later.</li>
+<li><strong>Do you need Firefox?</strong> Header Editor, Simple Modify Headers, Modify Header Value, Tweak and FlexHeader are on Firefox Add-ons. Requestly offers a download from its own site. HeaderDial is in review there.</li>
+<li><strong>How much do you want to trust?</strong> A header editor can see or change every request it is allowed to touch. Prefer public source, a short permission list and no account. Check what the extension's code can see: rules handed to the browser (<code>declarativeNetRequest</code>), or every request (<code>webRequest</code>). <a href="is-modheader-safe.html">How to check</a>.</li>
+<li><strong>Do you have ModHeader profiles to bring?</strong> HeaderDial, Requestly and FlexHeader read ModHeader's export file. Header Editor offers a converter. If you have no export, see the next section.</li>
+</ol>
+
+<h2>Moving from ModHeader</h2>
+<ol>
+<li><strong>Keep your profiles before you remove ModHeader.</strong> Removing an extension deletes its data. If you never exported, <a href="recover-modheader-profiles.html">recover the profiles from ModHeader's data folder</a>. The page runs in your browser and uploads nothing, and the file it gives you works in any tool above that imports ModHeader files.</li>
+<li><strong>Import them.</strong> For HeaderDial, see <a href="modheader-alternative-import.html">import your ModHeader profiles</a>, which lists what carries over. For other tools, follow their own import guide.</li>
+<li><strong>Remove ModHeader and replace secrets.</strong> If your profiles held tokens or API keys, issue new ones. <a href="is-modheader-safe.html">Why</a>.</li>
+</ol>
+
+<h2>How we checked</h2>
+<p>On 2026-11-20 we downloaded each Chrome Web Store listing page and read the users, rating and "Updated" date. We read Firefox figures from the Firefox Add-ons public API, and Edge figures from the Edge Add-ons product API. We read prices, sign-in and feature claims from each vendor's own website, README or store description. We did not install the competing extensions. Figures change; if a number here no longer matches the store, the store is right.</p>
+<ul class="note">
+<li>Chrome Web Store: <a href="https://chromewebstore.google.com/detail/mdnleldcmiljblolnjhpnblkcekpdkpa">Requestly</a>, <a href="https://chromewebstore.google.com/detail/eningockdidmgiojffjmkdblpjocbhgh">Header Editor Lite</a>, <a href="https://chromewebstore.google.com/detail/gjgiipmpldkpbdfjkgofildhapegmmic">Simple Modify Headers</a>, <a href="https://chromewebstore.google.com/detail/cbdibdfhahmknbkkojljfncpnhmacdek">Modify Header Value</a>, <a href="https://chromewebstore.google.com/detail/feahianecghpnipmhphmfgmpdodhcapi">Tweak</a>, <a href="https://chromewebstore.google.com/detail/gffpeamhhldhibdngenbfciboinanppf">FlexHeader</a>, <a href="https://chromewebstore.google.com/search/modheader">search for "modheader"</a></li>
+<li>Firefox Add-ons: <a href="https://addons.mozilla.org/firefox/addon/header-editor/">Header Editor</a>, <a href="https://addons.mozilla.org/firefox/addon/header-editor-lite/">Header Editor Lite</a>, <a href="https://addons.mozilla.org/firefox/addon/simple-modify-header/">Simple Modify Headers</a>, <a href="https://addons.mozilla.org/firefox/addon/modify-header-value/">Modify Header Value</a>, <a href="https://addons.mozilla.org/firefox/addon/tweak-extension/">Tweak</a>, <a href="https://addons.mozilla.org/firefox/addon/flexheaders-alter-http-headers/">FlexHeader</a></li>
+<li>Edge Add-ons: <a href="https://microsoftedge.microsoft.com/addons/detail/ehghoapnlpepjmfbgaomdiilchcjemak">Requestly</a>, <a href="https://microsoftedge.microsoft.com/addons/detail/afopnekiinpekooejpchnkgfffaeceko">Header Editor</a>, <a href="https://microsoftedge.microsoft.com/addons/detail/khookejbpglhmckogkfmbhdiholmdigi">Modify Header Value</a>, <a href="https://microsoftedge.microsoft.com/addons/detail/igmkallacokolpajpaboinafcebkfafl">Tweak</a></li>
+<li>Vendors: <a href="https://requestly.com/pricing/">Requestly pricing</a>, <a href="https://requestly.com/alternatives/modheader">Requestly ModHeader page</a>, <a href="https://interceptor-docs.requestly.com/imports/modheader">Requestly ModHeader import docs</a>, <a href="https://he.firefoxcn.net/en-US/guide/index.html">Header Editor guide</a>, <a href="https://migrate-to-he.firefoxcn.net/">Header Editor converter</a>, <a href="https://mybrowseraddon.com/modify-header-value.html">Modify Header Value</a>, <a href="https://tweak-extension.com/pricing">Tweak pricing</a>, <a href="https://tweak-extension.com/faqs">Tweak FAQ</a>, <a href="https://developer.chrome.com/docs/devtools/overrides">Chrome DevTools overrides</a></li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="is-modheader-safe.html">Is ModHeader safe? What was found, and how to check a header extension yourself</a></li>
+<li><a href="recover-modheader-profiles.html">Recover ModHeader profiles without an export</a></li>
+<li><a href="modheader-alternative-import.html">ModHeader alternative: import your ModHeader profiles</a></li>
+<li><a href="chrome-devtools-override-headers.html">Override response headers in Chrome DevTools</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

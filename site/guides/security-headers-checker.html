@@ -1,0 +1,320 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security headers checker: paste the response headers – HeaderDial</title><meta name="description" content="Paste response headers from DevTools or curl -I and check CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy, cookies and CORS. Then try the fix in your browser before you deploy it. Runs locally.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/security-headers-checker.html">
+<meta property="og:title" content="Check a site's security headers: paste the response headers"><meta property="og:description" content="A security headers and CSP checker that reads headers you paste, explains each verdict in one line, and builds a HeaderDial profile to test the fix in your own browser first. Nothing is uploaded."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<style>
+#tool { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--soft); margin: 16px 0; }
+#tool label.big { display: block; font-weight: 600; margin-bottom: 6px; }
+#paste { width: 100%; min-height: 170px; resize: vertical; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+#tool .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 4px; }
+#tool button { font: inherit; font-size: 15px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+#tool button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#tool button:disabled { opacity: .5; cursor: default; }
+#status.err { color: #b91c1c; }
+#summary { font-weight: 600; margin: 12px 0 4px; }
+#verdicts, #fixes { table-layout: fixed; background: var(--bg); }
+#verdicts col.h { width: 34%; } #verdicts col.v { width: 92px; }
+#verdicts td { overflow-wrap: anywhere; }
+#verdicts .val { display: block; font-size: 12px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.b-good { background: #dcfce7; color: #166534; } .b-weak { background: #fef3c7; color: #92400e; } .b-missing { background: #fee2e2; color: #991b1b; } .b-na { background: var(--code); color: var(--muted); }
+@media (prefers-color-scheme: dark) { #status.err { color: #f87171; } .b-good { background: #14532d; color: #bbf7d0; } .b-weak { background: #78350f; color: #fde68a; } .b-missing { background: #7f1d1d; color: #fecaca; } }
+#fixes col.tick { width: 44px; } #fixes col.n { width: 30%; }
+#fixes td { overflow-wrap: anywhere; }
+#fixes input[type=checkbox] { width: 17px; height: 17px; margin: 3px 0 0; }
+#fixes input[type=text], #fixes textarea, #host, #fixes select { width: 100%; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+#fixes textarea { min-height: 76px; resize: vertical; }
+#fixes select { font-family: inherit; margin-top: 4px; }
+#fixes .why { display: block; font-size: 13px; color: var(--muted); margin-top: 3px; }
+#fixes tr.off .n { color: var(--muted); }
+#host { width: 16em; display: inline-block; }
+#opts label { display: block; margin: 6px 0; }
+#link { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+@media (max-width: 600px) { #verdicts col.h { width: 38%; } #verdicts col.v { width: 76px; } #fixes col.tick { width: 34px; } #fixes col.n { width: 36%; } #verdicts th, #verdicts td, #fixes th, #fixes td { padding: 6px; } }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Check a site's security headers and test the fix before deploying","description":"Paste a response's headers from DevTools or curl, read a verdict for each security header, then try suggested header values in your own browser with HeaderDial before changing the server.","tool":[{"@type":"HowToTool","name":"This page (runs locally in your browser)"},{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Copy the response headers","text":"In DevTools, open the Network panel, select the page's document request and copy its Response Headers (the Raw view is easiest). Or run curl -sI https://your-site/ and copy the output."},{"@type":"HowToStep","name":"Paste them on this page","text":"Paste the text into the box. The page lists each security header with a verdict of good, weak, missing or not applicable and a one-line reason."},{"@type":"HowToStep","name":"Pick the fixes to try","text":"Tick the suggested headers, edit the suggested Content-Security-Policy, and keep it in Report-Only mode at first."},{"@type":"HowToStep","name":"Try them in your browser","text":"Click Copy share link and open it, or download the JSON, and import the profile into HeaderDial. It sets those response headers on the site's host only."},{"@type":"HowToStep","name":"Deploy what worked","text":"Browse the site with DevTools open. When the Console shows no violations you care about, add the same headers on the server."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Check a site's security headers: paste the response headers</h1>
+<p>Paste the response headers of a page, as DevTools or <code>curl -I</code> shows them. The checker gives each security header (Content-Security-Policy, Strict-Transport-Security, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, the Cross-Origin policies, cookies and CORS) a verdict and a plain reason. Then it does what a scanner cannot: it turns the suggested headers into a <a href="../">HeaderDial</a> profile, so you can <strong>try the fix in your browser before you deploy it</strong>. The text is read <strong>in this page</strong>: nothing you paste is sent anywhere, and the page makes no network requests after it has loaded (no CDN, no web fonts, no analytics).</p>
+
+<div id="tool">
+  <label class="big" for="paste">Paste response headers (DevTools Raw or list view, or curl -I / curl -sD - output)</label>
+  <textarea id="paste" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="HTTP/2 200&#10;content-type: text/html; charset=utf-8&#10;strict-transport-security: max-age=31536000; includeSubDomains&#10;content-security-policy: default-src 'self'"></textarea>
+  <div class="actions"><button type="button" id="example">Try an example</button><button type="button" id="clear">Clear</button></div>
+  <p class="note" id="status" role="status">Read locally. Nothing you paste leaves this tab.</p>
+  <div id="out" hidden>
+    <p id="summary"></p>
+    <table id="verdicts"><colgroup><col class="h"><col class="v"><col></colgroup>
+      <thead><tr><th>Header</th><th>Verdict</th><th>Why</th></tr></thead><tbody></tbody></table>
+    <ul id="notes" class="note"></ul>
+
+    <h3>Try the fix in your browser before you deploy it</h3>
+    <p class="note">Ticked rows become response headers in a HeaderDial profile (each one <strong>set</strong>, replacing what the server sends). Rows for headers that already look fine start unticked. Edit any value first.</p>
+    <table id="fixes"><colgroup><col class="tick"><col class="n"><col></colgroup>
+      <thead><tr><th><span class="note">Use</span></th><th>Header</th><th>Value</th></tr></thead><tbody></tbody></table>
+    <div id="opts">
+      <label><input type="checkbox" id="only-host"> Only on <input type="text" id="host" spellcheck="false" autocomplete="off" placeholder="www.example.com" aria-label="Host for the Domain filter"> <span class="note">(a Domain filter; subdomains included. Leave empty to apply everywhere.)</span></label>
+    </div>
+    <div class="actions"><button type="button" class="primary" id="copy">Copy share link</button><button type="button" id="download">Download JSON</button></div>
+    <p class="note" id="link-wrap" hidden><label for="link">Share link (opens the share page, which shows the profile and imports into HeaderDial):</label><br><input id="link" readonly></p>
+  </div>
+</div>
+
+<div class="callout"><strong>Verdicts, not a grade.</strong> Each row says what the header does and why it is rated that way, from the specifications and MDN listed at the end. There is no letter score: a missing <code>Permissions-Policy</code> and an <code>'unsafe-inline'</code> script policy are not worth the same, and only you know which pages need what. The count above the table is just a tally.</div>
+
+<h2>Copy the response headers</h2>
+<ul>
+<li><strong>Chrome and Edge:</strong> open DevTools (<kbd>F12</kbd>), <strong>Network</strong> panel, reload, and click the first request (the document). In <strong>Headers</strong>, under <strong>Response Headers</strong>, switch on <strong>Raw</strong> and copy the block. Selecting the normal (non-raw) list works too: that copy puts each name and its value on separate lines, and the checker pairs them up. If your selection also covers the <strong>General</strong> section, the <strong>Request URL</strong> in it gives the host for the Domain filter, and anything under <strong>Request Headers</strong> is ignored.</li>
+<li><strong>Firefox:</strong> <strong>Network</strong> panel, select the request, <strong>Headers</strong> tab, turn on the <strong>Raw</strong> switch next to <strong>Response Headers</strong> and copy. The JSON that the panel's <strong>Copy All</strong> context menu item produces is also accepted; only its response part is read.</li>
+<li><strong>curl:</strong> <code>curl -sI https://www.example.com/</code> sends a HEAD request; <code>curl -s -D - -o /dev/null https://www.example.com/</code> sends a real GET (some servers answer HEAD differently). Add <code>-L</code> to follow redirects: every hop is printed, and the checker reads the last response. Paste the command line too and the checker takes the host from it. <code>curl -v</code> output works as well.</li>
+</ul>
+<p>Check the HTML page itself, not an image or a script: headers like CSP and X-Frame-Options only matter on documents, so on other responses they show as <em>not applicable</em>. Check more than the home page, too. Login pages, the API and static files often come from different servers with different headers.</p>
+
+<h2>How each header is checked</h2>
+
+<h3 id="csp">Content-Security-Policy</h3>
+<p>A CSP tells the browser where scripts, styles, frames and other resources may come from, so an injected <code>&lt;script&gt;</code> (cross-site scripting) does not run. The checker looks at the source list that governs scripts: <code>script-src</code>, or <code>default-src</code> when there is no <code>script-src</code>.</p>
+<ul>
+<li><strong>Missing</strong> on an HTML page: nothing limits scripts.</li>
+<li><strong>Weak</strong> when scripts are allowed with <code>'unsafe-inline'</code> and the list has no nonce (<code>'nonce-…'</code>) or hash (<code>'sha256-…'</code>). A nonce or hash makes current browsers ignore <code>'unsafe-inline'</code>, so the pair is a normal fallback for old browsers, not a problem.</li>
+<li><strong>Weak</strong> with <code>'unsafe-eval'</code> (lets strings become code through <code>eval()</code>), with <code>*</code>, <code>https:</code>, <code>data:</code> or <code>blob:</code> as script sources (any host), and with no <code>object-src</code> and no <code>default-src</code> (plugins are not limited; <code>object-src 'none'</code> is the usual answer). <code>'strict-dynamic'</code> makes browsers ignore host lists and <code>'unsafe-inline'</code>, so those are not counted against it.</li>
+<li><strong>Weak</strong> when only <code>Content-Security-Policy-Report-Only</code> is sent. That header reports violations but blocks nothing.</li>
+<li>Several policies (several headers, or one header with commas) are all enforced: a script must pass every one, so the strictest decides.</li>
+</ul>
+<p>The suggested value starts from the site's own policy and adds <code>object-src 'none'</code>, <code>base-uri 'self'</code> and <code>frame-ancestors</code> where they are missing. Without a policy, it starts from <code>default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'</code>, which will probably flag your analytics and inline scripts: that is the point of trying it first. More on changing CSP in the browser: <a href="modify-response-headers-csp.html">modify Content-Security-Policy and other response headers</a>.</p>
+
+<h3 id="test-csp">Test a Content Security Policy before deploying it</h3>
+<ol>
+<li>Edit the suggested policy in the table and leave the mode on <strong>Report-Only</strong>.</li>
+<li>Import the profile into HeaderDial and browse the site with the DevTools <strong>Console</strong> open. Each resource the policy would block is listed there, but the page keeps working.</li>
+<li>Add the sources you trust to the policy (or move inline scripts into files, or give them a nonce on the server), and repeat until the Console only lists things you want blocked.</li>
+<li>Switch the mode to <strong>enforce</strong> to see the page with the policy applied. HeaderDial's <code>set</code> replaces the server's own <code>Content-Security-Policy</code> header with yours on that host. Then put the policy on the server.</li>
+</ol>
+<p>A policy in a <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> tag is part of the HTML, not a header, so this checker does not see it and a header rule does not replace it. Both apply.</p>
+
+<h3 id="framing">X-Frame-Options and frame-ancestors</h3>
+<p>Both decide which sites may show the page in an <code>&lt;iframe&gt;</code>, which stops clickjacking (a hidden frame of your page under a fake button). When an enforced CSP has <code>frame-ancestors</code>, browsers ignore <code>X-Frame-Options</code>, so the checker rates <code>frame-ancestors</code> first: <code>'none'</code>, <code>'self'</code> or a list of hosts is good; <code>*</code> or <code>https:</code> lets every site frame the page. Otherwise <code>X-Frame-Options: DENY</code> or <code>SAMEORIGIN</code> is good. <code>ALLOW-FROM</code> is obsolete and current browsers ignore it, so the page can be framed by anyone. If the header carries conflicting values (<code>DENY, SAMEORIGIN</code>), the HTML standard says to block framing entirely. To embed a site you are testing despite these headers, see <a href="allow-iframe-x-frame-options.html">remove X-Frame-Options and frame-ancestors while testing</a>.</p>
+
+<h3 id="hsts">Strict-Transport-Security (HSTS)</h3>
+<p>HSTS makes the browser use HTTPS for the host for <code>max-age</code> seconds, even when someone types <code>http://</code> or follows an old link. The checker rates it <strong>weak</strong> below 6 months (15552000 seconds), at <code>max-age=0</code> (which deletes the policy), without a valid <code>max-age</code>, and when a directive appears twice: the RFC says such a header is ignored. With <code>preload</code> it also checks the <a href="https://hstspreload.org/">preload list</a>'s requirements: at least one year (31536000) and <code>includeSubDomains</code>. A response that arrived over plain HTTP gets <em>not applicable</em>, because browsers ignore HSTS there. If several HSTS headers are sent, browsers use only the first.</p>
+<p>The suggested test value is <code>max-age=300</code> on purpose: the browser stores an HSTS policy and keeps it after you switch the profile off, so a test should expire quickly. Deploy with <code>max-age=31536000; includeSubDomains</code> once every subdomain serves HTTPS. To remove a stored policy, see <a href="hsts-header-testing.html">remove or change HSTS while testing</a>.</p>
+
+<h3 id="nosniff">X-Content-Type-Options</h3>
+<p>The only value is <code>nosniff</code>. With it, browsers refuse to run a response as a script or apply it as a stylesheet unless its <code>Content-Type</code> says it is one, and they stop guessing the type of other responses. Anything else is ignored, so it is rated weak. It is the one header here that matters on every response, not just pages. Before deploying, try it: a script served as <code>text/plain</code> will stop loading.</p>
+
+<h3 id="referrer">Referrer-Policy</h3>
+<p>It controls how much of the page's URL is sent in the <code>Referer</code> header when the page loads resources or the user follows a link. URLs can hold search terms, IDs or reset tokens, so the full URL should not go to other sites. <code>unsafe-url</code> (full URL everywhere, even over HTTP) and <code>no-referrer-when-downgrade</code> (full URL to every HTTPS site) are rated weak; <code>strict-origin-when-cross-origin</code>, <code>strict-origin</code>, <code>same-origin</code>, <code>origin</code> and <code>no-referrer</code> are good. The header can list fallbacks separated by commas; browsers use the last value they understand, and so does the checker. Without the header, current browsers use <code>strict-origin-when-cross-origin</code>, so a missing header is a small gap.</p>
+
+<h3 id="permissions">Permissions-Policy</h3>
+<p>It switches browser features off for the page and the iframes in it, for example <code>camera=(), microphone=(), geolocation=()</code>. It is optional hardening: rated <em>missing</em> when absent, <em>weak</em> when it is written in the old <code>Feature-Policy</code> style (<code>camera 'none'</code>) or does not parse, because browsers drop an unparseable header entirely. Feature names must be lower case.</p>
+
+<h3 id="cross-origin">Cross-Origin-Opener-Policy, -Embedder-Policy and -Resource-Policy</h3>
+<ul>
+<li><strong>COOP</strong> (<code>Cross-Origin-Opener-Policy</code>): with <code>same-origin</code>, a cross-origin page that opens yours, or that you open, loses its handle to your window, which closes a family of cross-site leaks. <code>same-origin-allow-popups</code> keeps the popups you open (sign-in and payment windows) working. Missing on a page is rated <em>missing</em>; <code>unsafe-none</code> is the default and rated weak.</li>
+<li><strong>COEP</strong> (<code>Cross-Origin-Embedder-Policy</code>): <code>require-corp</code> or <code>credentialless</code>, together with COOP <code>same-origin</code>, makes the page cross-origin isolated, which is needed for <code>SharedArrayBuffer</code> and precise timers. It can block third-party embeds, so a missing COEP is <em>not applicable</em> unless you need isolation.</li>
+<li><strong>CORP</strong> (<code>Cross-Origin-Resource-Policy</code>): <code>same-origin</code> or <code>same-site</code> stops other sites from loading the response with <code>&lt;img&gt;</code>, <code>&lt;script&gt;</code> and similar no-cors requests; <code>cross-origin</code> declares it public, which suits CDNs. Rated <em>missing</em> when absent.</li>
+</ul>
+
+<h3 id="cookies">Set-Cookie</h3>
+<p>Each cookie gets its own row with only its name and attributes; the value is never shown. A cookie is weak without <code>Secure</code> (it also travels over plain HTTP), without <code>HttpOnly</code> (page scripts, and so an XSS bug, can read it; leave it off only for a cookie your JavaScript must read), and without <code>SameSite</code> (Chrome treats it as <code>Lax</code>, other browsers may send it on cross-site requests). Browsers reject outright a <code>SameSite=None</code> cookie without <code>Secure</code>, a <code>__Secure-</code> cookie without <code>Secure</code>, and a <code>__Host-</code> cookie that lacks <code>Secure</code> or <code>Path=/</code> or has a <code>Domain</code>. A cookie with <code>Max-Age=0</code> or an <code>Expires</code> date in the past is being deleted, so it is not applicable. Cookie attributes are set by the server code, so the fix table has no row for them; to test cookies from the browser side, see <a href="cookie-header-testing.html">test with Cookie and Set-Cookie headers</a>.</p>
+
+<h3 id="cors">CORS (Access-Control-Allow-Origin)</h3>
+<p>Without CORS headers, scripts on other sites cannot read the response, which is the safe default, so the row is <em>not applicable</em>. <code>*</code> lets any site read it without cookies, fine for public data. <code>*</code> together with <code>Access-Control-Allow-Credentials: true</code> is invalid and browsers block such credentialed requests; the dangerous "fix" is to echo back whatever <code>Origin</code> arrives, which hands logged-in data to every site. <code>null</code> is weak because any page can get a <code>null</code> origin from a sandboxed iframe, and two origins in one header are invalid. A specific origin is good; if the server picks it per request, it should also send <code>Vary: Origin</code>. To add CORS headers while developing against an API, see <a href="cors-headers-for-local-development.html">add Access-Control-Allow-Origin for local testing</a>.</p>
+
+<h3 id="leaks">Server, X-Powered-By and X-XSS-Protection</h3>
+<p>A <code>Server</code> value with a version number (<code>nginx/1.18.0</code>, <code>Apache/2.4.41 (Ubuntu)</code>) tells an attacker which known vulnerabilities to try; the product name alone is fine. <code>X-Powered-By</code>, <code>X-AspNet-Version</code> and <code>X-AspNetMvc-Version</code> do nothing for the browser and are rated weak whenever present. The checker shows <code>X-XSS-Protection</code> only when it is sent: <code>0</code> is good, anything else is weak, because current browsers no longer have the filter it controlled and in older ones the filter itself could leak information. A CSP is the replacement.</p>
+
+<h2>What the checker does not cover</h2>
+<ul>
+<li>Only the headers you paste: one response. Other URLs on the same site may send different headers, and with redirects only the last response is checked.</li>
+<li>CSP in <code>&lt;meta&gt;</code> tags, the HSTS preload list itself, TLS settings, mixed content, and whether a policy actually breaks your page (that is what the HeaderDial test is for).</li>
+<li>Policies are checked for the common problems listed above, not fully validated: a typo in a directive name, or a nonce that is the same on every response, is not detected.</li>
+<li>Whether a header suits your site. A rule that is right for a bank can break an embeddable widget.</li>
+</ul>
+
+<h2>Import the profile into HeaderDial</h2>
+<ol>
+<li>Tick the fixes, check the host after <strong>Only on</strong>, and click <strong>Copy share link</strong>. Open the link: the share page shows the response-header rows. The profile is in the link after the <code>#</code>, which browsers do not send to any server.</li>
+<li>Copy the share page's address, open HeaderDial, click <strong>Import…</strong>, paste it and click <strong>Import</strong>. Or click <strong>Download JSON</strong> and choose that file in the same dialog.</li>
+<li>Reload the site with DevTools open, and check the new headers under <strong>Response Headers</strong>. Some headers (CSP, framing, COOP) apply when the page loads, so reload rather than navigate inside a single-page app. Switch the profile off, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> to pause all profiles, when you are done.</li>
+</ol>
+<p>The profile only changes what your browser receives. Visitors keep getting the server's headers until you deploy the change.</p>
+
+<h2>Sources</h2>
+<p class="note">The rules above follow these documents; the wording on this page is our own.</p>
+<ul class="note">
+<li>W3C, <a href="https://www.w3.org/TR/CSP3/">Content Security Policy Level 3</a>; MDN, <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy">Content-Security-Policy</a> and <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src">script-src</a></li>
+<li>RFC 6797, <a href="https://www.rfc-editor.org/rfc/rfc6797">HTTP Strict Transport Security</a>; <a href="https://hstspreload.org/">hstspreload.org</a> submission requirements</li>
+<li>WHATWG HTML, <a href="https://html.spec.whatwg.org/multipage/document-lifecycle.html#the-x-frame-options-header">The X-Frame-Options header</a>; MDN, <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Frame-Options">X-Frame-Options</a></li>
+<li>WHATWG Fetch, <a href="https://fetch.spec.whatwg.org/#x-content-type-options-header">X-Content-Type-Options</a>, <a href="https://fetch.spec.whatwg.org/#http-cors-protocol">the CORS protocol</a> and <a href="https://fetch.spec.whatwg.org/#cross-origin-resource-policy-header">Cross-Origin-Resource-Policy</a></li>
+<li>W3C, <a href="https://www.w3.org/TR/referrer-policy/">Referrer Policy</a>; W3C, <a href="https://www.w3.org/TR/permissions-policy/">Permissions Policy</a>; RFC 8941, <a href="https://www.rfc-editor.org/rfc/rfc8941">Structured Field Values</a></li>
+<li>WHATWG HTML, <a href="https://html.spec.whatwg.org/multipage/browsers.html#cross-origin-opener-policies">Cross-origin opener policies</a> and <a href="https://html.spec.whatwg.org/multipage/browsers.html#coep">Cross-origin embedder policies</a></li>
+<li>IETF, <a href="https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/">Cookies: HTTP State Management Mechanism (RFC 6265bis draft)</a>; MDN, <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie">Set-Cookie</a></li>
+<li>RFC 9110 §10.2.4, <a href="https://www.rfc-editor.org/rfc/rfc9110#section-10.2.4">Server</a>; MDN, <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-XSS-Protection">X-XSS-Protection</a></li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="hsts-header-testing.html">Remove or change Strict-Transport-Security (HSTS) while testing</a></li>
+<li><a href="allow-iframe-x-frame-options.html">Embed a site in an iframe: remove X-Frame-Options and frame-ancestors</a></li>
+<li><a href="cors-headers-for-local-development.html">Add Access-Control-Allow-Origin for local testing</a></li>
+<li><a href="cookie-header-testing.html">Test with Cookie and Set-Cookie headers</a></li>
+<li><a href="curl-to-browser-headers.html">Convert a curl command to browser headers</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div>
+<script src="../js/model.js"></script><script src="../js/transfer.js"></script><script src="../js/headers-check.js"></script>
+<script>
+(function () {
+  'use strict';
+  var HD = window.HeaderDial, HC = window.HeadersCheck;
+  var $ = function (id) { return document.getElementById(id); };
+  var paste = $('paste'), status = $('status'), out = $('out');
+  var vbody = document.querySelector('#verdicts tbody'), fbody = document.querySelector('#fixes tbody');
+  var onlyHost = $('only-host'), hostIn = $('host'), linkWrap = $('link-wrap'), link = $('link');
+  var res = null, result = null, fixes = [];
+  // Edits the user made to the fix rows (key: suggestion key), kept while they edit the pasted text.
+  var edits = {};
+  var cspMode = 'report', hostEdited = false;
+  var EXAMPLE = [
+    '$ curl -sI https://shop.example.com/',
+    'HTTP/2 200',
+    'date: Fri, 20 Nov 2026 09:12:44 GMT',
+    'content-type: text/html; charset=utf-8',
+    'server: nginx/1.24.0',
+    'x-powered-by: PHP/8.2.12',
+    'strict-transport-security: max-age=86400',
+    "content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'",
+    'x-frame-options: SAMEORIGIN',
+    'set-cookie: PHPSESSID=fake0a1b2c3d; path=/; HttpOnly',
+    'set-cookie: cart_id=fake42; path=/; secure; samesite=lax',
+    'access-control-allow-origin: *',
+    'cache-control: no-store'
+  ].join('\n');
+  var LABEL = { good: 'good', weak: 'weak', missing: 'missing', na: 'n/a' };
+  var SOURCE = { raw: 'header lines', list: 'a DevTools list (names and values on separate lines)', json: 'DevTools JSON', 'curl -v': 'curl -v output' };
+
+  function el(tag, text, cls) { var e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
+  function say(t, err) { status.textContent = t; status.className = 'note' + (err ? ' err' : ''); }
+
+  function parse() {
+    linkWrap.hidden = true; link.value = '';
+    res = null;
+    if (!paste.value.trim()) { out.hidden = true; say('Read locally. Nothing you paste leaves this tab.'); return; }
+    res = HC.parseResponse(paste.value);
+    if (!res) { out.hidden = true; say('No headers found. Paste lines like "content-type: text/html", or the output of curl -sI.', true); return; }
+    result = HC.check(res);
+    fixes = HC.suggestions(res, result);
+    // A host the user typed stays unless the pasted text names one.
+    if (res.host || !hostEdited) { hostIn.value = res.host || ''; onlyHost.checked = !!res.host; hostEdited = false; }
+    render();
+  }
+
+  function render() {
+    vbody.textContent = '';
+    result.rows.forEach(function (r) {
+      var tr = el('tr');
+      var h = el('td'); h.appendChild(el('code', r.header));
+      if (r.value) { var v = el('span', r.value, 'val'); v.title = r.value; h.appendChild(v); }
+      tr.appendChild(h);
+      var b = el('td'); b.appendChild(el('span', LABEL[r.verdict], 'badge b-' + r.verdict)); tr.appendChild(b);
+      tr.appendChild(el('td', r.reason));
+      tr.setAttribute('data-verdict', r.verdict);
+      vbody.appendChild(tr);
+    });
+    var c = result.counts;
+    $('summary').textContent = c.good + ' good, ' + c.weak + ' weak, ' + c.missing + ' missing' + (c.na ? ' (' + c.na + ' not applicable)' : '') + '.';
+    var notes = $('notes'); notes.textContent = '';
+    res.notes.forEach(function (t) { notes.appendChild(el('li', t)); });
+    if (!result.page) notes.appendChild(el('li', 'This is not an HTML page, so headers that only protect pages are marked not applicable. Paste the headers of the page\'s document request to check those.'));
+    say('Read as ' + (SOURCE[res.source] || res.source) + (res.status ? ', status ' + res.status : '') + ', ' + res.headers.length + ' header' + (res.headers.length === 1 ? '' : 's') + (res.host ? ', host ' + res.host : '') + '. Checked in this page.');
+    renderFixes();
+    out.hidden = false;
+    update();
+  }
+
+  function renderFixes() {
+    fbody.textContent = '';
+    fixes.forEach(function (f) {
+      var e = edits[f.key] || {};
+      if (e.on != null) f.on = e.on;
+      if (e.value != null) f.value = e.value;
+      var tr = el('tr');
+      var box = document.createElement('input'); box.type = 'checkbox'; box.checked = f.on;
+      var td = el('td'); td.appendChild(box); tr.appendChild(td);
+      var n = el('td', null, 'n');
+      var nameCode = el('code', f.key === 'csp' ? cspName() : f.name);
+      n.appendChild(nameCode);
+      if (f.key === 'csp') {
+        var sel = document.createElement('select');
+        sel.setAttribute('aria-label', 'CSP mode');
+        [['report', 'Report-Only'], ['enforce', 'Enforce']].forEach(function (o) {
+          var opt = el('option', o[1]); opt.value = o[0]; sel.appendChild(opt);
+        });
+        sel.value = cspMode;
+        sel.addEventListener('change', function () { cspMode = sel.value; nameCode.textContent = cspName(); box.setAttribute('aria-label', 'Use ' + cspName()); update(); });
+        n.appendChild(sel);
+      }
+      tr.appendChild(n);
+      var vtd = el('td');
+      var input = f.key === 'csp' ? document.createElement('textarea') : document.createElement('input');
+      if (f.key !== 'csp') input.type = 'text';
+      input.spellcheck = false; input.value = f.value; input.setAttribute('aria-label', 'Value of ' + f.name);
+      input.addEventListener('input', function () { f.value = input.value; edits[f.key] = edits[f.key] || {}; edits[f.key].value = input.value; update(); });
+      vtd.appendChild(input);
+      vtd.appendChild(el('span', f.why, 'why'));
+      tr.appendChild(vtd);
+      box.setAttribute('aria-label', 'Use ' + (f.key === 'csp' ? cspName() : f.name));
+      box.addEventListener('change', function () { f.on = box.checked; edits[f.key] = edits[f.key] || {}; edits[f.key].on = box.checked; tr.className = box.checked ? '' : 'off'; update(); });
+      tr.className = f.on ? '' : 'off';
+      fbody.appendChild(tr);
+    });
+  }
+
+  function cspName() { return cspMode === 'enforce' ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only'; }
+
+  function chosen() {
+    return fixes.filter(function (f) { return f.on && f.value.trim(); }).map(function (f) {
+      return { name: f.key === 'csp' ? cspName() : f.name, value: f.value };
+    });
+  }
+
+  function profile() { return HC.buildProfile(chosen(), { host: onlyHost.checked ? hostIn.value : '' }); }
+
+  function update() {
+    $('copy').disabled = $('download').disabled = !chosen().length;
+    linkWrap.hidden = true;
+  }
+
+  paste.addEventListener('input', parse);
+  onlyHost.addEventListener('change', update);
+  hostIn.addEventListener('input', function () { hostEdited = true; onlyHost.checked = !!HC.cleanHost(hostIn.value); update(); });
+  $('example').addEventListener('click', function () { edits = {}; cspMode = 'report'; paste.value = EXAMPLE; parse(); });
+  $('clear').addEventListener('click', function () { edits = {}; cspMode = 'report'; paste.value = ''; parse(); paste.focus(); });
+
+  $('copy').addEventListener('click', function () {
+    var btn = this;
+    link.value = HD.shareLink(profile());
+    linkWrap.hidden = false;
+    var done = function (t) { btn.textContent = t; setTimeout(function () { btn.textContent = 'Copy share link'; }, 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link.value).then(function () { done('Copied'); }, function () { link.select(); done('Copy the link below'); });
+    } else { link.select(); done('Copy the link below'); }
+  });
+
+  $('download').addEventListener('click', function () {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([HD.exportJSON([profile()])], { type: 'application/json' }));
+    var h = onlyHost.checked && HC.cleanHost(hostIn.value);
+    a.download = 'headerdial-security-' + (h || 'headers') + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  if (paste.value.trim()) parse();
+})();
+</script></body></html>
