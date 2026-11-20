@@ -42,11 +42,11 @@ function grantedCopy(hosts = ['<all_urls>']) {
   return dir;
 }
 
-async function launch(extDir) {
+async function launch(extDir, extraArgs = []) {
   const userDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hd-prof-'));
   const ctx = await chromium.launchPersistentContext(userDir, {
     executablePath: fs.existsSync(CHROME) ? CHROME : undefined, headless: true, viewport: { width: 1280, height: 800 },
-    args: [`--disable-extensions-except=${extDir}`, `--load-extension=${extDir}`],
+    args: [`--disable-extensions-except=${extDir}`, `--load-extension=${extDir}`, ...extraArgs],
   });
   let [sw] = ctx.serviceWorkers();
   if (!sw) sw = await ctx.waitForEvent('serviceworker');
@@ -55,6 +55,37 @@ async function launch(extDir) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const freePort = () => new Promise((resolve) => {
+  const s = require('net').createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => resolve(p)); });
+});
+
+// The real toolbar popup: chrome.action.openPopup() opens it, but Playwright does not
+// list popups as pages, so this talks to it over the DevTools protocol directly.
+async function openToolbarPopup(sw, port) {
+  await sw.evaluate(() => chrome.action.openPopup());
+  let target;
+  await until(async () => {
+    const list = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
+    target = list.find((t) => t.type === 'page' && /popup\.html$/.test(t.url));
+    return target;
+  }, 'toolbar popup target');
+  const ws = new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
+  let n = 0;
+  const evaluate = (expression) => new Promise((resolve, reject) => {
+    const id = ++n;
+    const onMsg = (m) => {
+      const d = JSON.parse(m.data);
+      if (d.id !== id) return;
+      ws.removeEventListener('message', onMsg);
+      if (d.error || d.result.exceptionDetails) reject(new Error(JSON.stringify(d.error || d.result.exceptionDetails).slice(0, 300)));
+      else resolve(d.result.result.value);
+    };
+    ws.addEventListener('message', onMsg);
+    ws.send(JSON.stringify({ id, method: 'Runtime.evaluate', params: { expression, awaitPromise: true, returnByValue: true } }));
+  });
+  return { evaluate, close: () => ws.close() };
+}
 async function until(fn, what, ms = 8000) {
   const end = Date.now() + ms;
   let last;
@@ -324,6 +355,57 @@ async function fetchVia(page, url) {
   assert.strictEqual(access.apiOnly, 'blocked', 'access to the API host alone is not enough either (initiator needs it)');
   assert.strictEqual(access.both, 'ok', 'access to both hosts works');
   ok('CORS across hosts needs site access for both the page host and the API host');
+
+  // ---- 4. The toolbar popup with a real tab behind it, access granted for one site only.
+  {
+    const port = await freePort();
+    const l = await launch(grantedCopy(['http://127.0.0.1/*']), [`--remote-debugging-port=${port}`]);
+    await l.sw.evaluate(async () => {
+      await chrome.storage.local.set({ state: { profiles: [{ id: 'p1', name: 'Test', active: true,
+        headers: [{ target: 'request', name: 'X-HeaderDial', value: 'popup' }] }] } });
+      await chrome.runtime.sendMessage({ type: 'sync' }).catch(() => {});
+    });
+    await sleep(500);
+    const tabPage = await l.ctx.newPage();
+    await tabPage.goto(A + '/');
+    await tabPage.bringToFront();
+    const pop = await openToolbarPopup(l.sw, port);
+    await until(() => pop.evaluate(`!document.getElementById('access').hidden`), 'popup access banner');
+    const banner = await pop.evaluate(`document.getElementById('access').innerText`);
+    assert.match(banner, /changed on 1 site you allowed/);
+    assert.doesNotMatch(banner, /\b(null|false|undefined)\b/);
+    ok('toolbar popup: banner counts the one allowed site and offers all sites');
+
+    const added = await pop.evaluate(`(() => {
+      const b = [...document.querySelectorAll('button')].find((x) => x.textContent === '+ Only on 127.0.0.1');
+      if (!b) return false; b.click(); return true; })()`);
+    assert.ok(added, '"+ Only on 127.0.0.1" button is offered for the tab behind the popup');
+    await until(async () => {
+      const { state } = await l.sw.evaluate(() => chrome.storage.local.get('state'));
+      return (state.profiles[0].filters || []).some((f) => f.type === 'domain' && f.value === '127.0.0.1');
+    }, 'domain filter saved from the popup');
+    ok('toolbar popup: "+ Only on <host>" adds a domain filter for the current tab');
+
+    const tabId = await l.sw.evaluate(async () =>
+      (await chrome.tabs.query({})).find((t) => t.url && t.url.startsWith('http://127.0.0.1')).id);
+    await pop.evaluate(`(() => {
+      const label = [...document.querySelectorAll('label')].find((x) => /Only in this tab/.test(x.textContent));
+      label.querySelector('input').click(); })()`);
+    await until(async () => {
+      const { state } = await l.sw.evaluate(() => chrome.storage.local.get('state'));
+      return state.profiles[0].tabId === tabId;
+    }, 'profile bound to the tab behind the popup');
+    pop.close();
+    await l.sw.evaluate(() => chrome.runtime.sendMessage({ type: 'sync' }).catch(() => {}));
+    await sleep(500);
+    const inTab = await echoVia(tabPage, A + '/echo');
+    const other = await l.ctx.newPage();
+    const elsewhere = await echoVia(other, A + '/echo');
+    assert.strictEqual(inTab['x-headerdial'], 'popup');
+    assert.strictEqual(elsewhere['x-headerdial'], undefined);
+    ok('toolbar popup: "Only in this tab" binds the profile to the tab behind the popup');
+    await l.ctx.close();
+  }
 
   srv.close();
   console.log(`\n${passed} e2e checks passed`);

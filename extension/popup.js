@@ -239,12 +239,14 @@ async function renderAccess() {
   const ask = (origins) => api.permissions.request({ origins }).then(renderAccess)
     .catch((e) => box.append(el('span', { class: 'msg err' }, ' ' + ((e && e.message) || e))));
   box.className = 'banner' + (granted.length ? ' info' : '');
-  box.replaceChildren(
+  // replaceChildren is the DOM method (not el), so drop the missing "Only <host>" button.
+  box.replaceChildren(...[
     el('span', {}, granted.length
       ? `Headers are changed on ${granted.length} site${granted.length > 1 ? 's' : ''} you allowed.`
       : 'HeaderDial needs your permission before it can change headers on websites.'),
     el('button', { type: 'button', class: granted.length ? '' : 'primary', onclick: () => ask(['<all_urls>']) }, 'Allow on all sites'),
-    host && !hostGranted && el('button', { type: 'button', onclick: () => ask([host + '/*']) }, 'Only ' + new URL(host).host));
+    host && !hostGranted && el('button', { type: 'button', onclick: () => ask([host + '/*']) }, 'Only ' + new URL(host).host),
+  ].filter(Boolean));
   box.hidden = false;
 }
 
