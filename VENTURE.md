@@ -501,3 +501,4 @@ that is how the incumbent died.
   CI 44790066492 (commit 87d9a3f): attempt 1 passed test (43/43) and firefox but I cancelled it by mistake while the playwright install step
   was slow (~8 min); attempt 2 failed firefox again on "Firefox did not start BiDi" (infra, second time this session). The Firefox harness now
   waits 60 s and restarts Firefox up to 3 times; Firefox e2e 23/23 locally (Firefox 158.0.1).
+  Final: CI 44792375981 (commit 777cd02) passed test (unit + Chromium e2e 43/43), firefox (23/23, started first try) and deploy.
