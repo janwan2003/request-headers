@@ -1,0 +1,62 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Change the User-Agent header in Chrome – HeaderDial</title><meta name="description" content="Change the User-Agent HTTP header Chrome or Edge sends, for one site or all. What this changes, what it doesn't (navigator.userAgent), and the curl equivalent.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/change-user-agent-header.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to change the User-Agent header in Chrome","description":"Replace the User-Agent request header that Chrome or Edge sends, limited to the sites you choose.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if asked."},{"@type":"HowToStep","name":"Add a User-Agent row","text":"Click + Request header, choose User-Agent from the suggestions and paste the new string as the value with operation set."},{"@type":"HowToStep","name":"Limit it","text":"Under Where it applies, add an Only on filter for the site you are testing."},{"@type":"HowToStep","name":"Verify","text":"Reload and check the User-Agent request header in the DevTools Network panel or in your server logs."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to change the User-Agent header in Chrome</h1>
+<p>To change the <code>User-Agent</code> header that Chrome or Edge sends, add a request header named <code>User-Agent</code> in HeaderDial with the operation <strong>set</strong> and the string you want. Every matching request then carries your value instead of the browser's. This changes the <strong>HTTP header only</strong>. JavaScript running in the page still sees the real browser through <code>navigator.userAgent</code>, which matters if the site detects devices on the client side.</p>
+
+<h2>When you need this</h2>
+<ul>
+<li>Testing server-side device detection, for example a server that redirects phones to a mobile site or serves different HTML.</li>
+<li>Checking how your server, CDN rules or bot filtering treat a particular client, such as a crawler or a monitoring agent.</li>
+<li>Reproducing a bug report that came with a specific User-Agent string from your logs.</li>
+<li>Making requests identifiable in server logs during a test session, for example by appending a marker.</li>
+</ul>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon to open the popup. If you see the site-access banner, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Click <strong>+ Request header</strong>. Start typing <code>User-Agent</code> and pick it from the suggestions.</li>
+<li>Paste the new string into the value field. For example, a typical iPhone Safari string looks like this:
+<pre><code>Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1</code></pre></li>
+<li>Choose the operation. <strong>set</strong> replaces the browser's string. <strong>append</strong> adds your text to it, which is handy for tagging test traffic (for example <code>qa-run-42</code>) while keeping the real string. User-Agent is one of the request headers browsers allow appending to.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on &lt;current host&gt;</strong> or <strong>+ Only on…</strong>, and enter the domain under test.</li>
+<li>Reload the page. If the server already sent a cached, device-specific page, do a hard reload (Ctrl+Shift+R).</li>
+</ol>
+
+<h2>What changes and what doesn't</h2>
+<table>
+<tr><th>Where the user agent shows up</th><th>Changed by a header rule?</th></tr>
+<tr><td><code>User-Agent</code> request header seen by servers</td><td>Yes, on matching requests</td></tr>
+<tr><td><code>navigator.userAgent</code> in page JavaScript</td><td>No</td></tr>
+<tr><td>Client hints headers such as <code>Sec-CH-UA</code>, <code>Sec-CH-UA-Mobile</code>, <code>Sec-CH-UA-Platform</code></td><td>Not unless you add rows for them too</td></tr>
+<tr><td><code>navigator.userAgentData</code> in JavaScript</td><td>No</td></tr>
+<tr><td>CSS media queries, screen size, touch support</td><td>No</td></tr>
+</table>
+<p>A server that reads client hints may see a Windows Chrome in <code>Sec-CH-UA-Platform</code> and an iPhone in <code>User-Agent</code>. If your detection uses client hints, add rows for those headers as well and test what the server makes of the combination.</p>
+
+<h2>The DevTools and curl alternatives</h2>
+<p>Chrome DevTools can override the user agent too: open the <strong>Network conditions</strong> panel, untick "Use browser default" and pick or type a string. That changes both the header and <code>navigator.userAgent</code>, but only for the tab that has DevTools open and only while DevTools stays open. For whole-page emulation, including screen size and touch, use the device toolbar. A header rule fits best when you want the header changed in every tab without DevTools, or only for specific hosts.</p>
+<pre><code>curl -A "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1" -I https://www.example.com/
+# same as: curl -H "User-Agent: ..." </code></pre>
+
+<h2>Pitfalls</h2>
+<div class="callout">Do not apply a custom User-Agent to all sites for long. Sites may serve broken layouts, refuse logins, or flag you as a bot. Scope it with a filter, or give the row an expiry such as <strong>1 hour</strong> so it switches itself off.</div>
+<ul>
+<li><strong>Mixed signals.</strong> The page's JavaScript may undo a server-side decision, for example by redirecting back because <code>navigator.userAgent</code> says desktop. This is expected with a header-only change.</li>
+<li><strong>Caching.</strong> Responses that vary by User-Agent must send <code>Vary: User-Agent</code>, or a cache may hand you the wrong version. That is worth checking while you are testing.</li>
+<li><strong>Confirm what was sent.</strong> Look at the request in the DevTools Network panel or in your server's access log. The footer line "Applied to N requests in this tab" tells you the rule matched.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="remove-request-header.html">Remove a request header in Chrome</a></li>
+<li><a href="set-x-forwarded-for-header.html">Set X-Forwarded-For in the browser</a></li>
+<li><a href="feature-flag-headers-staging.html">Send custom headers to staging and feature-flag headers</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome and Edge. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

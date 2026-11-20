@@ -1,0 +1,64 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to add an Authorization header in Chrome – HeaderDial</title><meta name="description" content="Send an Authorization header (Bearer token or Basic auth) from Chrome or Edge on every request to one API, with a timer for short-lived tokens. Plus the curl equivalent.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/add-authorization-header-chrome.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to add an Authorization header in Chrome","description":"Send an Authorization header with a Bearer token or Basic credentials from Chrome or Edge, limited to one API host and optionally switched off after a set time.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Grant site access","text":"Open HeaderDial from the toolbar and allow it on all sites or on the current host."},{"@type":"HowToStep","name":"Add the header","text":"Click + Request header, enter Authorization as the name and Bearer followed by your token as the value, with operation set."},{"@type":"HowToStep","name":"Set an expiry","text":"Choose 15 min, 1 hour, 8 hours or 1 day in the expiry select so the header switches itself off when the token expires."},{"@type":"HowToStep","name":"Limit it to your API","text":"Open Where it applies, click + Only on and enter the API domain so the token is not sent anywhere else."},{"@type":"HowToStep","name":"Verify","text":"Reload the page and check the request headers in the DevTools Network panel."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to add an Authorization header in Chrome</h1>
+<p>Chrome has no setting for adding an <code>Authorization</code> header to the requests a page makes. You need an extension that can edit headers. In HeaderDial you add a request header named <code>Authorization</code> with the value <code>Bearer &lt;token&gt;</code>, limit it to your API's domain, and optionally give it an expiry so it turns off when the token runs out. The same steps work in Microsoft Edge.</p>
+
+<h2>When you need this</h2>
+<ul>
+<li>You want to open a protected API endpoint in the browser and read the JSON without writing a client.</li>
+<li>A front end under development calls an API that expects a token the app cannot get yet, for example because the login flow isn't built.</li>
+<li>You are testing how a page behaves for a different user or role and have that user's token.</li>
+<li>A staging server sits behind HTTP Basic auth and you don't want the browser's login prompt on every visit.</li>
+</ul>
+
+<h2>The two common formats</h2>
+<table>
+<tr><th>Scheme</th><th>Header value</th><th>Notes</th></tr>
+<tr><td>Bearer</td><td><code>Bearer eyJhbGciOi...</code></td><td>OAuth 2.0 access tokens, JWTs, most API keys issued as tokens. The word <code>Bearer</code>, one space, then the token.</td></tr>
+<tr><td>Basic</td><td><code>Basic dXNlcjpwYXNzd29yZA==</code></td><td>Base64 of <code>username:password</code>. This is encoding, not encryption: anyone who sees the header can decode it. Only use it over HTTPS.</td></tr>
+</table>
+<p>To produce a Basic value in a terminal:</p>
+<pre><code>printf '%s' 'user:password' | base64
+# dXNlcjpwYXNzd29yZA==</code></pre>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon in the toolbar to open the popup. If you see the site-access banner, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>. Without site access the browser does not let any extension change headers.</li>
+<li>Click <strong>+ Request header</strong>. Type <code>Authorization</code> in the name field (it is in the suggestions) and paste <code>Bearer</code> followed by a space and your token into the value field. Leave the operation on <strong>set</strong>, which replaces any Authorization header the page would send.</li>
+<li>If the token is short-lived, pick a time in the expiry select: <strong>15 min</strong>, <strong>1 hour</strong>, <strong>8 hours</strong> or <strong>1 day</strong>. The row shows the time remaining, such as <code>⏱ 47m left</code>, and the header switches itself off when the time is up. This stops a stale token from producing confusing 401 errors later, and it means a token doesn't keep being sent after you've moved on.</li>
+<li>Open <strong>Where it applies</strong>. It says "all sites" until you add a filter. Click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter your API host, for example <code>api.example.com</code>. If you are on that site already, the <strong>+ Only on &lt;current host&gt;</strong> button does the same in one click.</li>
+<li>Reload the page. The footer shows "Applied to N requests in this tab", and the toolbar badge shows how many headers are active.</li>
+</ol>
+
+<h2>Check it in DevTools</h2>
+<p>Open DevTools (F12), go to the <strong>Network</strong> panel, reload, select a request to your API and look under <strong>Request Headers</strong>. To see exactly what the server received, call an endpoint that echoes request headers back. If the API answers 401, check the server log for the header too. A typo in the scheme (<code>bearer</code> vs <code>Bearer</code>) or a stray line break pasted with the token is a common cause. HeaderDial rejects values that contain line breaks and shows a problem message.</p>
+
+<h2>The curl equivalent</h2>
+<pre><code>curl -H "Authorization: Bearer $TOKEN" https://api.example.com/v1/me
+
+# Basic auth: let curl build the header
+curl -u user:password https://staging.example.com/</code></pre>
+
+<h2>Pitfalls</h2>
+<div class="callout"><strong>Always add a filter.</strong> With no "Only on" filter a header applies to every request on every site, so your token would be sent to every server the browser talks to, including third-party scripts and analytics hosts.</div>
+<ul>
+<li><strong>Header values are stored in your browser profile.</strong> HeaderDial keeps them in local extension storage and makes no network requests of its own. However, <strong>Export all</strong> and <strong>Export this profile</strong> write the token into the file. When you use <strong>Share as link…</strong>, tick <strong>Leave header values empty</strong> so a colleague gets the header name and filters but not your credentials.</li>
+<li><strong>Prefer test tokens.</strong> Use a token for a test account or one with limited scope rather than a production admin credential.</li>
+<li><strong>Cookies may win.</strong> Some back ends check a session cookie before the Authorization header. If you appear as the wrong user, try a private window with HeaderDial allowed there, or log out first.</li>
+<li><strong>Two profiles, one header.</strong> If two active profiles both set Authorization, the leftmost profile chip wins. Use <strong>Move left (higher priority)</strong> in the <strong>⋯</strong> menu to reorder them.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="feature-flag-headers-staging.html">Send custom headers to staging and feature-flag headers</a></li>
+<li><a href="remove-request-header.html">Remove a request header in Chrome</a></li>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome and Edge. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

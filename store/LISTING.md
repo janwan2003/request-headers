@@ -1,0 +1,63 @@
+# HeaderDial – store listing (Chrome Web Store and Edge Add-ons)
+
+Package: `node scripts/build.js` → `dist/headerdial-<version>.zip` (the zip root holds manifest.json).
+Also downloadable from https://janwan2003.github.io/request-headers/download/headerdial.zip
+
+## Name
+HeaderDial – Modify HTTP Request & Response Headers
+
+## Summary (≤132 chars)
+Add, change or remove HTTP request and response headers. Profiles, URL filters, timed headers. Open source, no tracking.
+
+## Category
+Developer Tools
+
+## Description
+HeaderDial adds, changes or removes HTTP headers on the requests your browser sends and the responses it receives. It is built for web and API developers, QA testers and support engineers.
+
+What you can do:
+• Send an Authorization header or API key to a staging server
+• Set X-Forwarded-For, User-Agent, Accept-Language or any custom header
+• Remove headers such as Cookie or Referer
+• Add CORS headers (Access-Control-Allow-Origin) while developing locally
+• Remove or replace Content-Security-Policy and X-Frame-Options while debugging
+
+Features:
+• Profiles with colours. Run several at once; one switch pauses everything
+• Set, append or remove, on requests and on responses
+• Filters: domains, URL patterns, regular expressions, exclusions, request types, or a single tab
+• Timed headers that switch themselves off after 15 minutes, an hour or a day
+• Import profiles exported from ModHeader; export and import JSON
+• Share a profile as a link: the profile is inside the link, nothing is uploaded
+• The badge shows how many headers are active; the popup shows how many requests in the tab were changed
+• Light and dark mode
+
+Private by design:
+• No account, no analytics, no network requests, no remote code
+• Open source (MIT): https://github.com/janwan2003/request-headers. No bundler, so the files in this package are the files in the repository
+• Uses the browser's declarativeNetRequest API: HeaderDial gives the browser a list of rules and never reads your traffic
+• Site access is optional and requested when you need it: all sites, or only the one you are on
+
+## Single purpose (CWS form)
+Modify HTTP request and response headers according to rules the user writes.
+
+## Permission justifications
+- declarativeNetRequest: applies the user's header rules (modifyHeaders) through the browser's rule engine.
+- storage: saves the user's profiles locally.
+- alarms: turns timed headers off when their time runs out.
+- activeTab: when the user opens the popup, reads the current tab's address to offer "only on this site", and to show how many requests in that tab the rules changed.
+- Optional host permissions (<all_urls>): browsers only apply header changes on sites the extension can access. Requested from the popup at the user's request, for all sites or for the current site only.
+- Remote code: none.
+
+## Data usage (CWS form)
+Collects no user data. Does not sell or transfer data. Not used for creditworthiness or lending.
+
+## URLs
+- Homepage: https://janwan2003.github.io/request-headers/
+- Privacy policy: https://janwan2003.github.io/request-headers/privacy.html
+- Support: https://github.com/janwan2003/request-headers/issues
+
+## Images
+- Icon 128×128: extension/icons/128.png
+- Screenshots 1280×800: store/screenshot-1-editor.png, store/screenshot-2-private.png
+  (regenerate: `node scripts/build.js && node scripts/screenshots.js store`)

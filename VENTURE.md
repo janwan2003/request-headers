@@ -1,17 +1,19 @@
 ---
 slug: request-headers
-stage: idea
+stage: launched
 priority: 4
-url:
-repo:
+url: https://janwan2003.github.io/request-headers/
+repo: https://github.com/janwan2003/request-headers
 updated: 2026-11-20
 ---
 
 # request-headers
 
-(Working slug. The product needs its own name: do **not** use "ModHeader" or any name in
-the competitor table below. At least ten store listings already ride the "ModHeader"
-name, see evidence.)
+Product name: **HeaderDial** (chosen 2026-11-20). Clash check on 2026-11-20: no GitHub
+repository, AMO add-on or npm package named "headerdial", and no Chrome Web Store result for
+"header dial"/"headerdial" beyond the search echo. Rejected: "Headerwise" (an existing GitHub
+header-editor project, Protemir/headerwise) and "PlainHeaders" (an AMO add-on). The repo and
+URL keep the slug `request-headers`.
 
 ## Thesis
 
@@ -97,26 +99,47 @@ about 500K Chrome users. The rest is fragmented into small or copycat listings.
 
 ## Status
 
-Idea only. Nothing built. Evidence above: web search on 2026-11-20 (THN, TechRadar,
-Cybernews, VPNCentral), plus live curl of 21 Chrome Web Store listings and 2 searches
-("modify header", "modheader"), the Edge listing and AMO API, all on 2026-11-20.
+HeaderDial 0.1.0 (Manifest V3, Chrome/Edge) is built, and its source and site are public. It
+is not in any store yet (that needs the operator's developer accounts, see Next steps).
+
+What exists:
+- `extension/`: popup and full-tab editor (`popup.html?page=1`). Profiles (several can be
+  active; the leftmost wins), request and response headers with set/append/remove, timed
+  headers (15 min to 1 day, via `chrome.alarms`), filters (domain, URL pattern, regex,
+  "Never on" exclusions, request types, one tab), global pause, a badge with the
+  active-header count, "Applied to N requests in this tab" (`getMatchedRules` via
+  activeTab), optional site access requested from the popup (all sites or the current
+  one), import (HeaderDial JSON, share link, ModHeader export), export, share-as-link
+  with no server, light and dark mode.
+- `extension/lib/model.js` compiles profiles into DNR rules. `background.js` applies them;
+  if Chrome rejects the batch it adds rules one at a time and reports the bad ones.
+- Site (GitHub Pages, deployed by `.github/workflows/ci.yml` only after unit and e2e tests
+  pass): landing page with install-from-zip steps, privacy policy, share page, how-to
+  guides plus a hub, sitemap.xml, robots.txt, and the release zip at `/download/headerdial.zip`.
+- `store/LISTING.md` and two 1280×800 screenshots for the Chrome Web Store and Edge forms.
+
+Verified on 2026-11-20 (see Log): unit tests 13/13 and e2e 13/13 in Playwright Chromium 159,
+against a local echo server that returns the headers it received.
+Not verified: Edge itself (same Chromium engine, not run); Firefox (not ported); the
+toolbar-popup context (the tests drive the full-tab editor, so "+ Only on <host>", the
+per-site access button and the matched-request count are untested); the permission
+prompt (the tests pre-grant host access in a copy of the build; the shipped build was
+checked to change nothing and to show the banner without it).
 
 ## Next steps
 
-1. Pick a distinct product name (not "ModHeader", "Mod Header", "Header Editor",
-   "Modify Header"), and check for clashes on the Chrome Web Store, AMO and GitHub.
-2. Get a real ModHeader profile export (public GitHub gists and issues contain examples)
-   and write down its JSON schema for the importer. Do not copy ModHeader code.
-3. Build the MV3 extension: profiles, request and response header rules, URL regex and
-   tab filters, pause/resume, matched-rules badge. Use `declarativeNetRequest`
-   dynamic/session rules.
-4. Write automated tests with a local echo server that checks the headers actually sent, and
-   test on Chrome and Edge.
-5. Firefox port (MV3 with DNR, or `webRequest` fallback).
-6. Docs site with 8 to 10 how-to pages on GitHub Pages.
-7. Store publishing needs the Chrome Web Store developer account already requested in
-   OPERATOR-INBOX.md (2026-11-20). An Edge Add-ons account (free) is also needed, since
-   Edge lost ModHeader first.
+1. **Store release (blocked on the operator):** the Chrome Web Store developer account
+   (already in OPERATOR-INBOX.md) and a free Edge Add-ons account. The package and
+   listing are ready in `store/`. Edge matters most: ModHeader left Edge first, and
+   about 700K Edge users were displaced.
+2. Firefox port: MV3 with `background.scripts`. Test DNR `modifyHeaders` in Firefox
+   (installed at /usr/bin/firefox), then an AMO listing (needs a free AMO account).
+3. Test the toolbar-popup context (open popup.html with a real tab behind it) and the
+   "+ Only on <host>" and per-site access flows.
+4. More ranking pages (Referer, Accept-Language testing, X-Real-IP, Basic auth,
+   Cache-Control), and submit the sitemap to Google Search Console (operator account).
+5. Features the old tool's users expect: cookie helpers, URL redirects (DNR `redirect`),
+   request-method filters, a keyboard shortcut for pause.
 
 ## Monetization plan
 

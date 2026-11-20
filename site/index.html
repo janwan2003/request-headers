@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeaderDial – modify HTTP request & response headers in Chrome and Edge</title><meta name="description" content="Free, open-source extension to add, change or remove HTTP request and response headers. Profiles, URL filters, timed headers, ModHeader import. No tracking.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/">
+<meta property="og:title" content="HeaderDial – modify HTTP request & response headers in Chrome and Edge"><meta property="og:description" content="Free, open-source extension to add, change or remove HTTP request and response headers. Profiles, URL filters, timed headers, ModHeader import. No tracking."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="./favicon.png"><link rel="stylesheet" href="./style.css"><script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HeaderDial","applicationCategory":"DeveloperApplication","operatingSystem":"Chrome, Edge","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Open-source browser extension to add, change or remove HTTP request and response headers.","url":"https://janwan2003.github.io/request-headers/"}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="./"><img src="./icon.png" alt="">HeaderDial</a><div class="links"><a href="./guides/">Guides</a><a href="./privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<section class="hero">
+<h1>Change HTTP request and response headers, and nothing else.</h1>
+<p class="lead">HeaderDial is a small, open-source extension for Chrome and Edge. Add an <code>Authorization</code> token for staging, set <code>X-Forwarded-For</code>, strip a <code>Cookie</code>, or add CORS headers while you develop. No account, no analytics, no network requests.</p>
+<div class="cta"><a class="btn" href="#install">Get HeaderDial</a><a class="btn ghost" href="https://github.com/janwan2003/request-headers">Read the source</a><span class="note">Free. MIT licence.</span></div>
+</section>
+<div class="shot"><img src="screenshot.png" width="1280" height="800" alt="The HeaderDial popup with a Staging API profile: Authorization, feature-flag and X-Forwarded-For request headers, CORS response headers and a domain filter."></div>
+<div class="grid">
+<div class="card"><h3>Request and response headers</h3><p>Set, append or remove any header on requests, and on responses the page receives. Page loads, fetch/XHR, images, scripts and WebSockets.</p></div>
+<div class="card"><h3>Profiles</h3><p>One profile per environment or teammate, each with a colour. Run several at once; the leftmost wins a conflict. One switch pauses everything.</p></div>
+<div class="card"><h3>Filters</h3><p>Limit a profile to domains, URL patterns or regexes, exclude paths like <code>/healthz</code>, pick request types, or bind it to a single tab.</p></div>
+<div class="card"><h3>Headers that switch themselves off</h3><p>Give a header 15 minutes, an hour or a day. Short-lived tokens stop being sent when they expire, and you see the time left.</p></div>
+<div class="card"><h3>Import from ModHeader</h3><p>Paste or open the JSON your old ModHeader profiles were exported to. Names, colours, headers and URL filters come across.</p></div>
+<div class="card"><h3>Share without a server</h3><p>Share a profile as a link. The profile lives in the link after the <code>#</code>, so nothing is uploaded. Values can be left out.</p></div>
+</div>
+<h2>Why another header extension?</h2>
+<p>In July 2026 Google and Microsoft removed the best-known header extension from their stores after researchers found a dormant browsing-history collector inside its signed build (<a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News</a>). A tool that sees every request you make should be one you can check. HeaderDial is built for that:</p>
+<ul>
+<li><strong>The code is public</strong> and has no build step: the files in the extension are the files in the <a href="https://github.com/janwan2003/request-headers">repository</a>.</li>
+<li><strong>No network requests, no analytics, no remote code.</strong> Your profiles stay in the browser's local extension storage.</li>
+<li><strong>Few permissions.</strong> It uses the browser's <code>declarativeNetRequest</code> API, so it never reads the content of your traffic: it hands the browser a list of rules, and the browser applies them. Site access is optional and asked for when you need it, for all sites or just the one you are on.</li>
+</ul>
+<h2 id="install">Install</h2>
+<p>HeaderDial is on its way to the Chrome Web Store and Edge Add-ons. Until it is listed, install it from the release zip in under a minute:</p>
+<ol>
+<li><a href="download/headerdial.zip">Download headerdial.zip</a> and unzip it into a folder you will keep.</li>
+<li>Open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>) and turn on <strong>Developer mode</strong>.</li>
+<li>Click <strong>Load unpacked</strong> and choose the unzipped folder.</li>
+<li>Pin HeaderDial to the toolbar, click it, add a header, and click <strong>Allow on all sites</strong> (or allow only the site you are on).</li>
+</ol>
+<p class="note">Want to know when the store version is live? <a href="https://github.com/janwan2003/request-headers">Watch the repository</a> for releases.</p>
+<h2>Guides</h2>
+<ul>
+<li><a href="guides/add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
+<li><a href="guides/cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+<li><a href="guides/set-x-forwarded-for-header.html">Set X-Forwarded-For in the browser</a></li>
+<li><a href="guides/modheader-alternative-import.html">Moving from ModHeader: import your profiles</a></li>
+<li><a href="guides/">All guides</a></li>
+</ul>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome and Edge. <a href="./privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a> · <a href="https://github.com/janwan2003/request-headers">Source</a></footer></div></body></html>

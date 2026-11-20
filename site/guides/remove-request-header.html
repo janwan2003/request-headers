@@ -1,0 +1,64 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to remove a request header in Chrome – HeaderDial</title><meta name="description" content="Stop Chrome or Edge from sending a request header such as Cookie, Referer or Accept-Language, for one site or all. Steps, curl equivalent and pitfalls.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/remove-request-header.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to remove a request header in Chrome","description":"Stop Chrome or Edge from sending a request header such as Cookie, Referer or Accept-Language, using the remove operation in HeaderDial.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if asked."},{"@type":"HowToStep","name":"Add a row","text":"Click + Request header and enter the header name, for example Referer."},{"@type":"HowToStep","name":"Choose remove","text":"Set the operation select to remove. The value field is ignored."},{"@type":"HowToStep","name":"Scope it","text":"Under Where it applies, add an Only on filter for the site you are testing."},{"@type":"HowToStep","name":"Verify","text":"Reload and confirm the header is missing in the request the server receives."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to remove a request header in Chrome</h1>
+<p>To stop Chrome or Edge from sending a particular request header, add a row for that header in HeaderDial and set its operation to <strong>remove</strong>. Matching requests then go out without it. This is how you test what a server does when <code>Cookie</code>, <code>Referer</code>, <code>Accept-Language</code> or any other header is missing, without clearing browser data or changing settings.</p>
+
+<h2>Headers people commonly remove</h2>
+<table>
+<tr><th>Header</th><th>Why remove it</th></tr>
+<tr><td><code>Cookie</code></td><td>See a page as a logged-out visitor without logging out in other tabs; check that an endpoint really requires a session.</td></tr>
+<tr><td><code>Referer</code></td><td>Test hotlink protection, referrer-based analytics, or code paths that assume a referrer is present.</td></tr>
+<tr><td><code>Accept-Language</code></td><td>See which language the server falls back to when the browser expresses no preference.</td></tr>
+<tr><td><code>If-None-Match</code>, <code>If-Modified-Since</code></td><td>Force full responses instead of <code>304 Not Modified</code> while debugging caching.</td></tr>
+<tr><td><code>Authorization</code></td><td>Check that an API returns <code>401</code>, not data, when no credentials arrive.</td></tr>
+</table>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon to open the popup. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>; without it the browser won't let an extension change any headers.</li>
+<li>Click <strong>+ Request header</strong> and type the header name, for example <code>Referer</code>. Suggestions appear as you type.</li>
+<li>In the operation select, choose <strong>remove</strong>. The value is not used for this operation, so you can leave it empty.</li>
+<li>Open <strong>Where it applies</strong> and click <strong>+ Only on &lt;current host&gt;</strong>, or <strong>+ Only on…</strong> for another domain. Without a filter the header is removed on every site.</li>
+<li>To remove it only for certain kinds of requests, tick request types. With none ticked the rule covers all of them, including page loads.</li>
+<li>Reload the page and check the result (see below).</li>
+</ol>
+<p>Several rows can be combined in one profile, for example removing both <code>Cookie</code> and <code>Authorization</code> to simulate an anonymous client. To undo the change, untick the row's enabled checkbox, switch the profile off, or click <strong>×</strong> to delete the row.</p>
+
+<h2>Check that it worked</h2>
+<p>The footer of the popup shows "Applied to N requests in this tab", which confirms the rule matched. To see what the server received, request a URL that echoes the request headers back, such as a small endpoint on your own server, or look at your server's request logs. The DevTools <strong>Network</strong> panel also lists request headers for each request.</p>
+
+<h2>The curl equivalent</h2>
+<p>curl only sends a few headers by default. To drop one it adds itself, pass the name with nothing after the colon:</p>
+<pre><code># send no User-Agent and no Accept header
+curl -H "User-Agent:" -H "Accept:" https://www.example.com/
+
+# curl sends no Cookie or Referer unless you ask, so simply omit -b and -e
+curl https://www.example.com/</code></pre>
+<p>To copy a real browser request and then delete headers from it, use <strong>Copy as cURL</strong> in the DevTools Network panel's context menu and remove the <code>-H</code> lines you don't want.</p>
+
+<h2>Other ways to drop Referer</h2>
+<p>If you control the page, you don't need an extension to stop the referrer: send <code>Referrer-Policy: no-referrer</code>, add <code>&lt;meta name="referrer" content="no-referrer"&gt;</code>, or put <code>rel="noreferrer"</code> on individual links. A header rule is useful when you are testing someone else's page, or want to see the server-side effect without deploying.</p>
+
+<h2>Pitfalls</h2>
+<div class="callout">Removing <code>Cookie</code> affects every matching request, including the ones that keep you logged in. Scope it with a filter or the <strong>Only in this tab (until it closes)</strong> checkbox, and give the row an expiry such as <strong>15 min</strong> if you only need it briefly.</div>
+<ul>
+<li><strong>Use remove, not an empty value.</strong> <strong>remove</strong> drops the header entirely. A missing header and a header with an empty value are different things to most servers, so pick the operation that matches the case you want to test.</li>
+<li><strong>A higher-priority profile can put it back.</strong> If another active profile sets the same header, the leftmost profile chip wins. Reorder with <strong>Move left (higher priority)</strong> in the <strong>⋯</strong> menu.</li>
+<li><strong>Cached responses.</strong> A response from the browser cache never reaches the server, so the removal seems to have no effect. Tick "Disable cache" in the Network panel while testing.</li>
+<li><strong>Responses are separate.</strong> To strip a header the <em>server</em> sends, such as <code>Set-Cookie</code> or <code>Content-Security-Policy</code>, use <strong>+ Response header</strong> instead.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="change-user-agent-header.html">Change the User-Agent header</a></li>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome and Edge. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

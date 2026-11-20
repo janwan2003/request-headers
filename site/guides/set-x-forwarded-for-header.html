@@ -1,0 +1,61 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to set X-Forwarded-For in the browser – HeaderDial</title><meta name="description" content="Set the X-Forwarded-For header from Chrome or Edge to test IP and geo logic behind proxies, and why servers should only trust it from known proxies.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/set-x-forwarded-for-header.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to set X-Forwarded-For in the browser","description":"Send an X-Forwarded-For header from Chrome or Edge to test how an application handles client IP addresses behind proxies.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Add the header","text":"Click + Request header, enter X-Forwarded-For and an IP address such as 203.0.113.7."},{"@type":"HowToStep","name":"Choose set or append","text":"Use set to replace any existing value, or append to add your address to a value set earlier."},{"@type":"HowToStep","name":"Limit it to your app","text":"Under Where it applies, add an Only on filter for the host you are testing."},{"@type":"HowToStep","name":"Check what the server sees","text":"Reload and compare the IP your application logs with the one you sent."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to set X-Forwarded-For in the browser</h1>
+<p>To send an <code>X-Forwarded-For</code> header from Chrome or Edge, add it as a request header in a header-editing extension such as HeaderDial and give it the IP address you want the server to see, for example <code>203.0.113.7</code>. Limit it to the host you are testing. Whether the server actually uses that address depends on how it is configured to trust proxies, and that configuration is usually what you are testing.</p>
+
+<h2>What the header means</h2>
+<p>When a request passes through a reverse proxy or load balancer, the server behind it sees the proxy's IP address, not the visitor's. Proxies therefore add the client address to <code>X-Forwarded-For</code>. Each further proxy appends the address it received the request from:</p>
+<pre><code>X-Forwarded-For: 203.0.113.7, 198.51.100.20, 10.0.0.5
+                 client       proxy 1        proxy 2</code></pre>
+<p>The standardised form of the same idea is the <code>Forwarded</code> header (RFC 7239), for example <code>Forwarded: for=203.0.113.7;proto=https</code>. Some set-ups also use <code>X-Real-IP</code> with a single address. Find out which one your stack reads before testing.</p>
+
+<h2>When you need to set it yourself</h2>
+<ul>
+<li>Testing country or region logic (pricing, language, content restrictions) on a staging server that derives location from the client IP.</li>
+<li>Checking rate limits, allow-lists and block-lists that key on client IP.</li>
+<li>Reproducing a bug report from a user in another network, using the IP from your logs.</li>
+<li>Verifying that your production stack <em>ignores</em> a forged header, which is a security test worth doing.</li>
+</ul>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon to open the popup. If the banner asks for site access, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Click <strong>+ Request header</strong>, type <code>X-Forwarded-For</code> as the name and an address as the value.</li>
+<li>Pick the operation. <strong>set</strong> replaces whatever value would have been sent. <strong>append</strong> adds your value to an existing one; X-Forwarded-For is one of the few request headers browsers allow appending to.</li>
+<li>Open <strong>Where it applies</strong> and use <strong>+ Only on…</strong> with type <strong>Domain</strong> (for example <code>staging.example.com</code>) so other sites don't receive the header.</li>
+<li>To compare locations quickly, make one profile per address ("Germany", "Brazil") with <strong>+</strong>, then switch them with each profile's <strong>Active</strong> switch. If two active profiles set the same header, the leftmost chip wins.</li>
+</ol>
+
+<h2>The curl equivalent</h2>
+<pre><code>curl -H "X-Forwarded-For: 203.0.113.7" https://staging.example.com/whoami
+curl -H "Forwarded: for=203.0.113.7" https://staging.example.com/whoami</code></pre>
+
+<h2>Choosing a test address</h2>
+<p>The ranges <code>192.0.2.0/24</code>, <code>198.51.100.0/24</code> and <code>203.0.113.0/24</code> are reserved for documentation. They are good for testing parsing and logging, but a geolocation database will not place them in any country. For geo tests, use a real public address from the region you need, such as one from your own access logs.</p>
+
+<h2>Why servers should only trust it from known proxies</h2>
+<div class="callout">Anyone can send <code>X-Forwarded-For</code>, as this guide shows. If an application takes the first address in the header at face value, any client can claim to be any IP and get around rate limits, IP allow-lists or audit logs.</div>
+<p>The safe pattern is to trust the header only when the request came directly from a proxy you operate, and to read the list from the right: skip the addresses of your own proxies, and the first address that is not yours is the client. Most frameworks and web servers implement this for you, but only once you tell them which proxies to trust. Examples are nginx's <code>set_real_ip_from</code> with <code>real_ip_header</code>, and the "trusted proxies" settings in web frameworks. Your edge proxy should also overwrite or append to the header, never pass through a client-supplied value unchanged.</p>
+<p>A useful test: send a forged address to production and confirm that the logged client IP is still your real one.</p>
+
+<h2>Pitfalls</h2>
+<ul>
+<li><strong>Your proxy may rewrite it.</strong> If staging sits behind a CDN or load balancer that overwrites the header, your value never reaches the application. Check the application's logs, not the browser.</li>
+<li><strong>Several headers in play.</strong> If the app reads <code>X-Real-IP</code> or <code>Forwarded</code>, setting only X-Forwarded-For changes nothing.</li>
+<li><strong>Remember to switch it off.</strong> Use the expiry select (for example <strong>1 hour</strong>) or the global <strong>On/Paused</strong> switch. The badge shows "off" when HeaderDial is paused.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="change-user-agent-header.html">Change the User-Agent header</a></li>
+<li><a href="feature-flag-headers-staging.html">Send custom headers to staging and feature-flag headers</a></li>
+<li><a href="remove-request-header.html">Remove a request header in Chrome</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome and Edge. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

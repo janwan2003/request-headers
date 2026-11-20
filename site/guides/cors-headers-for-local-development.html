@@ -1,0 +1,67 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add CORS headers for local development – HeaderDial</title><meta name="description" content="Add Access-Control-Allow-Origin to API responses in Chrome or Edge while developing locally. Simple vs preflighted requests, credentials, and safe scoping.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/cors-headers-for-local-development.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to add Access-Control-Allow-Origin for local testing","description":"Add CORS response headers in Chrome or Edge for one API host during local development, without changing the server.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Create a CORS profile","text":"Open HeaderDial, click + to create a profile and name it CORS (dev)."},{"@type":"HowToStep","name":"Add response headers","text":"Click + Response header and add Access-Control-Allow-Origin with value *, then Access-Control-Allow-Headers with value *."},{"@type":"HowToStep","name":"Scope it","text":"Under Where it applies, click + Only on, choose Domain and enter the API host, for example localhost or api.dev.example.com."},{"@type":"HowToStep","name":"Test","text":"Reload your app and confirm in the DevTools Network and Console panels that the CORS error is gone."},{"@type":"HowToStep","name":"Turn it off","text":"Switch the profile off when you are done, or give the rows an expiry."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Add Access-Control-Allow-Origin for local testing</h1>
+<p>When your front end on <code>http://localhost:3000</code> calls an API on another origin that doesn't send CORS headers, the browser blocks the response. For development you can add the missing headers in the browser instead of changing the server. In HeaderDial, add a <strong>response</strong> header <code>Access-Control-Allow-Origin: *</code>, and <code>Access-Control-Allow-Headers: *</code> if you send custom headers, scoped with a domain filter to the API host. Fix the server properly before you ship.</p>
+
+<div class="callout"><strong>Development only.</strong> CORS protects users. If you add <code>Access-Control-Allow-Origin: *</code> to every site, any page you visit can read responses from those hosts with your browser, including services on your local network. Always scope this profile to the API you are working on and switch it off afterwards.</div>
+
+<h2>Simple and preflighted requests</h2>
+<p>Browsers treat cross-origin requests in two ways:</p>
+<table>
+<tr><th></th><th>Simple request</th><th>Preflighted request</th></tr>
+<tr><td>When</td><td><code>GET</code>, <code>HEAD</code> or <code>POST</code>, only CORS-safelisted headers (such as <code>Accept</code>, <code>Accept-Language</code>, <code>Content-Language</code>), and a <code>Content-Type</code> of <code>text/plain</code>, <code>multipart/form-data</code> or <code>application/x-www-form-urlencoded</code></td><td>Anything else: <code>PUT</code>, <code>DELETE</code>, <code>PATCH</code>, a JSON <code>Content-Type</code>, an <code>Authorization</code> header, any custom header</td></tr>
+<tr><td>What happens</td><td>The request is sent; the browser only lets your code read the response if it carries a matching <code>Access-Control-Allow-Origin</code></td><td>The browser first sends an <code>OPTIONS</code> request with <code>Access-Control-Request-Method</code> and <code>Access-Control-Request-Headers</code>. The real request is only sent if that preflight response allows it</td></tr>
+</table>
+<p>The response headers you add in HeaderDial apply to both the preflight response and the real response, as long as they match your filter. We verified in an automated Chromium test that with <code>Access-Control-Allow-Origin: *</code> and <code>Access-Control-Allow-Headers: *</code> added, a simple cross-origin <code>GET</code> and a preflighted request with a custom header both succeed. In that test the server answered <code>OPTIONS</code> with an empty <code>204</code> and no CORS headers at all.</p>
+<p>The server still has to answer the <code>OPTIONS</code> request with a success status. If it returns <code>404</code>, <code>405</code> or a redirect for <code>OPTIONS</code>, the preflight fails no matter what headers are added. For methods other than <code>GET</code>, <code>HEAD</code> and <code>POST</code>, also add <code>Access-Control-Allow-Methods</code> (for example <code>GET, POST, PUT, PATCH, DELETE</code>), and test your actual calls.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon. Grant site access when the banner asks; <strong>Only &lt;current host&gt;</strong> is not enough here if the API is on a different host from the page, so also grant the API host (open an API URL in a tab and choose <strong>Only &lt;that host&gt;</strong> there) or choose <strong>Allow on all sites</strong>.</li>
+<li>Click <strong>+</strong> next to the profile chips to create a profile and name it, for example, "CORS (dev)". A separate profile lets you turn it on and off with its <strong>Active</strong> switch.</li>
+<li>Click <strong>+ Response header</strong>. Name <code>Access-Control-Allow-Origin</code>, value <code>*</code>, operation <strong>set</strong> (this replaces a value the server already sends).</li>
+<li>If your requests are preflighted, add <code>Access-Control-Allow-Headers</code> with value <code>*</code>, and <code>Access-Control-Allow-Methods</code> if you use methods such as <code>PUT</code> or <code>DELETE</code>.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter the API host, such as <code>localhost</code> or <code>api.dev.example.com</code>. Filters match the URL of the request, so this targets calls <em>to</em> the API, whichever page makes them.</li>
+<li>Optionally, tick only the <code>xmlhttprequest</code> request type, which covers <code>fetch()</code> and XHR calls, so pages and images are left alone.</li>
+<li>Reload your app. The CORS error in the Console should be gone.</li>
+</ol>
+
+<h2>Credentials need an exact origin</h2>
+<p>If your code sends cookies or HTTP auth (<code>fetch(url, { credentials: 'include' })</code> or <code>xhr.withCredentials = true</code>), the wildcard is not allowed. The browser rejects <code>*</code> for credentialed requests. Set instead:</p>
+<pre><code>Access-Control-Allow-Origin: http://localhost:3000
+Access-Control-Allow-Credentials: true</code></pre>
+<p>Use your front end's exact origin, including scheme and port. In the same situation <code>Access-Control-Allow-Headers</code> and <code>Access-Control-Allow-Methods</code> must list names explicitly rather than use <code>*</code>.</p>
+
+<h2>Check what the server sends with curl</h2>
+<p>CORS is enforced by browsers, not by curl, but curl shows you what the server answers. That tells you which headers are missing:</p>
+<pre><code># the preflight
+curl -i -X OPTIONS http://localhost:8080/api/items \
+  -H "Origin: http://localhost:3000" \
+  -H "Access-Control-Request-Method: PUT" \
+  -H "Access-Control-Request-Headers: content-type"
+
+# the real request
+curl -i http://localhost:8080/api/items -H "Origin: http://localhost:3000"</code></pre>
+
+<h2>Pitfalls</h2>
+<ul>
+<li><strong>Reading custom response headers.</strong> Even when the request succeeds, your code can only read non-safelisted response headers listed in <code>Access-Control-Expose-Headers</code>.</li>
+<li><strong>The error was something else.</strong> A network error, a mixed-content block (HTTPS page calling HTTP) or a server 500 can look like CORS in the console. Check the Network panel for the real status.</li>
+<li><strong>Forgetting it is on.</strong> Give the rows an expiry such as <strong>8 hours</strong>, or watch the toolbar badge, which counts active headers.</li>
+<li><strong>Fix the server.</strong> Before release, configure the API to send the right CORS headers for the origins that need them. Don't rely on the browser.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
+<li><a href="feature-flag-headers-staging.html">Send custom headers to staging and feature-flag headers</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome and Edge. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

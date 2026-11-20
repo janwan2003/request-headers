@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeaderDial</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<header class="top">
+  <img src="icons/32.png" alt="" width="20" height="20">
+  <strong class="brand">HeaderDial</strong>
+  <span class="spacer"></span>
+  <label class="switch" title="Pause or resume every profile">
+    <input type="checkbox" id="power"><span class="track"></span><span id="power-label">On</span>
+  </label>
+  <button class="icon" id="open-tab" title="Open in a tab" aria-label="Open in a tab">⤢</button>
+</header>
+
+<nav id="profiles" class="profiles" aria-label="Profiles"></nav>
+
+<div id="access" class="banner" hidden></div>
+
+<main id="editor"></main>
+
+<ul id="problems" class="problems" hidden></ul>
+
+<footer class="bottom">
+  <button id="import">Import…</button>
+  <button id="export">Export all</button>
+  <span class="spacer"></span>
+  <span id="matched" class="muted"></span>
+</footer>
+
+<dialog id="import-dialog">
+  <form method="dialog" class="dlg">
+    <h2>Import profiles</h2>
+    <p class="muted">Paste a HeaderDial export, a HeaderDial share link, or a ModHeader profile export. Or choose a .json file.</p>
+    <textarea id="import-text" rows="8" spellcheck="false" placeholder='[{"title": "Profile 1", "headers": [...]}]'></textarea>
+    <div class="row">
+      <input type="file" id="import-file" accept=".json,application/json,text/plain">
+      <label><input type="checkbox" id="import-replace"> Replace existing profiles</label>
+    </div>
+    <p id="import-msg" class="msg" role="status"></p>
+    <div class="row end">
+      <button value="cancel" formnovalidate>Close</button>
+      <button id="import-go" value="default" class="primary">Import</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="share-dialog">
+  <form method="dialog" class="dlg">
+    <h2>Share this profile</h2>
+    <p class="muted">The profile is encoded in the link itself (after the #). Nothing is uploaded anywhere. Anyone with the link can read it, so blank out tokens you should not share.</p>
+    <label><input type="checkbox" id="share-blank"> Leave header values empty</label>
+    <textarea id="share-text" rows="4" readonly></textarea>
+    <p id="share-msg" class="msg" role="status"></p>
+    <div class="row end">
+      <button value="cancel">Close</button>
+      <button id="share-copy" value="default" class="primary">Copy link</button>
+    </div>
+  </form>
+</dialog>
+
+<datalist id="header-names">
+  <option value="Authorization"><option value="Accept"><option value="Accept-Language"><option value="Cache-Control">
+  <option value="Content-Type"><option value="Cookie"><option value="Origin"><option value="Referer">
+  <option value="User-Agent"><option value="X-Forwarded-For"><option value="X-Forwarded-Host"><option value="X-Forwarded-Proto">
+  <option value="X-Real-IP"><option value="X-Requested-With"><option value="X-Api-Key"><option value="X-Request-Id">
+  <option value="Access-Control-Allow-Origin"><option value="Access-Control-Allow-Headers">
+  <option value="Access-Control-Allow-Methods"><option value="Access-Control-Allow-Credentials">
+  <option value="Access-Control-Expose-Headers"><option value="Content-Security-Policy"><option value="X-Frame-Options">
+  <option value="Strict-Transport-Security"><option value="Set-Cookie"><option value="Permissions-Policy">
+</datalist>
+<script src="lib/model.js"></script>
+<script src="lib/transfer.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

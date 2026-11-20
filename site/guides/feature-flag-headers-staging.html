@@ -1,0 +1,63 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send custom headers to staging and feature flags – HeaderDial</title><meta name="description" content="Send X-Feature-Flag, X-Debug or routing headers from Chrome or Edge only to staging, with one profile per environment and an Only on domain filter.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/feature-flag-headers-staging.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to send custom headers to staging and use feature-flag headers","description":"Send custom request headers such as X-Feature-Flag or X-Debug from Chrome or Edge only to your staging environment, using one HeaderDial profile per environment.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Create a profile per environment","text":"Click + to create a profile, name it after the environment and pick a colour."},{"@type":"HowToStep","name":"Add the headers","text":"Click + Request header for each header, for example X-Feature-Flag: new-checkout and X-Debug: 1."},{"@type":"HowToStep","name":"Restrict to the environment","text":"Under Where it applies, click + Only on, choose Domain and enter the staging host."},{"@type":"HowToStep","name":"Switch between environments","text":"Use each profile's Active switch; the leftmost profile wins when two set the same header."},{"@type":"HowToStep","name":"Share with the team","text":"Use Share as link from the profile menu, optionally with Leave header values empty."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Send custom headers to staging: feature flags, debug and routing</h1>
+<p>Many back ends switch behaviour on a request header: <code>X-Feature-Flag: new-checkout</code> enables an unreleased feature, <code>X-Debug: 1</code> adds timing data, and a routing header sends you to a canary build. To send such headers from Chrome or Edge, create a HeaderDial profile for the environment, add the headers as request headers, and restrict the profile with an <strong>Only on</strong> domain filter. The headers then reach staging and nothing else.</p>
+
+<h2>Typical headers</h2>
+<table>
+<tr><th>Header (example)</th><th>Typical use</th></tr>
+<tr><td><code>X-Feature-Flag: new-checkout,dark-mode</code></td><td>Force flags on for your requests without changing the flag service</td></tr>
+<tr><td><code>X-Debug: 1</code></td><td>Ask the server for verbose logs, debug toolbars or timing headers</td></tr>
+<tr><td><code>X-Backend: canary</code> or <code>X-Env: pr-1234</code></td><td>Have an ingress or gateway route you to a specific build or preview deployment</td></tr>
+<tr><td><code>X-Request-Id: qa-session-7</code></td><td>Make your requests easy to find in logs and traces</td></tr>
+<tr><td><code>X-Api-Key: …</code></td><td>Get past a shared-key gate in front of a test environment</td></tr>
+</table>
+<p>These names are conventions, not standards. Use whatever your services read. The <code>X-</code> prefix is no longer recommended for new standard headers, but it is still common for private ones.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon. If the banner asks for site access, choose <strong>Only &lt;current host&gt;</strong> while on staging, or <strong>Allow on all sites</strong>.</li>
+<li>Click <strong>+</strong> next to the profile chips to create a profile. Name it after the environment ("Staging", "Canary", "PR preview") and give it a colour. The toolbar badge takes the colour of the leftmost active profile, which is a handy reminder of where you are.</li>
+<li>Click <strong>+ Request header</strong> for each header you need and fill in the name and value. Leave the operation on <strong>set</strong>.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter the staging host, such as <code>staging.example.com</code>. Domain filters include subdomains. For a pattern, use type <strong>URL pattern</strong>, for example <code>||staging.example.com^</code>, or <strong>URL regex</strong> to match preview hosts such as <code>^https://pr-\d+\.preview\.example\.com/</code>.</li>
+<li>Repeat for other environments. Several profiles can be active at once; if two set the same header, the leftmost chip wins. Change the order with <strong>Move left (higher priority)</strong> in the <strong>⋯</strong> menu.</li>
+<li>Switch individual profiles with their <strong>Active</strong> switch, or everything at once with the global <strong>On/Paused</strong> switch at the top right.</li>
+</ol>
+
+<h2>Why the domain filter matters</h2>
+<p>Filters match the URL of each request, not the tab. Without an <strong>Only on</strong> filter the profile applies to every request: production, third-party scripts, analytics and fonts. That leaks internal flag names, and may break third-party APIs that reject unknown headers. A domain filter also keeps you from testing production with debug flags you forgot about. To exclude one host from a broader pattern, add a <strong>+ Never on…</strong> row, for example for <code>auth.staging.example.com</code>.</p>
+
+<h2>Short sessions and one-off tests</h2>
+<ul>
+<li>Pick an expiry in the row's expiry select (<strong>15 min</strong>, <strong>1 hour</strong>, <strong>8 hours</strong> or <strong>1 day</strong>) for headers like <code>X-Debug</code>. The row shows the time left, such as <code>⏱ 47m left</code>, and switches itself off afterwards.</li>
+<li>Tick <strong>Only in this tab (until it closes)</strong> to keep a flag to one tab, so you can compare old and new behaviour side by side in two tabs.</li>
+</ul>
+
+<h2>Sharing a setup with your team</h2>
+<p>In the profile's <strong>⋯</strong> menu, <strong>Share as link…</strong> puts the whole profile into the link after the <code>#</code>, so nothing is uploaded anywhere. Tick <strong>Leave header values empty</strong> if the profile holds keys or tokens. Colleagues paste the link into <strong>Import…</strong> in the footer. <strong>Export this profile</strong> and <strong>Export all</strong> (<code>headerdial-profiles.json</code>) give you files you can commit to a repository next to your environment docs.</p>
+
+<h2>The curl equivalent</h2>
+<pre><code>curl -H "X-Feature-Flag: new-checkout" -H "X-Debug: 1" https://staging.example.com/checkout</code></pre>
+
+<h2>Pitfalls</h2>
+<div class="callout"><strong>Never trust these headers from the internet.</strong> Anyone can send <code>X-Debug: 1</code>. Debug output, flag overrides and routing headers must be ignored or stripped at the edge in production, or require authentication. Otherwise a visitor can switch on unfinished features or read internal data.</div>
+<ul>
+<li><strong>Caches and CDNs</strong> may serve a response produced without your flag. Make the server send <code>Vary</code> for the header, or bypass the cache on staging.</li>
+<li><strong>Proxies may strip unknown headers.</strong> Some load balancers and gateways drop or rename headers they don't recognise. If the application never sees your header, check its logs before blaming the browser.</li>
+<li><strong>Check that it matched.</strong> The footer shows "Applied to N requests in this tab". If it stays at zero, check the filter value and site access.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+<li><a href="set-x-forwarded-for-header.html">Set X-Forwarded-For in the browser</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome and Edge. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

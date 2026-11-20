@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shared header profile – HeaderDial</title><meta name="description" content="A HeaderDial header profile shared as a link. The profile is in the link itself; nothing was uploaded.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/share/">
+<meta property="og:title" content="Shared header profile – HeaderDial"><meta property="og:description" content="A HeaderDial header profile shared as a link. The profile is in the link itself; nothing was uploaded."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css"><meta name="robots" content="noindex"></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="../guides/">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<h1 id="title">Shared header profile</h1>
+<p class="note">This profile is stored in the link itself (after the <code>#</code>), so it was never uploaded anywhere and this page did not send it to any server.</p>
+<div id="out"></div>
+<h2>Use it in HeaderDial</h2>
+<ol><li>Copy this page's address (or the JSON below).</li><li>Open HeaderDial, click <strong>Import…</strong>, paste it and click <strong>Import</strong>.</li></ol>
+<p>Don't have HeaderDial? <a class="btn" href="../#install">Get HeaderDial</a></p>
+<h3>JSON</h3>
+<pre><code id="json"></code></pre>
+<script src="../js/model.js"></script><script src="../js/transfer.js"></script>
+<script>
+(function () {
+  var out = document.getElementById('out');
+  function cell(t) { var td = document.createElement('td'); td.textContent = t; return td; }
+  try {
+    var res = HeaderDial.parseImport(location.href);
+    var p = res.profiles[0];
+    document.getElementById('title').textContent = 'Shared profile: ' + p.name;
+    var table = document.createElement('table');
+    var hr = document.createElement('tr');
+    ['', 'Header', 'Operation', 'Value'].forEach(function (h) { var th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
+    table.appendChild(hr);
+    p.headers.forEach(function (h) {
+      var tr = document.createElement('tr');
+      [h.enabled ? 'on' : 'off', (h.target === 'response' ? 'Response: ' : 'Request: ') + h.name, h.op, h.op === 'remove' ? '' : h.value].forEach(function (v) { tr.appendChild(cell(v)); });
+      table.appendChild(tr);
+    });
+    out.appendChild(table);
+    if (p.filters.length) {
+      var ul = document.createElement('ul');
+      p.filters.forEach(function (f) { var li = document.createElement('li'); li.textContent = (f.kind === 'include' ? 'Only on ' : 'Never on ') + f.type + ': ' + f.value; ul.appendChild(li); });
+      out.appendChild(ul);
+    }
+    document.getElementById('json').textContent = HeaderDial.exportJSON(res.profiles);
+  } catch (e) {
+    out.textContent = 'This link does not contain a readable profile (' + e.message + ').';
+  }
+})();
+</script>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome and Edge. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a> · <a href="https://github.com/janwan2003/request-headers">Source</a></footer></div></body></html>

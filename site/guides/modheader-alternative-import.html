@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ModHeader alternative: import your ModHeader profiles – HeaderDial</title><meta name="description" content="ModHeader was pulled from the Chrome and Edge stores in July 2026. How to move your exported profiles to HeaderDial, what imports, and how to vet a header extension.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/modheader-alternative-import.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to import ModHeader profiles into HeaderDial","description":"Move profiles exported from ModHeader into HeaderDial, an open-source header editor for Chrome and Edge, and check what was converted.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"supply":[{"@type":"HowToSupply","name":"A ModHeader profile export (.json)"}],"step":[{"@type":"HowToStep","name":"Find your export","text":"Locate the JSON file you exported from ModHeader's popup, or the JSON text you copied."},{"@type":"HowToStep","name":"Open Import","text":"Open HeaderDial and click Import in the footer."},{"@type":"HowToStep","name":"Paste or choose the file","text":"Paste the JSON or choose the .json file. Tick Replace existing profiles if you want only the imported ones."},{"@type":"HowToStep","name":"Read the warnings","text":"Review the list of parts that could not be imported, such as tab, window or time filters, cookie headers and URL redirects."},{"@type":"HowToStep","name":"Grant site access and test","text":"Allow HeaderDial on the sites you need and check each profile."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>ModHeader alternative: import your ModHeader profiles</h1>
+<p>If you used ModHeader and need a replacement, HeaderDial can read a ModHeader profile export directly. Open HeaderDial, click <strong>Import…</strong>, and paste the JSON or choose the <code>.json</code> file. Profile names, colours, request and response headers, URL filters and resource types carry over. Anything that can't be converted is listed in a warning, so nothing is dropped silently.</p>
+
+<h2>What happened</h2>
+<p>ModHeader was removed from Microsoft Edge Add-ons on 2026-07-03 and from the Chrome Web Store on 2026-07-10, after a dormant data collector was found in the extension. See <a href="https://thehackernews.com/2026/07/google-and-microsoft-pull-modheader.html">The Hacker News report</a> for details. If you still have it installed, read that report and decide whether to remove it. A header editor sees every request it is allowed to modify, so it deserves more scrutiny than most extensions.</p>
+
+<h2>Steps</h2>
+<ol>
+<li><strong>Find your export.</strong> ModHeader's popup let you export profiles as JSON. Look for a <code>.json</code> file you saved earlier, or JSON text you shared with a colleague. HeaderDial accepts a single profile, a list of profiles, or an object with a <code>profiles</code> list.</li>
+<li><strong>Install HeaderDial</strong> and click its toolbar icon. You can click <strong>⤢</strong> to open the editor in a full tab, which gives more room when reviewing imported profiles.</li>
+<li>Click <strong>Import…</strong> in the footer. Paste the JSON, or choose the file.</li>
+<li>Decide whether to tick <strong>Replace existing profiles</strong>. Leave it unticked to add the imported profiles next to the ones you have.</li>
+<li>Click <strong>Import</strong> and read the summary. Any warnings name the profile and the part that was skipped.</li>
+<li>When the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>. Without site access the browser does not let any extension change headers.</li>
+<li>Check each profile's headers and its <strong>Where it applies</strong> section, then reload a page you use it on.</li>
+</ol>
+
+<h2>What is imported</h2>
+<table>
+<tr><th>From the ModHeader export</th><th>Becomes in HeaderDial</th></tr>
+<tr><td>Profile title and colour</td><td>Profile name and colour</td></tr>
+<tr><td>Request headers</td><td>Rows under <strong>+ Request header</strong>, with their enabled state</td></tr>
+<tr><td>Response headers</td><td>Rows under <strong>+ Response header</strong>, with their enabled state</td></tr>
+<tr><td>Header with an empty value</td><td>Operation <strong>remove</strong></td></tr>
+<tr><td>Append mode</td><td>Operation <strong>append</strong></td></tr>
+<tr><td>URL filters (<code>urls</code>)</td><td><strong>Only on</strong> rows of type <strong>URL regex</strong></td></tr>
+<tr><td>Exclude URL filters (<code>excludeUrls</code>)</td><td><strong>Never on</strong> rows of type <strong>URL regex</strong></td></tr>
+<tr><td>Resource-type filters</td><td>Request-type checkboxes</td></tr>
+</table>
+<p>Imported profiles start out active. Use each profile's <strong>Active</strong> switch to turn off the ones you don't need straight away.</p>
+
+<h2>What is not imported</h2>
+<p>These have no equivalent yet. The import warning lists each one it found:</p>
+<ul>
+<li>Tab, tab-group, window and time filters. For a per-tab profile, tick <strong>Only in this tab (until it closes)</strong>; for time limits, use the expiry select on each header row (<strong>15 min</strong> to <strong>1 day</strong>).</li>
+<li>Cookie headers (the separate cookie and set-cookie lists). You can still add a <code>Cookie</code> request header row by hand.</li>
+<li>URL redirects.</li>
+</ul>
+
+<h2>Things to check after importing</h2>
+<ul>
+<li><strong>Regex syntax.</strong> URL regex filters use RE2 syntax, which has no lookbehind. A filter the browser rejects is reported as a problem in the popup, and the rest of the profile keeps working.</li>
+<li><strong>Append on request headers.</strong> Browsers only allow appending to a fixed set of request headers (such as <code>Accept</code>, <code>Accept-Language</code>, <code>Cookie</code>, <code>User-Agent</code>, <code>X-Forwarded-For</code>). For others, HeaderDial sets the value instead and says so.</li>
+<li><strong>Priority.</strong> When two active profiles set the same header, the leftmost chip wins. Reorder with <strong>Move left (higher priority)</strong> in the <strong>⋯</strong> menu.</li>
+<li><strong>Keep a backup.</strong> <strong>Export all</strong> saves everything to <code>headerdial-profiles.json</code>.</li>
+</ul>
+
+<h2>How to tell whether a header extension is trustworthy</h2>
+<p>Whatever you install next, these checks take a few minutes:</p>
+<ul>
+<li><strong>Open source, and the store build matches it.</strong> You or anyone else can read what the code does. Look for a public repository with recent, readable history.</li>
+<li><strong>No remote code.</strong> Manifest V3 forbids loading remotely hosted code, but an extension can still fetch configuration and data. Check whether it makes network requests at all, and to where. Look at the background service worker in the DevTools Network panel, reached from the extension's "Inspect views" link on <code>chrome://extensions</code>.</li>
+<li><strong>Minimal permissions.</strong> A header editor needs <code>declarativeNetRequest</code> and access to the sites it modifies. Be wary of <code>tabs</code>, <code>history</code>, <code>cookies</code>, <code>scripting</code> or content scripts on all pages without a clear reason. Read the permission list on the extension's details page.</li>
+<li><strong>Site access you control.</strong> On <code>chrome://extensions</code>, open Details and set site access to specific sites or "On click" where possible.</li>
+<li><strong>No account, no analytics.</strong> A local tool has no reason to need a login or to report usage.</li>
+<li><strong>Watch ownership changes.</strong> Popular extensions are sometimes sold, and a new owner can ship a different update. A change of publisher or a sudden new permission is a reason to look again.</li>
+</ul>
+<p>For reference, HeaderDial's permissions are <code>declarativeNetRequest</code>, <code>storage</code>, <code>alarms</code> and <code>activeTab</code>, plus optional site access you grant from the popup. It has no account and no analytics, and the extension makes no network requests. The source is on <a href="https://github.com/janwan2003/request-headers">GitHub</a>, so you can check all of this yourself.</p>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
+<li><a href="feature-flag-headers-staging.html">Send custom headers to staging and feature-flag headers</a></li>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome and Edge. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

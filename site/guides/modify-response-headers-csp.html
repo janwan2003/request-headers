@@ -1,0 +1,55 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modify Content-Security-Policy in the browser – HeaderDial</title><meta name="description" content="Remove or replace Content-Security-Policy, X-Frame-Options and other response headers in Chrome or Edge to debug CSP errors and framing, without redeploying.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/modify-response-headers-csp.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to modify Content-Security-Policy and other response headers in the browser","description":"Remove or replace response headers such as Content-Security-Policy and X-Frame-Options in Chrome or Edge to debug a site without changing the server.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access for the site you are debugging."},{"@type":"HowToStep","name":"Add a response header row","text":"Click + Response header and enter Content-Security-Policy."},{"@type":"HowToStep","name":"Choose remove or set","text":"Choose remove to drop the policy, or set and paste a modified policy to replace it."},{"@type":"HowToStep","name":"Scope it","text":"Click + Only on current host under Where it applies."},{"@type":"HowToStep","name":"Reload and compare","text":"Hard-reload the page and compare the CSP errors in the DevTools Console."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to modify Content-Security-Policy and other response headers</h1>
+<p>To change a response header such as <code>Content-Security-Policy</code> in Chrome or Edge, add a <strong>response</strong> header row in HeaderDial for the site you are debugging. Choose <strong>remove</strong> to drop the header, or <strong>set</strong> with a new value to replace it. The browser then behaves as if the server had sent your version, so you can test a policy change in seconds instead of redeploying.</p>
+
+<h2>When this helps</h2>
+<ul>
+<li><strong>"Refused to load the script… because it violates the Content Security Policy"</strong>. Remove the CSP briefly to confirm the policy is the cause, then put back an edited policy that allows the source you need.</li>
+<li><strong>Writing a new policy.</strong> Try it on the live site before asking for a deployment.</li>
+<li><strong>Embedding in an iframe.</strong> A page refuses to load in a frame because of <code>X-Frame-Options</code> or the CSP <code>frame-ancestors</code> directive, and you want to test the embedding on your own site before the owner changes it.</li>
+<li><strong>Other response headers.</strong> Test <code>Cache-Control</code>, <code>Set-Cookie</code> attributes, <code>Permissions-Policy</code> or <code>Cross-Origin-*</code> headers the same way.</li>
+</ul>
+
+<h2>Steps</h2>
+<ol>
+<li>Open the site, then click the HeaderDial icon. If the site-access banner appears, choose <strong>Only &lt;current host&gt;</strong> or <strong>Allow on all sites</strong>.</li>
+<li>Click <strong>+ Response header</strong> and type <code>Content-Security-Policy</code>.</li>
+<li>To drop it, pick <strong>remove</strong> in the operation select. To replace it, keep <strong>set</strong> and paste the full new policy as the value, for example:
+<pre><code>default-src 'self'; script-src 'self' https://cdn.example.net; img-src 'self' data:</code></pre></li>
+<li>Click <strong>+ Only on &lt;current host&gt;</strong> under <strong>Where it applies</strong>. Changing security headers on every site you visit is never what you want.</li>
+<li>Hard-reload (Ctrl+Shift+R) and watch the DevTools <strong>Console</strong>: CSP violations are logged there with the directive that blocked them.</li>
+</ol>
+<p>For framing problems, add two rows: remove <code>X-Frame-Options</code>, and remove or replace <code>Content-Security-Policy</code>. Modern browsers give <code>frame-ancestors</code> precedence over <code>X-Frame-Options</code>, so removing only the older header is often not enough. Response headers apply to whatever response matches the filter, so put the filter on the <em>framed</em> site's domain, not the parent page's.</p>
+
+<h2>A safer way to try a stricter policy</h2>
+<p>To see what a new policy <em>would</em> block without breaking the page, add it as <code>Content-Security-Policy-Report-Only</code> instead. The browser reports violations in the Console but enforces nothing. When the console is quiet, move the policy into the real header on your server.</p>
+
+<h2>Inspecting headers with curl and DevTools</h2>
+<pre><code># see the CSP and framing headers a page sends
+curl -sI https://www.example.com/ | grep -iE 'content-security-policy|x-frame-options'</code></pre>
+<p>In the DevTools <strong>Network</strong> panel, select the document request and look under <strong>Response Headers</strong>. Chrome DevTools can also override response headers locally through its <strong>Overrides</strong> feature, which needs a local folder and applies only while DevTools is open. A header rule keeps working across tabs and without DevTools, and you can switch it on and off with the profile's <strong>Active</strong> switch.</p>
+
+<h2>Pitfalls</h2>
+<div class="callout">Removing CSP or X-Frame-Options turns off protection against cross-site scripting and clickjacking for that site. Keep these rules scoped to the host you are debugging, give them an expiry such as <strong>1 hour</strong>, and never leave them on while browsing normally.</div>
+<ul>
+<li><strong>Policies in a meta tag.</strong> A policy delivered as <code>&lt;meta http-equiv="Content-Security-Policy"&gt;</code> inside the HTML is not a header, so header rules cannot change it. If violations persist after removing the header, look in the page source.</li>
+<li><strong>Several policies.</strong> A server can send more than one CSP header, and the browser enforces all of them. <strong>remove</strong> drops the header by name; <strong>set</strong> replaces it with your single value.</li>
+<li><strong>Service workers and cache.</strong> A response served by a service worker or from the HTTP cache may not reflect your change. In DevTools, tick "Disable cache" in the Network panel, and under <strong>Application › Service workers</strong> tick "Bypass for network".</li>
+<li><strong>Request types.</strong> CSP is applied from the document response. If you have ticked request types to narrow the profile, include <code>main frame</code> (and <code>sub frame</code> for iframes).</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+<li><a href="remove-request-header.html">Remove a request header in Chrome</a></li>
+<li><a href="feature-flag-headers-staging.html">Send custom headers to staging and feature-flag headers</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome and Edge. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>
