@@ -1,0 +1,86 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to override the Content-Type response header to view a file instead of downloading it – HeaderDial</title><meta name="description" content="Override Content-Type in Chrome, Edge or Firefox to open a file in the tab instead of downloading it, fix a script blocked by X-Content-Type-Options: nosniff, and see where Firefox differs. Measured in Chrome and Firefox.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/override-content-type-header.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to override the Content-Type response header to view a file instead of downloading it","description":"Replace the Content-Type a server sends for one URL in Chrome, Edge or Firefox, so the browser shows the file inline or runs a script served with the wrong type.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Add the response header","text":"Click + Response header, enter Content-Type as the name and a type such as text/plain or application/json as the value, and keep the operation on set."},{"@type":"HowToStep","name":"Remove Content-Disposition if the server sends attachment","text":"Add a second response header row, Content-Disposition, with the operation remove."},{"@type":"HowToStep","name":"Limit it to the file","text":"Under Where it applies, add an Only on filter of type URL pattern that matches only the file or folder you are testing."},{"@type":"HowToStep","name":"Open the URL again","text":"Load the file in a tab. It should now be shown instead of downloaded."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to override the Content-Type response header to view a file instead of downloading it</h1>
+<p>To make Chrome, Edge or Firefox show a file in the tab instead of downloading it, add a response header named <code>Content-Type</code> in HeaderDial with the value <code>text/plain</code> (or <code>application/json</code>), and limit it to that file's URL. In Chrome 159 and Firefox 158 a file the server sent as <code>application/octet-stream</code> then opened as text. If the server also sends <code>Content-Disposition: attachment</code>, the file still downloads until you remove that header as well. The same override can unblock a script that a server sends as <code>text/plain</code> with <code>X-Content-Type-Options: nosniff</code>.</p>
+
+<h2>Why the browser downloads instead of showing</h2>
+<p>Two response headers decide it:</p>
+<table>
+<tr><th>Header</th><th>Example</th><th>Effect on a page load</th></tr>
+<tr><td><code>Content-Type</code></td><td><code>application/octet-stream</code></td><td>A type the browser cannot display, so it downloads the file. <code>text/plain</code>, <code>text/html</code>, <code>application/json</code> and images are displayed.</td></tr>
+<tr><td><code>Content-Disposition</code></td><td><code>attachment; filename="report.csv"</code></td><td>Downloads the file whatever its type. <code>inline</code>, or no header at all, lets the type decide.</td></tr>
+<tr><td><code>X-Content-Type-Options</code></td><td><code>nosniff</code></td><td>Tells the browser to trust <code>Content-Type</code> and not guess from the content. Scripts and stylesheets with the wrong type are then blocked.</td></tr>
+</table>
+<p>The rules for <code>nosniff</code> are in the <a href="https://fetch.spec.whatwg.org/#x-content-type-options-header">Fetch standard</a>, and MDN has a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Content-Type-Options">shorter summary</a>.</p>
+
+<h2>What we measured</h2>
+<p>We checked this with HeaderDial 0.3.0 in Chrome 159.0.8154.6 and Firefox 158.0.1 in November 2026. A local test server sent each file below, the browser opened its URL in a tab, and we recorded whether it was downloaded or shown and what type the page reported. Edge uses Chrome's engine, but we did not test it separately.</p>
+<table>
+<tr><th>Server sent</th><th>HeaderDial rule</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td>JSON as <code>application/octet-stream</code></td><td>none</td><td>downloaded</td><td>downloaded</td></tr>
+<tr><td>JSON as <code>application/octet-stream</code></td><td>Content-Type <code>text/plain</code></td><td>shown as text</td><td>shown as text</td></tr>
+<tr><td>JSON as <code>application/octet-stream</code></td><td>Content-Type <code>application/json</code></td><td>shown as raw JSON</td><td>shown in the JSON viewer</td></tr>
+<tr><td>Text with <code>Content-Disposition: attachment</code></td><td>Content-Type <code>text/plain</code></td><td>still downloaded</td><td>still downloaded</td></tr>
+<tr><td>Text with <code>Content-Disposition: attachment</code></td><td>Content-Disposition removed, or set to <code>inline</code></td><td>shown</td><td>shown</td></tr>
+<tr><td>HTML as <code>text/plain</code></td><td>Content-Type <code>text/html</code></td><td>rendered as a page</td><td>rendered as a page</td></tr>
+<tr><td>HTML as <code>text/plain</code></td><td>Content-Type removed</td><td>rendered as a page (the browser guessed HTML)</td><td>rendered as a page</td></tr>
+<tr><td>JSON as <code>application/json</code></td><td>Content-Type <code>application/octet-stream</code></td><td>downloaded</td><td>downloaded</td></tr>
+</table>
+<p>With no <code>Content-Type</code> at all, both browsers guessed HTML from the content. With no <code>Content-Type</code> and <code>nosniff</code>, both showed the same HTML as plain text.</p>
+
+<h2>Scripts and stylesheets with the wrong type</h2>
+<p>A common deployment bug is a JavaScript file served as <code>text/plain</code> together with <code>nosniff</code>, so the browser refuses to run it. Before you redeploy, you can check that the type is the only problem. A page loaded each script with a <code>&lt;script src&gt;</code> tag, and the script set a flag when it ran:</p>
+<table>
+<tr><th>Script served as</th><th>HeaderDial rule</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td><code>text/plain</code></td><td>none</td><td>ran</td><td>ran</td></tr>
+<tr><td><code>text/plain</code> + <code>nosniff</code></td><td>none</td><td>blocked</td><td>blocked</td></tr>
+<tr><td><code>text/plain</code> + <code>nosniff</code></td><td>Content-Type <code>text/javascript</code></td><td>ran</td><td>ran</td></tr>
+<tr><td><code>text/plain</code> + <code>nosniff</code></td><td>X-Content-Type-Options removed</td><td>ran</td><td><strong>still blocked</strong></td></tr>
+<tr><td><code>text/javascript</code> + <code>nosniff</code></td><td>Content-Type <code>text/plain</code></td><td>blocked</td><td>blocked</td></tr>
+<tr><td><code>text/plain</code></td><td>X-Content-Type-Options <code>nosniff</code> added</td><td>blocked</td><td><strong>still ran</strong></td></tr>
+</table>
+<p>So overriding <code>Content-Type</code> works in both browsers. Adding or removing <code>X-Content-Type-Options</code> changes script blocking in Chrome only. Firefox kept applying the header the server really sent, even though a <code>fetch()</code> of the same file reported the changed value. To fix a blocked script in both browsers, change the type, not <code>nosniff</code>.</p>
+<p>Stylesheets served as <code>text/plain</code> were ignored in both browsers even without <code>nosniff</code>, because the test page was in standards mode. Overriding <code>Content-Type</code> to <code>text/css</code> made both browsers apply them.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Click <strong>+ Response header</strong>. Type <code>Content-Type</code> (it is in the suggestions) and the type you want, for example <code>text/plain; charset=utf-8</code> for a text or CSV file, <code>application/json</code> for JSON, or <code>text/javascript</code> for a script. Keep the operation on <strong>set</strong>.</li>
+<li>If the file still downloads, the server probably sends <code>Content-Disposition: attachment</code>. Click <strong>+ Response header</strong> again, type <code>Content-Disposition</code> and choose <strong>remove</strong>.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>URL pattern</strong> and enter something that matches only the files you mean, such as <code>||files.example.com/exports/</code>. A rule for the whole site would also change the type of every page, script and image on it.</li>
+<li>Load the URL again. If you only want to change what a tab shows, tick <strong>main frame</strong> under the request types. Scripts and <code>fetch()</code> calls then keep the server's type.</li>
+</ol>
+
+<h2>What JavaScript sees</h2>
+<p>In Chrome, <code>response.headers.get('content-type')</code> in a <code>fetch()</code> returned the overridden type. In Firefox it returned the type the server sent, although navigations, scripts and stylesheets used the override. Firefox did report other overridden response headers (<code>X-Content-Type-Options</code>, <code>Content-Disposition</code>, <code>Cache-Control</code> and more) to <code>fetch()</code>. If your own code branches on the type it reads from <code>fetch()</code>, test that part in Chrome. <code>response.json()</code> and <code>response.text()</code> read the body whatever the header says.</p>
+
+<h2>The curl equivalent</h2>
+<p>curl does not care about types, so it is the quickest way to see what the server really sends:</p>
+<pre><code>curl -sI https://files.example.com/exports/report.bin | grep -iE '^(content-type|content-disposition|x-content-type-options):'
+
+# save the body regardless of type
+curl -s https://files.example.com/exports/report.bin | head</code></pre>
+
+<h2>Pitfalls</h2>
+<div class="callout">This changes what your browser does, not what the server sends. Fix the type on the server too: other visitors still get the download or the blocked script.</div>
+<ul>
+<li><strong>Keep the filter narrow.</strong> A <code>Content-Type</code> override on a whole domain turns pages into text and stops scripts. Use a URL pattern for one file or folder.</li>
+<li><strong>Content-Disposition wins.</strong> Changing the type alone does not stop an <code>attachment</code> download in either browser.</li>
+<li><strong>Firefox and nosniff.</strong> Removing <code>X-Content-Type-Options</code> did not unblock a script in Firefox 158. Override the type instead.</li>
+<li><strong>Switch it off afterwards.</strong> Give the row an expiry such as <strong>15 min</strong>, or press <strong>Alt+Shift+D</strong> to pause every profile.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="cache-control-header-testing.html">Test caching with Cache-Control headers</a></li>
+<li><a href="headers-browsers-wont-let-you-change.html">Which headers browsers won't let you change</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

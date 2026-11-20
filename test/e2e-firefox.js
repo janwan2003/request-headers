@@ -240,6 +240,15 @@ async function launch() {
   await s.setState(`p.redirects = [];`);
   ok('Firefox: URL redirect (text and regex with groups) applies to page loads and fetch(), and headers still apply');
 
+  // Firefox rejects a rule with an empty "set" value; only that row may be lost.
+  st = await s.setState(`p.headers.push(HeaderDial.newHeader('request', { name: 'X-Empty', value: '' }));`);
+  assert.strictEqual(st.problems.length, 1, JSON.stringify(st.problems));
+  assert.match(st.problems[0].message, /X-Empty.*cannot send an empty value/);
+  got = await s.echo();
+  assert.strictEqual(got['x-headerdial'], 'on', 'the other headers still apply');
+  await s.setState(`p.headers = p.headers.filter((h) => h.name !== 'X-Empty');`);
+  ok('Firefox: an empty header value skips only that row, not the whole profile');
+
   // Pause.
   st = await s.setState(`s.paused = true; p.filters = [];`);
   got = await s.echo();

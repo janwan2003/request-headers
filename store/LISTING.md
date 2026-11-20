@@ -30,7 +30,7 @@ Features:
 • Timed headers that switch themselves off after 15 minutes, an hour or a day
 • Import profiles exported from ModHeader; export and import JSON
 • Share a profile as a link: the profile is inside the link, nothing is uploaded
-• The badge shows how many headers are active; the popup shows how many requests in the tab were changed
+• The badge shows how many headers and redirects are active; the popup shows how many requests in the tab were changed
 • Light and dark mode
 
 Private by design:

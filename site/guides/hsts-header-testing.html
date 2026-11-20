@@ -1,0 +1,78 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to remove or change Strict-Transport-Security (HSTS) while testing, and clear a cached policy – HeaderDial</title><meta name="description" content="Remove or change the Strict-Transport-Security header in Chrome, Edge or Firefox while testing, why removing it does not undo an HSTS policy the browser already stored, and how to clear one in chrome://net-internals and Firefox. Measured.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/hsts-header-testing.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to remove or change Strict-Transport-Security (HSTS) while testing, and clear a cached policy","description":"Stop a test server's Strict-Transport-Security header from reaching the browser, and clear an HSTS policy the browser has already stored, in Chrome, Edge or Firefox.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Remove the header","text":"Click + Response header, enter Strict-Transport-Security as the name and choose the operation remove."},{"@type":"HowToStep","name":"Limit it to the test host","text":"Under Where it applies, add an Only on filter of type Domain for the host you are testing."},{"@type":"HowToStep","name":"Clear a stored policy","text":"In Chrome or Edge, delete the domain under Delete domain security policies on chrome://net-internals/#hsts. In Firefox, remove the site's data under Settings, Privacy & Security, Cookies and Site Data."},{"@type":"HowToStep","name":"Check","text":"Open the http:// URL. It should stay on http:// instead of being switched to https://."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to remove or change Strict-Transport-Security (HSTS) while testing, and clear a cached policy</h1>
+<p>To stop a test server's <code>Strict-Transport-Security</code> header from reaching the browser, add a response header row for it in HeaderDial with the operation <strong>remove</strong>, limited to that host. That prevents the browser from storing a new HSTS policy. It does not undo a policy the browser stored on an earlier visit. In Chrome 159 and Firefox 158, a host that had sent HSTS once kept being switched from <code>http://</code> to <code>https://</code> after we removed the header. To clear a stored policy, delete the domain on <code>chrome://net-internals/#hsts</code> in Chrome or Edge, or remove the site's data in Firefox. In Chrome only, a rule that sets the header to <code>max-age=0</code> also clears it on the next HTTPS visit.</p>
+
+<h2>How HSTS works</h2>
+<p>A server sends <code>Strict-Transport-Security: max-age=31536000</code> on an HTTPS response. The browser stores that policy for the host, for <code>max-age</code> seconds, and from then on rewrites every <code>http://</code> URL for that host to <code>https://</code> before sending anything. With <code>includeSubDomains</code> the policy covers every subdomain too. The rules are in <a href="https://www.rfc-editor.org/rfc/rfc6797">RFC 6797</a>.</p>
+<p>That is why HSTS gets in the way while testing: a staging host that sent the header once, maybe from a shared proxy configuration, can no longer be opened over plain HTTP. And because the upgrade happens inside the browser, the plain-HTTP request never reaches the server, so server logs show nothing.</p>
+
+<h2>What we measured</h2>
+<p>We checked this with HeaderDial 0.3.0 in Chrome 159.0.8154.6 and Firefox 158.0.1 in November 2026. A local test server answered plain HTTP and HTTPS on the same port for a test host name, with a certificate both browsers trusted. One URL sent <code>Strict-Transport-Security: max-age=3600</code>. After each step we opened the <code>http://</code> URL and noted whether the browser switched it to <code>https://</code>. In Chrome we also queried <code>chrome://net-internals/#hsts</code>. Edge uses Chrome's engine, but we did not test it separately.</p>
+<table>
+<tr><th>Situation</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td>Header removed by HeaderDial before the first HTTPS visit</td><td>nothing stored; <code>http://</code> stays <code>http://</code></td><td>nothing stored; stays <code>http://</code></td></tr>
+<tr><td>Policy already stored, then header removed and the HTTPS page visited again</td><td>still switched to <code>https://</code></td><td>still switched to <code>https://</code></td></tr>
+<tr><td>Policy already stored, then header set to <code>max-age=0</code> and the HTTPS page visited again</td><td>policy cleared; stays <code>http://</code></td><td><strong>still switched</strong>; the page still read <code>max-age=3600</code></td></tr>
+<tr><td>Header added with <code>max-age=600</code> to an HTTPS response that had none</td><td>stored; <code>http://</code> switched afterwards</td><td>stored; switched afterwards</td></tr>
+<tr><td>Header added to a plain-HTTP response</td><td>ignored</td><td>ignored</td></tr>
+<tr><td>Header added with <code>includeSubDomains</code></td><td>a subdomain was switched too</td><td>a subdomain was switched too</td></tr>
+</table>
+<p>So HeaderDial's response rules do reach the browser's HSTS logic in both browsers: removing the header and adding one both worked. The difference is <strong>set</strong> on a header the server already sends. Chrome applied the new value. Firefox 158 kept the server's value, both for HSTS and for what a <code>fetch()</code> on the page reported. In our tests, <code>Content-Type</code> was the only other response header where Firefox did this.</p>
+
+<h2>Steps: stop a test server's HSTS reaching the browser</h2>
+<ol>
+<li>Click the HeaderDial icon. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Click <strong>+ Response header</strong>, type <code>Strict-Transport-Security</code> (it is in the suggestions) and choose <strong>remove</strong>.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter the test host, for example <code>staging.example.com</code>.</li>
+<li>If the browser already stored a policy for that host, clear it as described below. The rule does not do that for you.</li>
+<li>Open the <code>http://</code> URL. If it stays on <code>http://</code>, nothing is stored.</li>
+</ol>
+<p>To try out a policy before deploying it, set the header instead: for example <code>max-age=300</code>, short enough to expire on its own. Use a test host, because a policy you add this way stays stored after you switch the rule off.</p>
+
+<h2>Clear a stored policy in Chrome or Edge</h2>
+<ol>
+<li>Open <code>chrome://net-internals/#hsts</code>.</li>
+<li>Under <strong>Query HSTS domain</strong>, enter the host and click <strong>Query</strong>. "Not found" means there is no policy; otherwise the output lists the policy, including <code>dynamic_sts_expiry</code>.</li>
+<li>Under <strong>Delete domain security policies</strong>, enter the host and click <strong>Delete</strong>. In our test the next <code>http://</code> visit stayed on <code>http://</code>.</li>
+</ol>
+<p>The page itself says that preloaded entries cannot be deleted. Hosts on the <a href="https://hstspreload.org/">HSTS preload list</a> are built into the browser and always use HTTPS.</p>
+<p>Alternatively, while the policy is stored, set the header to <code>max-age=0</code> with HeaderDial and load any HTTPS page on the host once. In Chrome that removed the stored policy. It did not work in Firefox.</p>
+
+<h2>Clear a stored policy in Firefox</h2>
+<p>Either of these cleared it in our test. We called the functions behind the two commands directly instead of clicking through the dialogs, after reading Firefox 158's own code to check that these are the functions the commands use:</p>
+<ul>
+<li><strong>Settings › Privacy &amp; Security › Cookies and Site Data › Manage browsing data</strong>, select the site, <strong>Remove Selected</strong>, then <strong>Save Changes</strong>. This also deletes the site's cookies, so you will be logged out.</li>
+<li>In the History sidebar or the Library window, right-click a page from the site and choose <strong>Forget About This Site…</strong>.</li>
+</ul>
+
+<h2>The curl equivalent</h2>
+<p>curl does not store HSTS policies unless you ask it to, so it shows what the server sends:</p>
+<pre><code>curl -sI https://staging.example.com/ | grep -i '^strict-transport-security'
+
+# curl can keep its own HSTS cache if you want to test that
+curl --hsts hsts.txt -sI https://staging.example.com/</code></pre>
+
+<h2>Pitfalls</h2>
+<div class="callout">Never remove or shorten HSTS on a production site you care about by changing the browser. It only changes your browser, and visitors still get the server's policy. Test policy changes on a staging host with a short <code>max-age</code>.</div>
+<ul>
+<li><strong>Removing the header is not enough.</strong> A policy stored before you added the rule stays until it expires or you clear it.</li>
+<li><strong>includeSubDomains on a parent domain.</strong> A policy from <code>example.com</code> with <code>includeSubDomains</code> covers <code>staging.example.com</code> too. Query and delete the parent domain as well.</li>
+<li><strong>Plain HTTP is ignored.</strong> The header only counts on HTTPS responses; adding it to an <code>http://</code> response did nothing in either browser.</li>
+<li><strong>Switch it off afterwards.</strong> Give the row an expiry such as <strong>1 hour</strong>, or press <strong>Alt+Shift+D</strong> to pause every profile.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="override-content-type-header.html">Override the Content-Type response header</a></li>
+<li><a href="headers-browsers-wont-let-you-change.html">Which headers browsers won't let you change</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

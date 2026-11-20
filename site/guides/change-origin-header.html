@@ -62,7 +62,7 @@ curl -si -H "Origin: https://evil.example" https://api.example.com/data | grep -
 <div class="callout">CORS protects users from other websites; it does not protect your server. Never treat a matching Origin as authentication. Changing it in the browser only shows what a script or curl can already do.</div>
 <ul>
 <li><strong>You may break your own page.</strong> If the server allows origins by reflecting them, the page's calls start failing while the rule is on, as in the table above. Limit the rule to the endpoints under test.</li>
-<li><strong>Other headers still tell the truth.</strong> <code>Sec-Fetch-Site</code> is unchanged and <code>Referer</code> still names the real page. A server that checks them is not fooled; see <a href="set-referer-header.html">changing the Referer header</a>.</li>
+<li><strong>Other headers still tell the truth.</strong> <code>Sec-Fetch-Site</code> is unchanged and <code>Referer</code> still names the real page. A server that checks them is not fooled by an Origin rule alone; see <a href="set-referer-header.html">changing the Referer header</a>. An extension can change <code>Sec-Fetch-Site</code> too, though: see <a href="headers-browsers-wont-let-you-change.html">which headers browsers won't let you change</a>.</li>
 <li><strong>Caches.</strong> If a CDN caches responses whose <code>Access-Control-Allow-Origin</code> depends on Origin, it needs <code>Vary: Origin</code>. Otherwise one origin's answer can be served to another.</li>
 <li><strong>Switch it off afterwards.</strong> Give the row an expiry such as <strong>15 min</strong>, or press <strong>Alt+Shift+D</strong> to pause every profile.</li>
 </ul>

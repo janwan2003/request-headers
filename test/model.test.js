@@ -210,3 +210,13 @@ test('redirects survive export, share links and import, with fresh ids', () => {
   assert.notStrictEqual(back.redirects[0].id, s.profiles[0].redirects[0].id);
   assert.deepStrictEqual(HD.normalizeState({ profiles: [{}] }).profiles[0].redirects, []);
 });
+
+test('emptyValues:false (Firefox) skips empty set rows instead of losing the whole rule', () => {
+  const s = state([{ headers: [hdr('X-Empty', ''), hdr('X-Keep', '1'), hdr('X-Gone', '', { op: 'remove' })] }]);
+  const chrome = HD.compile(s);
+  assert.strictEqual(chrome.dynamic[0].action.requestHeaders.length, 3);
+  const ff = HD.compile(s, { emptyValues: false });
+  assert.deepStrictEqual(ff.dynamic[0].action.requestHeaders.map((h) => h.header), ['X-Keep', 'X-Gone']);
+  assert.match(ff.problems[0].message, /^"X-Empty": this browser cannot send an empty value/);
+  assert.strictEqual(ff.liveCount, 2);
+});

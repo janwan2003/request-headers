@@ -99,15 +99,24 @@ about 500K Chrome users. The rest is fragmented into small or copycat listings.
 
 ## Status
 
-HeaderDial 0.2.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
+HeaderDial 0.3.1 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
 - **Firefox Add-ons:** submitted 2026-11-20 through the AMO API, slug `headerdial`, id
   `headerdial@plainbyte`, https://addons.mozilla.org/firefox/addon/headerdial/. Version 0.2.0
-  with Markdown description and 2 screenshots; add-on status `nominated` (waiting for Mozilla
-  review; the public API returns 401 until then). 0.1.0 was superseded.
-- **Chrome Web Store:** keys exist, but the Chrome Web Store API is disabled in the Google Cloud
-  project, so uploads return 403 SERVICE_DISABLED (operator request in OPERATOR-INBOX.md).
-  `scripts/publish-cws.py` is ready.
+  with Markdown description and 2 screenshots; add-on status `nominated`, file `unreviewed`
+  (rechecked 2026-11-20 with `publish-amo.py --status`; the public API returns 401 until then).
+  0.1.0 was superseded. **0.3.x is deliberately not on AMO yet**: wait until 0.2.0 is approved
+  so the first review is not disturbed, then `publish-amo.py` (version) and `--listing` (the
+  description in `store/amo-listing.json` already mentions redirects).
+- **Chrome Web Store:** 0.2.0, then 0.3.0 and 0.3.1, uploaded through the API on 2026-11-20 as a draft, item id
+  `hfacpfgfdcpacffioinklbocgjiglhig` (`store/cws-item.json`, upload state SUCCESS). Publishing
+  fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 listing
+  privacy practices, certification, language, category, icon, screenshot, description and a
+  verified publisher contact email. Exact text for every field: `store/chrome-privacy.md`
+  (inbox line added). Promo tiles: `store/promo-small-440x280.png`, `store/promo-marquee-1400x560.png`
+  (`scripts/make-promo.py`).
 - **Edge Add-ons:** needs a free Partner Center account (inbox).
+- **Search Console:** site verified (META tag in `site/index.html`), added, and sitemap submitted
+  on 2026-11-20 with `scripts/gsc.py verify`; `gsc.py status` shows the sitemap pending, 0 errors.
 
 What exists:
 - `extension/`: popup and full-tab editor (`popup.html?page=1`). Profiles (several can be
@@ -116,9 +125,11 @@ What exists:
   "Never on" exclusions, request types, **request methods**, one tab), global pause (switch
   or **Alt+Shift+D**), a badge with the active-header count, "Applied to N requests in this
   tab" (`getMatchedRules` via activeTab), optional site access requested from the popup (all
-  sites or the current one), import (HeaderDial JSON, share link, ModHeader export), export,
+  sites or the current one), **URL redirects** (0.3.0: "Replace" text in the URL or "Regex" with
+  `\1` groups; DNR `redirect` rules; loops and bad patterns flagged, not applied), import
+  (HeaderDial JSON, share link, ModHeader export including `urlReplacements`), export,
   share-as-link with no server, light and dark mode.
-- `extension/lib/model.js` compiles profiles into DNR rules. `background.js` applies them;
+- `extension/lib/model.js` compiles profiles into DNR rules (`modifyHeaders`, `redirect`, `allow` for exclusions). `background.js` applies them;
   if the browser rejects the batch it adds rules one at a time and reports the bad ones.
 - `scripts/build.js` emits `dist/extension` + zip (Chrome/Edge) and `dist/firefox` + zip (the
   same files, Firefox manifest: event-page background, gecko id, `data_collection_permissions:
@@ -130,10 +141,10 @@ What exists:
   share page, how-to guides plus a hub, sitemap.xml, robots.txt, `/download/headerdial.zip`.
 - `store/LISTING.md` (CWS/Edge text + AMO notes), `store/amo-listing.json`, two 1280×800 screenshots.
 
-Verified on 2026-11-20 locally and in CI (see Log): unit 14/14; Chromium e2e 20/20 (Playwright Chromium
-build 1255); Firefox e2e 12/12 in Firefox 158.0.1 over WebDriver BiDi (request set/remove/
-override, response header, fetch, domain/regex/method filters, pause, no change without host
-access, access banner, shortcut registered).
+Verified on 2026-11-20 (0.3.1) locally and in CI (see Log): unit 18/18; Chromium e2e 21/21
+(Chrome for Testing 159.0.8154.6); Firefox e2e 14/14 in Firefox 158.0.1 over WebDriver BiDi
+(request set/remove/override, response header, fetch, domain/regex/method filters, URL redirects in
+both modes, empty-value rows, pause, no change without host access, access banner, shortcut).
 The Chromium e2e also opens the real toolbar popup (`chrome.action.openPopup()` over CDP) with
 one site allowed, and checks the banner, "+ Only on <host>" and "Only in this tab".
 Not verified: Edge itself; Firefox for Android; the toolbar popup in Firefox; the
@@ -143,23 +154,29 @@ check the binding and call the handler).
 
 ## Next steps
 
-1. **AMO follow-through:** `python3 scripts/publish-amo.py --status` until approved (status
-   `public`). Then change the Firefox install line on `site/index.html` and
-   `guides/modify-headers-firefox.html` from "in review" to live, and record AMO daily users
-   in Metrics. If Mozilla rejects it, the reason will be in the developer hub (operator email).
-2. **Chrome Web Store (operator):** enable the API (inbox). Then `publish-cws.py`, fill the
-   dashboard listing once from `store/LISTING.md`, then `--publish`. Edge needs its account.
-3. Firefox toolbar-popup test (BiDi cannot open it yet; try `browserAction.openPopup` from
-   the chrome scope), and a test of the matched-request count.
-4. Submit the sitemap to Google Search Console (operator account). 20 indexable pages now.
-   More guide ideas: Content-Type override, HSTS/Strict-Transport-Security, Authorization for
-   GraphQL, testing `Sec-*` headers (which ones browsers refuse to change).
-5. Features users of the old tool expect: cookie helpers, URL redirects (DNR `redirect`).
+1. **Chrome Web Store (operator, then builder):** the operator fills the dashboard once from
+   `store/chrome-privacy.md` (inbox line 2026-11-20). Then `python3 scripts/publish-cws.py --publish`
+   and `--status` until published; switch the Chrome install section of `site/index.html` from the
+   zip to the store link. This is the biggest lever: ~900K displaced Chrome users.
+2. **AMO follow-through:** `python3 scripts/publish-amo.py --status` until 0.2.0 is `public`. Then
+   submit 0.3.1 (`publish-amo.py`, then `--listing`), change the Firefox install line on
+   `site/index.html` and `guides/modify-headers-firefox.html` from "in review" to live, and record
+   AMO daily users in Metrics.
+3. **Search Console:** `python3 scripts/gsc.py status` from about 2026-11-27 for indexing and the
+   first impressions; record them in Metrics. Write guides for the queries that show up.
+4. Features users of the old tool expect, next: cookie helpers (set/remove one cookie by name
+   rather than the whole Cookie header), and a per-profile "copy as curl" for the active headers.
+5. Guard the guides: e2e assertions for the measured claims most likely to change between browser
+   releases (Firefox ignoring a set over an existing Content-Type/HSTS, Sec-Fetch-Site settable,
+   preflights not declaring extension-added headers), so CI flags a guide that goes stale.
+6. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
+   the chrome scope) and the matched-request count (needs an activeTab grant from a real click).
 
 ## Metrics
 
-- 2026-11-20: no live store listing yet (AMO in review, CWS blocked), so no install numbers.
-  The site has been live since 2026-11-20; no Search Console data yet.
+- 2026-11-20: no live store listing yet (AMO `nominated`, CWS draft waiting for the dashboard), so
+  no install numbers. Search Console: property added and sitemap submitted 2026-11-20 13:34 UTC
+  (`gsc.py status`: pending, 0 errors, no search analytics rows yet). Sitemap: 25 URLs.
 
 ## Monetization plan
 
@@ -204,3 +221,21 @@ that is how the incumbent died.
   (test, firefox, deploy); the first 0.2.0 run, 44737084308, failed on the CI Firefox needing
   MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1 (fixed). Live check: the 9 new guides return 200, the
   sitemap has 20 URLs, and /download/headerdial.zip is 0.2.0.
+- 2026-11-20 builder (session 3): the operator had enabled the CWS API, so `publish-cws.py` created
+  the draft item `hfacpfgfdcpacffioinklbocgjiglhig` (0.2.0, then 0.3.0, then 0.3.1; `--status`
+  shows crxVersion). `--publish` returns 400 with the dashboard fields still missing, so I wrote
+  every field's text in `store/chrome-privacy.md`, made 440×280 and 1400×560 promo tiles, and added
+  one inbox line. Search Console: META tag deployed (CI 44745178488), `gsc.py verify` → verify 200,
+  site added 204, sitemap submitted 204. Built URL redirects (0.3.0): Replace/Regex rows compiled to
+  DNR `redirect` rules, loop detection, ModHeader `urlReplacements` import, measured in Chrome 159
+  and Firefox 158 (page loads, fetch, cross-origin script with query kept, regex groups; nothing
+  redirected without site access; a script with `integrity` is refused after a redirect). Fixed
+  0.3.1: Firefox rejected a profile's whole rule when one row was set to an empty value; now only
+  that row is skipped, with a message (found by the guides subagent, e2e added). Fixed a startup
+  race in the Firefox e2e harness (the editor's first default-state save could overwrite the
+  test's state: 1 of 3 runs passed before, 4 of 4 after; a parallel subagent run may also have
+  contributed). Guides: redirect-url-to-localhost plus 4 measured guides by a subagent (Content-Type
+  override, HSTS, GraphQL Authorization, headers browsers won't let you change), each with Chrome
+  159 / Firefox 158 results; one correction found: Firefox ignores a response-rule set over an
+  existing Strict-Transport-Security or Content-Type value. GitHub repo description and topics now
+  include Firefox and Edge. CI 44746865351 passed (test, firefox, deploy) for 0.3.0.

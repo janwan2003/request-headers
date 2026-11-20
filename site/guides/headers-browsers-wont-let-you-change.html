@@ -1,0 +1,92 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which HTTP headers browsers won't let an extension change: Sec-Fetch, Host, Content-Length, measured – HeaderDial</title><meta name="description" content="What declarativeNetRequest really lets an extension set or remove in Chrome and Firefox: Sec-Fetch-*, Sec-CH-UA, Host, Connection, Content-Length, Priority and response headers. Measured header by header, compared with what page JavaScript may send.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/headers-browsers-wont-let-you-change.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Which HTTP headers browsers won't let an extension change","description":"Test whether Chrome or Firefox lets an extension set or remove a given request or response header, such as Sec-Fetch-Site, Host or Content-Length.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Add the header","text":"Click + Request header or + Response header, enter the header name and a recognisable value, or choose remove."},{"@type":"HowToStep","name":"Limit it to a test host","text":"Under Where it applies, add an Only on filter of type Domain for a host whose logs you can read."},{"@type":"HowToStep","name":"Read the problems list","text":"If the browser rejects the rule, HeaderDial shows the browser's message under the profile."},{"@type":"HowToStep","name":"Check what arrived","text":"Load a page and look at the request headers in the server log or an endpoint that echoes them."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Which HTTP headers browsers won't let an extension change</h1>
+<p>Far fewer than the "forbidden header" lists suggest. Those lists limit page JavaScript, not extensions. In Chrome 159 and Firefox 158, HeaderDial's <code>declarativeNetRequest</code> rules set and removed <code>Sec-Fetch-Site</code>, <code>Sec-Fetch-Mode</code>, <code>Sec-Fetch-Dest</code>, <code>Sec-Fetch-User</code>, the <code>Sec-CH-UA</code> client hints, <code>Origin</code>, <code>Referer</code>, <code>User-Agent</code> and <code>Accept-Encoding</code>, and could set <code>Cookie</code> and even <code>Host</code>. What did not work: removing <code>Host</code> (both browsers), removing <code>Connection</code> (Chrome) or <code>Priority</code> (Firefox), and changing <code>Content-Length</code> or <code>Transfer-Encoding</code>, which broke the request. On responses, Firefox would not replace an existing <code>Content-Type</code> or <code>Strict-Transport-Security</code> value.</p>
+
+<h2>Page JavaScript versus an extension</h2>
+<p>The <a href="https://fetch.spec.whatwg.org/#forbidden-request-header">Fetch standard</a> lists request headers a page's <code>fetch()</code> or XHR may not set: <code>Host</code>, <code>Content-Length</code>, <code>Connection</code>, <code>Cookie</code>, <code>Origin</code>, <code>Referer</code>, anything starting with <code>Sec-</code> or <code>Proxy-</code>, and more. We sent all of these from a page's <code>fetch()</code>. Both browsers dropped every one of them, so the server received the browser's own values. The exception was <code>User-Agent</code>: Firefox sent the page's value and Chrome did not. A custom header such as <code>X-Custom</code> went through in both.</p>
+<p>Extensions are not bound by that list. Chrome documents the <a href="https://developer.chrome.com/docs/extensions/reference/api/declarativeNetRequest#type-ModifyHeaderInfo">ModifyHeaderInfo</a> rules it accepts, and MDN describes <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/declarativeNetRequest">Firefox's implementation</a>. Neither page lists the headers that are ignored after a rule has been accepted, which is why we measured it.</p>
+
+<h2>Request headers, measured</h2>
+<p>We checked this with HeaderDial 0.3.0 in Chrome 159.0.8154.6 and Firefox 158.0.1 in November 2026. For each header we added one rule (set to a recognisable value, or remove), loaded a page and sent a <code>fetch()</code> POST, and compared what a local HTTP/1.1 test server received with a run without rules. Edge uses Chrome's engine, but we did not test it separately.</p>
+<table>
+<tr><th>Header</th><th>Set</th><th>Remove</th></tr>
+<tr><td><code>Sec-Fetch-Site</code>, <code>Sec-Fetch-Mode</code>, <code>Sec-Fetch-Dest</code>, <code>Sec-Fetch-User</code></td><td>works in both</td><td>works in both</td></tr>
+<tr><td><code>Sec-CH-UA</code>, <code>Sec-CH-UA-Mobile</code>, <code>Sec-CH-UA-Platform</code></td><td>works in both (Firefox does not send them by itself, but sends them when set)</td><td>works in Chrome; nothing to remove in Firefox</td></tr>
+<tr><td>Other <code>Sec-</code> names, such as <code>Sec-Purpose</code></td><td>works in both</td><td>not sent by default</td></tr>
+<tr><td><code>Origin</code>, <code>Referer</code>, <code>User-Agent</code>, <code>Accept</code>, <code>Accept-Encoding</code>, <code>Accept-Language</code>, <code>Content-Type</code>, <code>Upgrade-Insecure-Requests</code></td><td>works in both</td><td>works in both</td></tr>
+<tr><td><code>Cookie</code></td><td>works in both</td><td>our test profile had no cookies; see <a href="cookie-header-testing.html">Cookie and Set-Cookie</a></td></tr>
+<tr><td><code>Authorization</code>, <code>Proxy-Authorization</code>, <code>Cache-Control</code>, <code>Pragma</code>, <code>DNT</code>, <code>Date</code>, <code>Via</code></td><td>works in both</td><td>not sent by default</td></tr>
+<tr><td><code>Priority</code></td><td>works in both</td><td>Firefox still sent it; Chrome did not send it over HTTP/1.1 in the first place</td></tr>
+<tr><td><code>Host</code></td><td>works in both: the server received the new name, and the connection still went to the real address</td><td><strong>no effect</strong> in either browser</td></tr>
+<tr><td><code>Connection</code></td><td>works in both (we tried <code>close</code>)</td><td><strong>no effect in Chrome</strong>; removed in Firefox</td></tr>
+<tr><td><code>Keep-Alive</code>, <code>TE</code>, <code>Trailer</code>, <code>Upgrade</code>, <code>Expect</code></td><td>sent as set in both; the requests still succeeded</td><td>not sent by default</td></tr>
+<tr><td><code>Content-Length</code></td><td><strong>broke requests</strong>: in Chrome every request failed, even with the correct length; in Firefox requests failed unless the value matched the body</td><td>no effect in Chrome; in Firefox the POST went out without it, the server read no body, and the request failed</td></tr>
+<tr><td><code>Transfer-Encoding</code></td><td><strong>broke the request</strong> in both</td><td>not sent by default</td></tr>
+</table>
+<p>None of these rules was rejected when it was added. The browser accepted the rule and then sent, ignored or broke the header as shown.</p>
+
+<h2>What the API accepts</h2>
+<p>Some rules are refused when the extension adds them. We called <code>declarativeNetRequest.updateSessionRules</code> directly to see where the two browsers differ:</p>
+<table>
+<tr><th>Rule</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td><strong>append</strong> to a request header such as <code>X-Custom</code></td><td>rejected ("Only standard HTTP request headers that can specify multiple values for a single entry are supported")</td><td>accepted</td></tr>
+<tr><td><strong>append</strong> to <code>Accept-Language</code>, or to any response header</td><td>accepted</td><td>accepted</td></tr>
+<tr><td><strong>set</strong> with an empty value</td><td>accepted</td><td>rejected ("value is required for operations append/set")</td></tr>
+<tr><td>Header name with a space in it</td><td>rejected</td><td>accepted</td></tr>
+<tr><td><strong>set</strong> <code>Host</code></td><td>accepted</td><td>accepted</td></tr>
+</table>
+<p>HeaderDial turns <strong>append</strong> into <strong>set</strong> for request headers outside Chrome's list, with a message saying so, and refuses invalid names before the browser sees them. In Firefox, a <strong>set</strong> row with an empty value would make the browser reject the profile's whole rule. Since HeaderDial 0.3.1 that row alone is skipped, with a message under the editor, and the profile's other headers still apply (checked in Firefox 158.0.1). Fill in a value or switch the row to <strong>remove</strong>.</p>
+
+<h2>Response headers, measured</h2>
+<p>Here we set or removed each header on a response and read what a <code>fetch()</code> on the page saw, or followed the redirect:</p>
+<table>
+<tr><th>Header</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td><code>Server</code>, <code>Date</code>, a custom header</td><td>set and remove work</td><td>set and remove work</td></tr>
+<tr><td><code>X-Frame-Options</code>, <code>Content-Security-Policy</code>, <code>Cache-Control</code>, <code>Access-Control-Allow-Origin</code>, <code>Referrer-Policy</code>, <code>Content-Disposition</code></td><td>set works (we did not test remove here)</td><td>set works</td></tr>
+<tr><td><code>Content-Type</code></td><td>set and remove work</td><td>set over an existing value: <code>fetch()</code> still reported the server's type, but navigations and scripts used the new one (see <a href="override-content-type-header.html">the Content-Type guide</a>)</td></tr>
+<tr><td><code>Strict-Transport-Security</code></td><td>set and remove work</td><td>remove works; set over an existing value had no effect (see <a href="hsts-header-testing.html">the HSTS guide</a>)</td></tr>
+<tr><td><code>X-Content-Type-Options</code></td><td>set and remove work, including for script blocking</td><td>the page saw the change, but script blocking followed the server's value</td></tr>
+<tr><td><code>Location</code> on a <code>302</code></td><td>the browser followed the rewritten target</td><td>the browser followed the rewritten target</td></tr>
+<tr><td><code>Content-Length</code> set to a wrong value</td><td>the page saw the new value; the body was still complete</td><td>no visible change</td></tr>
+<tr><td><code>Content-Encoding: gzip</code> on an uncompressed body</td><td><code>fetch()</code> failed</td><td>no visible change</td></tr>
+</table>
+<p><code>Set-Cookie</code> is never readable from page JavaScript, so it needs a different test; see <a href="cookie-header-testing.html">Cookie and Set-Cookie</a>.</p>
+
+<h2>Steps: test a header yourself</h2>
+<ol>
+<li>Click the HeaderDial icon. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Click <strong>+ Request header</strong> (or <strong>+ Response header</strong>), type the header name and a value you will recognise in a log, such as <code>hd-test</code>. Or choose <strong>remove</strong>.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter a host whose logs you can read. A broken <code>Content-Length</code> rule on all sites breaks every form post.</li>
+<li>If the browser refuses the rule, the reason appears in the problems list under the profile.</li>
+<li>Load a page and look at what the server logged, or at an endpoint that echoes request headers. The DevTools Network panel shows what the browser meant to send. A server log shows what actually arrived.</li>
+</ol>
+
+<h2>The curl equivalent</h2>
+<p>Outside a browser nothing is forbidden, which is the main reason a server must not trust any of these headers:</p>
+<pre><code>curl -H "Host: admin.internal" http://203.0.113.10/
+curl -H "Sec-Fetch-Site: same-origin" -H "Origin: https://app.example.com" -X POST https://app.example.com/api/transfer</code></pre>
+
+<h2>Pitfalls</h2>
+<div class="callout">Fetch metadata (<code>Sec-Fetch-*</code>) and <code>Origin</code> protect users from <em>other websites</em>. A cross-site attacker cannot change them in a victim's browser. The user can, with an extension or curl, so they are no defence against the user. Never treat them as authentication.</div>
+<ul>
+<li><strong>HTTP/2 and HTTP/3 were not tested.</strong> We measured over HTTP/1.1. In HTTP/2, <code>Host</code> gives way to the <code>:authority</code> pseudo-header and connection-specific headers such as <code>Connection</code> and <code>Transfer-Encoding</code> are not allowed (<a href="https://www.rfc-editor.org/rfc/rfc9113#section-8.2.2">RFC 9113</a>), so results there may differ.</li>
+<li><strong>Removing is not the same as an empty value.</strong> Use <strong>remove</strong> to send no header. In Firefox an empty <strong>set</strong> is refused anyway.</li>
+<li><strong>Some removals are silently ignored.</strong> For <code>Host</code>, <code>Connection</code> in Chrome and <code>Priority</code> in Firefox, the rule was accepted and the browser sent its own value anyway. Check the server log rather than assuming a remove worked.</li>
+<li><strong>Switch it off afterwards.</strong> Give the row an expiry such as <strong>15 min</strong>, or press <strong>Alt+Shift+D</strong> to pause every profile.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="remove-request-header.html">Remove a request header</a></li>
+<li><a href="change-user-agent-header.html">Change the User-Agent header</a></li>
+<li><a href="change-origin-header.html">Change or remove the Origin header</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

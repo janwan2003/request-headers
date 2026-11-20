@@ -1,0 +1,77 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to add an Authorization header to GraphQL requests in the browser – HeaderDial</title><meta name="description" content="Send a Bearer token on fetch() POSTs to /graphql from Chrome, Edge or Firefox, what happens to the CORS preflight, and how the xmlhttprequest request type and POST method filters keep the token off page loads. Measured.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/graphql-authorization-header.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to add an Authorization header to GraphQL requests in the browser","description":"Add a Bearer token to the fetch() calls a page makes to a GraphQL endpoint in Chrome, Edge or Firefox, limited to the API host and to xmlhttprequest requests.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access for both the page's host and the API host, or all sites."},{"@type":"HowToStep","name":"Add the header","text":"Click + Request header, enter Authorization as the name and Bearer followed by your token as the value, and pick an expiry."},{"@type":"HowToStep","name":"Limit it to the GraphQL host","text":"Under Where it applies, add an Only on filter of type Domain for the API host."},{"@type":"HowToStep","name":"Limit it to API calls","text":"Under request types, tick xmlhttprequest, and websocket if subscriptions use a WebSocket."},{"@type":"HowToStep","name":"Check","text":"Run a query that needs authentication, such as viewer or me, and check that it returns data."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to add an Authorization header to GraphQL requests in the browser</h1>
+<p>To send a token on a web app's GraphQL calls, add a request header named <code>Authorization</code> with the value <code>Bearer &lt;token&gt;</code> in HeaderDial, limit it to the API host with a <strong>Domain</strong> filter, and tick only the <strong>xmlhttprequest</strong> request type. The token then goes on the <code>fetch()</code> POSTs to <code>/graphql</code> but not on page loads. In Chrome 159 and Firefox 158, a header added this way did not appear in the CORS preflight's <code>Access-Control-Request-Headers</code>. So the cross-origin call worked even though the server allowed only <code>content-type</code>. A page that sends <code>Authorization</code> itself needs the server to allow it.</p>
+
+<h2>How a GraphQL call reaches the server</h2>
+<p>Most GraphQL clients send each query as a <code>fetch()</code> <code>POST</code> with a JSON body:</p>
+<pre><code>POST /graphql
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOi...
+
+{"query":"{ viewer { name } }"}</code></pre>
+<p>When the API is on another origin (say the app is on <code>app.example.com</code> and the API on <code>api.example.com</code>), the JSON content type makes the call "preflighted". The browser first sends an <code>OPTIONS</code> request listing the headers the page wants to send in <code>Access-Control-Request-Headers</code>, and only sends the <code>POST</code> if the server's <code>Access-Control-Allow-Headers</code> answer allows them. The <a href="cors-headers-for-local-development.html">CORS guide</a> explains simple and preflighted requests in more detail.</p>
+
+<h2>What we measured</h2>
+<p>We checked this with HeaderDial 0.3.0 in Chrome 159.0.8154.6 and Firefox 158.0.1 in November 2026. A page on <code>http://127.0.0.1:<em>port</em></code> sent GraphQL queries to <code>http://localhost:<em>port</em>/graphql</code>, a different origin. The server answered preflights with <code>Access-Control-Allow-Headers: content-type</code> only, and logged every request. The HeaderDial rule set <code>Authorization: Bearer test-token</code>, limited to the domain <code>localhost</code>. Both browsers behaved identically. Edge uses Chrome's engine, but we did not test it separately.</p>
+<table>
+<tr><th>Request</th><th>No rule</th><th>Rule, no request types ticked</th><th>Rule, <strong>xmlhttprequest</strong> only</th><th>Rule, <strong>POST</strong> only</th></tr>
+<tr><td>Preflight <code>OPTIONS</code></td><td>no token</td><td>token sent</td><td>token sent</td><td>no token</td></tr>
+<tr><td><code>Access-Control-Request-Headers</code> on the preflight</td><td><code>content-type</code></td><td><code>content-type</code></td><td><code>content-type</code></td><td><code>content-type</code></td></tr>
+<tr><td><code>fetch()</code> POST with JSON</td><td>no token; <code>viewer</code> was null</td><td>token sent; data returned</td><td>token sent; data returned</td><td>token sent; data returned</td></tr>
+<tr><td><code>fetch()</code> POST as <code>text/plain</code> (no preflight)</td><td>no token</td><td>token sent, still no preflight</td><td>token sent, still no preflight</td><td>not tested</td></tr>
+<tr><td>Opening <code>/graphql</code> in a tab (a GraphiQL-style page)</td><td>no token</td><td>token sent</td><td>no token</td><td>no token</td></tr>
+<tr><td>WebSocket handshake to <code>/graphql</code></td><td>no token</td><td>token sent</td><td>no token (tick <strong>websocket</strong> too: sent)</td><td>not tested</td></tr>
+</table>
+<p>Two things follow. A header that HeaderDial adds is not something the page asked for, so it is not declared in the preflight, and the server does not have to allow it. The preflight itself also counts as an <strong>xmlhttprequest</strong> request, so it carries the token unless you limit the rule to <strong>POST</strong>.</p>
+<p>We also checked the case where the page sends its own <code>Authorization</code>:</p>
+<table>
+<tr><th>Page sends <code>Authorization: Bearer from-page</code></th><th>Result in both browsers</th></tr>
+<tr><td>Server allows only <code>content-type</code>, no rule</td><td>blocked; the preflight listed <code>authorization,content-type</code></td></tr>
+<tr><td>Server allows only <code>content-type</code>, HeaderDial rule on</td><td>still blocked; the rule does not change what the preflight declares</td></tr>
+<tr><td>Server allows <code>content-type, authorization</code>, HeaderDial rule on</td><td>allowed; the server received HeaderDial's token, not the page's</td></tr>
+</table>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon. In the site-access banner, choose <strong>Allow on all sites</strong>. If you allow single hosts instead, allow both the app's host and the API host.</li>
+<li>Click <strong>+ Request header</strong>, type <code>Authorization</code> (it is in the suggestions) and enter <code>Bearer</code>, a space and your token. Keep the operation on <strong>set</strong>; it replaces any token the app sends itself. If the token is short-lived, choose an expiry such as <strong>1 hour</strong>.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter the API host, for example <code>api.example.com</code>.</li>
+<li>Under <strong>Request types (none ticked = all, including page loads)</strong>, tick <strong>xmlhttprequest</strong>. That covers <code>fetch()</code> and XHR. If subscriptions run over a WebSocket and your server reads the token from the handshake headers, tick <strong>websocket</strong> too.</li>
+<li>Optionally, under <strong>Methods</strong>, tick <strong>POST</strong> (and <strong>GET</strong> if your client sends persisted queries as GET). Preflights then go out without the token.</li>
+<li>Run a query that needs authentication, such as <code>{ viewer { name } }</code> or <code>{ me { id } }</code>, and check that it returns data instead of an authentication error.</li>
+</ol>
+
+<h2>Subscriptions over WebSocket</h2>
+<p>A header rule can only change the WebSocket handshake, the <code>GET</code> request with <code>Upgrade: websocket</code>. Many subscription clients don't send the token there. The <a href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">graphql-ws protocol</a>, for example, lets the client send it in the payload of its first message, <code>connection_init</code>. HeaderDial cannot change message contents. Check which of the two your server reads before relying on the <strong>websocket</strong> type.</p>
+
+<h2>The curl equivalent</h2>
+<pre><code>curl -s https://api.example.com/graphql \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"query":"{ viewer { name } }"}'</code></pre>
+<p>curl sends no preflight, so a request that works in curl can still fail in the browser on CORS. Compare the two to tell an authentication problem from a CORS problem.</p>
+
+<h2>Pitfalls</h2>
+<div class="callout"><strong>Always add a Domain filter.</strong> Without one, the token goes to every host the browser talks to, including analytics and error-reporting services that the app also calls with <code>fetch()</code>.</div>
+<ul>
+<li><strong>Preflights carry the token too.</strong> With no method ticked, the <code>OPTIONS</code> request includes <code>Authorization</code>. If your gateway authenticates preflights and rejects the token on them, tick <strong>POST</strong> so preflights go out without it.</li>
+<li><strong>The page's own token is replaced.</strong> With <strong>set</strong>, the server receives HeaderDial's value even when the app sends its own. That is useful for testing another user's token, and confusing if you forget the rule is on.</li>
+<li><strong>Errors come back as 200.</strong> Many GraphQL servers answer authentication failures with HTTP <code>200</code> and an <code>errors</code> array, so check the response body, not just the status code in the Network panel.</li>
+<li><strong>Switch it off afterwards.</strong> Use the expiry select, or press <strong>Alt+Shift+D</strong> to pause every profile.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+<li><a href="basic-auth-header-browser.html">Send HTTP Basic auth without the login prompt</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

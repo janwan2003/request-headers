@@ -45,7 +45,7 @@
 <ul>
 <li><strong>Client-side code is unaffected.</strong> Analytics scripts that read <code>document.referrer</code> in the browser report the real referrer. Only server-side logic sees your value.</li>
 <li><strong><code>Origin</code> is a separate header.</strong> CSRF checks and CORS use <code>Origin</code> first. To test them you may need to set or remove <code>Origin</code> as well.</li>
-<li><strong><code>Sec-Fetch-Site</code> still tells the truth.</strong> Browsers send <code>Sec-Fetch-Site: same-origin</code>, <code>same-site</code> or <code>cross-site</code>, and a server that checks it is not fooled by a different referrer.</li>
+<li><strong><code>Sec-Fetch-Site</code> still tells the truth.</strong> Browsers send <code>Sec-Fetch-Site: same-origin</code>, <code>same-site</code> or <code>cross-site</code>, and a server that checks it is not fooled by a different referrer. An extension can change <code>Sec-Fetch-Site</code> as well, in Chrome and Firefox alike; see <a href="headers-browsers-wont-let-you-change.html">which headers browsers won't let you change</a>.</li>
 </ul>
 
 <h2>The curl equivalent</h2>

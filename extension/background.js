@@ -5,6 +5,8 @@ if (typeof importScripts === 'function' && !self.HeaderDial) importScripts('lib/
 const HD = self.HeaderDial;
 const api = typeof browser !== 'undefined' ? browser : chrome;
 const dnr = api.declarativeNetRequest;
+// Only Firefox has runtime.getBrowserInfo.
+const IS_FIREFOX = !!(api.runtime && api.runtime.getBrowserInfo);
 
 function supportedTypes() {
   const e = dnr.ResourceType;
@@ -66,7 +68,7 @@ async function setBadge(state, live) {
   const first = state.profiles.find((p) => p.active);
   await action.setBadgeText({ text: live ? String(live) : '' });
   await action.setBadgeBackgroundColor({ color: first ? first.color : '#2563eb' });
-  await action.setTitle({ title: `HeaderDial: ${live} header${live === 1 ? '' : 's'} active` });
+  await action.setTitle({ title: `HeaderDial: ${live} rule${live === 1 ? '' : 's'} active (headers and redirects)` });
 }
 
 let running = null;
@@ -77,7 +79,7 @@ async function sync() {
     do {
       again = false;
       const state = await loadState();
-      const out = HD.compile(state, { now: Date.now(), resourceTypes: supportedTypes() });
+      const out = HD.compile(state, { now: Date.now(), resourceTypes: supportedTypes(), emptyValues: !IS_FIREFOX });
       const problems = out.problems.slice();
       const applied = (await replaceRules('dynamic', out.dynamic, problems, state)) +
         (await replaceRules('session', out.session, problems, state));

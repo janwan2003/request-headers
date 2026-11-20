@@ -199,6 +199,7 @@
   /**
    * Compile state into DNR rules.
    * opts.now: timestamp (ms); opts.resourceTypes: types the browser supports.
+   * opts.emptyValues: false when the browser rejects set/append with an empty value (Firefox).
    * Returns { dynamic, session, problems, nextExpiry, liveCount }.
    * Profiles higher in the list get higher priority, so they win when two set the same header.
    */
@@ -227,7 +228,17 @@
 
     const active = state.profiles.filter((p) => p.active);
     active.forEach((p, idx) => {
-      const live = liveHeaders(p, now);
+      let live = liveHeaders(p, now);
+      // Firefox rejects a whole rule if one header is set to an empty value, which would
+      // switch off every other header in the profile; skip just that row instead.
+      if (opts.emptyValues === false) {
+        live = live.filter((h) => {
+          if (h.op === 'remove' || h.value !== '') return true;
+          out.problems.push({ profileId: p.id, headerId: h.id,
+            message: `"${h.name.trim()}": this browser cannot send an empty value, so the row is skipped (use remove to drop the header)` });
+          return false;
+        });
+      }
       for (const h of p.headers) {
         if (h.enabled && h.expiresAt && h.expiresAt > now && (out.nextExpiry == null || h.expiresAt < out.nextExpiry)) {
           out.nextExpiry = h.expiresAt;
