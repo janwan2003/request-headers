@@ -70,6 +70,20 @@ const SAMPLE = {
   const importPng = fs.readFileSync(path.join(out, 'popup-import.png')).toString('base64');
   await stage.setContent(frame('Open source. No tracking.', 'No account, no analytics, no network requests. The code in the store is the code on GitHub. Imports your old ModHeader profiles.').replace(popupPng, importPng));
   await stage.screenshot({ path: path.join(out, 'screenshot-2-private.png') });
+  // Third shot: what a new user sees first (the Start card on a fresh install, no site access yet).
+  const fresh = await ctx.newPage();
+  await fresh.goto(`chrome-extension://${id}/popup.html`);
+  await fresh.evaluate(async () => { await chrome.storage.local.clear(); });
+  await fresh.setViewportSize({ width: 700, height: 600 });
+  await fresh.reload();
+  await fresh.waitForSelector('#start');
+  await fresh.waitForTimeout(300);
+  const fh = await fresh.evaluate(() => document.body.scrollHeight);
+  await fresh.setViewportSize({ width: 700, height: Math.min(fh, 600) });
+  await fresh.screenshot({ path: path.join(out, 'popup-start.png') });
+  const startPng = fs.readFileSync(path.join(out, 'popup-start.png')).toString('base64');
+  await stage.setContent(frame('Set up in a minute', 'Paste a request copied from DevTools, bring your ModHeader profiles (even from a disabled ModHeader), or add a common header in one click.').replace(popupPng, startPng));
+  await stage.screenshot({ path: path.join(out, 'screenshot-3-start.png') });
   await ctx.close();
   console.log('screenshots in', out);
 })().catch((e) => { console.error(e); process.exit(1); });

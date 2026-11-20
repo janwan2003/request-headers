@@ -101,6 +101,6 @@ dialog::backdrop { background: #0005; }
 .start-ways { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; }
 .start-ways button { text-align: left; background: var(--bg); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
 .start-ways button span { color: var(--muted); font-size: 12px; }
-.start-recipes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.start-recipes button { padding: 2px 8px; font-size: 12px; border-radius: 999px; background: var(--bg); }
+.start-recipes { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.start-recipes button { padding: 2px 7px; font-size: 12px; border-radius: 999px; background: var(--bg); }
 .start .hint { margin: 6px 0 0; }

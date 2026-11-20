@@ -243,6 +243,8 @@ function renderEditor() {
     tabOnly,
     el('p', { class: 'hint' }, 'Request types (none ticked = all, including page loads):'), types,
     el('p', { class: 'hint' }, 'Methods (none ticked = all). CORS preflights are OPTIONS requests:'), methods);
+  const addCookieBtn = el('button', { type: 'button', id: 'add-cookie', onclick: () => addCookie(p) }, '+ Cookie');
+  const addRedirBtn = el('button', { type: 'button', id: 'add-redir', onclick: () => addRedirect(p) }, '+ URL redirect');
   main.replaceChildren(
     el('div', { class: 'pbar' },
       el('input', { type: 'color', value: p.color, title: 'Profile colour', 'aria-label': 'Profile colour',
@@ -262,28 +264,31 @@ function renderEditor() {
       el('option', { value: '' }, '+ Recipe…'), ...HD.RECIPES.map((r) => el('option', { value: r.key }, r.label)))),
     el('h3', {}, 'Response headers'),
     el('div', { class: 'rows', id: 'res-rows' }, res.length ? res.map((h) => headerRow(p, h)) : el('div', { class: 'empty' }, 'None.')),
-    el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-res', onclick: () => addHeader(p, 'response') }, '+ Response header')),
+    // Cookie and redirect buttons sit next to "+ Response header" until the profile has such rows,
+    // then below their own section; keeps a fresh popup under the browsers' 600px popup height.
+    el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-res', onclick: () => addHeader(p, 'response') }, '+ Response header'),
+      ...(p.cookies.length ? [] : [addCookieBtn]), ...(p.redirects.length ? [] : [addRedirBtn])),
     ...(p.cookies.length ? [
       el('h3', {}, 'Cookies'),
       el('div', { class: 'rows', id: 'cookie-rows' }, p.cookies.map((c) => cookieRow(p, c))),
       el('p', { class: 'hint' }, 'Send adds name=value after the cookies the browser sends. If it already has one with that name, the server gets both, ',
         'the browser\'s first. Store saves the cookie in the browser, as Set-Cookie would, replacing one with the same name and path.'),
+      el('div', { class: 'add' }, addCookieBtn),
     ] : []),
-    el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-cookie', onclick: () => addCookie(p) }, '+ Cookie')),
     ...(p.redirects.length ? [
       el('h3', {}, 'URL redirects'),
       el('div', { class: 'rows', id: 'redir-rows' }, p.redirects.map((r) => redirectRow(p, r))),
       el('p', { class: 'hint' }, 'Requests whose URL contains the text on the left go to the URL with that text replaced. ',
         '"Never on" filters, the tab, request types and methods below apply to redirects too.'),
+      el('div', { class: 'add' }, addRedirBtn),
     ] : []),
-    el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-redir', onclick: () => addRedirect(p) }, '+ URL redirect')),
     det);
 }
 
 // First run: one untouched profile. Offer the three ways people start: paste a request
 // from DevTools, bring profiles over from ModHeader, or a one-click recipe.
-const START_RECIPES = [['bearer', 'Bearer token'], ['cors', 'CORS for this page'], ['mobile', 'Mobile User-Agent'],
-  ['nocache', 'No cache'], ['iframe', 'Allow in an iframe'], ['xff', 'X-Forwarded-For']];
+const START_RECIPES = [['bearer', 'Bearer token'], ['cors', 'Allow CORS'], ['mobile', 'Mobile UA'],
+  ['nocache', 'No cache'], ['iframe', 'Allow framing'], ['xff', 'X-Forwarded-For']];
 function isFresh(p) {
   return !startHidden && state.profiles.length === 1 && !p.headers.some((h) => h.name.trim()) &&
     !p.cookies.length && !p.redirects.length && !p.filters.length;
@@ -305,9 +310,8 @@ function startCard(p) {
       el('button', { type: 'button', id: 'start-modheader', onclick: () => openImport(
         'From ModHeader: paste its exported JSON, or if ModHeader is disabled, choose the .ldb and .log files from its data folder.') },
         el('b', {}, 'Coming from ModHeader?'), el('span', {}, 'Import its export, or recover profiles from a disabled ModHeader'))),
-    el('div', { class: 'start-recipes' }, el('span', { class: 'muted' }, 'Or in one click:'),
-      ...START_RECIPES.map(([k, label]) => el('button', { type: 'button', dataset: { recipe: k }, onclick: () => addRecipe(p, k) }, label))),
-    el('p', { class: 'hint' }, 'Or type a header name below.'));
+    el('div', { class: 'start-recipes' }, el('span', { class: 'muted' }, 'One click:'),
+      ...START_RECIPES.map(([k, label]) => el('button', { type: 'button', dataset: { recipe: k }, onclick: () => addRecipe(p, k) }, label))));
 }
 
 function addHeader(p, target) {

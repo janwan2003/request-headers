@@ -4,10 +4,12 @@
   python3 scripts/publish-amo.py            # first run creates the listing, later runs add a version
   python3 scripts/publish-amo.py --status   # print the listing's review state
   python3 scripts/publish-amo.py --listing  # push store/amo-listing.json text and the screenshots
+  python3 scripts/publish-amo.py --unlisted # sign the current version on the unlisted (self-hosted) channel and
+                                            # save the Mozilla-signed file as site/download/headerdial-firefox.xpi
 
 Credentials: AMO_JWT_ISSUER / AMO_JWT_SECRET from the studio .env; nothing secret is printed.
 """
-import base64, hashlib, hmac, json, sys, time, urllib.error, urllib.request, uuid
+import base64, hashlib, hmac, json, re, sys, time, urllib.error, urllib.request, uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -50,7 +52,7 @@ def listing():
     print("listing", st, res if st != 200 else "updated")
     st, cur = call("GET", f"/addons/addon/{ADDON_ID}/")
     have = len(cur.get("previews") or [])
-    shots = ["screenshot-1-editor.png", "screenshot-2-private.png"]
+    shots = ["screenshot-1-editor.png", "screenshot-2-private.png", "screenshot-3-start.png"]
     for i, name in enumerate(shots[have:], start=have):
         body, ctype = multipart({"position": str(i)}, "image", name, (ROOT / "store" / name).read_bytes(), "image/png")
         st, res = call("POST", f"/addons/addon/{ADDON_ID}/previews/", body, ctype)
@@ -76,9 +78,14 @@ def main():
     if "--listing" in sys.argv:
         listing()
         return
+    if "--fetch" in sys.argv:
+        fetch_signed(int(sys.argv[sys.argv.index("--fetch") + 1]),
+                     json.loads((ROOT / "extension" / "manifest.json").read_text())["version"])
+        return
     version = json.loads((ROOT / "extension" / "manifest.json").read_text())["version"]
     zpath = ROOT / "dist" / f"headerdial-firefox-{version}.zip"
-    body, ctype = multipart({"channel": "listed"}, "upload", zpath.name, zpath.read_bytes())
+    channel = "unlisted" if "--unlisted" in sys.argv else "listed"
+    body, ctype = multipart({"channel": channel}, "upload", zpath.name, zpath.read_bytes())
     st, up = call("POST", "/addons/upload/", body, ctype)
     print("upload", st, up.get("uuid"), up.get("processed"))
     if st >= 300:
@@ -104,8 +111,39 @@ def main():
             st, res = call("POST", "/addons/addon/", json.dumps(payload).encode())
         if st != 429:
             break
-        time.sleep(30)
+        # AMO limits new versions per add-on per day ("Expected available in 71495 seconds"):
+        # wait out short throttles, stop on long ones (the validated upload is lost; rerun later).
+        wait = int((re.findall(r"in (\d+) seconds", str(res.get("detail"))) or ["30"])[0])
+        print("throttled:", res.get("detail"))
+        if wait > 300:
+            ready = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(time.time() + wait))
+            sys.exit(f"AMO throttle: no new version before about {ready}; rerun this command then.")
+        time.sleep(wait + 2)
     print("submit", st, json.dumps(res, indent=2)[:2500])
+    if channel == "unlisted" and st < 300:
+        fetch_signed(res["id"], version)
+
+
+def fetch_signed(vid, version):
+    """Unlisted versions get automated review only; wait for the signed file and save it for the site."""
+    for _ in range(120):
+        st, v = call("GET", f"/addons/addon/{ADDON_ID}/versions/{vid}/")
+        f = (v.get("file") or {}) if st == 200 else {}
+        print("file status", st, f.get("status"))
+        if f.get("status") == "public" and f.get("url"):
+            req = urllib.request.Request(f["url"], headers={"Authorization": auth()})
+            data = urllib.request.urlopen(req).read()
+            out = ROOT / "site" / "download" / "headerdial-firefox.xpi"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_bytes(data)
+            (out.parent / "headerdial-firefox.json").write_text(json.dumps(
+                {"version": version, "sha256": hashlib.sha256(data).hexdigest(), "amo_version_id": vid}, indent=2) + "\n")
+            print("saved", out.relative_to(ROOT), len(data), "bytes, sha256", hashlib.sha256(data).hexdigest())
+            return
+        if f.get("status") in ("disabled",):
+            sys.exit("signing refused: " + json.dumps(v)[:1500])
+        time.sleep(10)
+    sys.exit("not signed after 20 minutes; rerun later with --fetch " + str(vid))
 
 
 main()

@@ -1,7 +1,7 @@
 # Chrome Web Store: first publish of HeaderDial (operator steps)
 
 The package is already uploaded through the API: item id **`hfacpfgfdcpacffioinklbocgjiglhig`**
-(version 0.9.0, uploaded on 2026-11-20; 0.2.0 to 0.8.0 were uploaded first). Open
+(version 0.9.1, uploaded on 2026-11-20; 0.2.0 to 0.9.0 were uploaded first). Open
 https://chrome.google.com/webstore/devconsole, click the item, and fill the fields below. Every
 value is copy-paste ready. When done, tell a builder (or run
 `python3 scripts/publish-cws.py --publish` in `ventures/request-headers`) to submit it for review.
@@ -20,7 +20,7 @@ studio extension).
 - Category: **Developer Tools**
 - Language: **English (United States)**
 - Store icon (128×128): `extension/icons/128.png`
-- Screenshots (1280×800): `store/screenshot-1-editor.png`, `store/screenshot-2-private.png`
+- Screenshots (1280×800): `store/screenshot-1-editor.png`, `store/screenshot-2-private.png`, `store/screenshot-3-start.png`
 - Small promo tile (440×280): `store/promo-small-440x280.png`
 - Marquee promo tile (1400×560, optional): `store/promo-marquee-1400x560.png`
 - Official URL: none. Homepage URL: `https://janwan2003.github.io/request-headers/`

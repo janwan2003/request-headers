@@ -65,7 +65,7 @@ Collects no user data. Does not sell or transfer data. Not used for creditworthi
 
 ## Images
 - Icon 128×128: extension/icons/128.png
-- Screenshots 1280×800: store/screenshot-1-editor.png, store/screenshot-2-private.png
+- Screenshots 1280×800: store/screenshot-1-editor.png, store/screenshot-2-private.png, store/screenshot-3-start.png
   (regenerate: `node scripts/build.js && node scripts/screenshots.js store`)
 
 ## Firefox Add-ons (AMO)
