@@ -244,8 +244,9 @@ check the binding and call the handler).
    "Copy as fetch to headers", "Postman headers to browser" and a CSP builder page. The checker's DevTools formats are partly assumed
    (Chrome's non-raw header list copy, Firefox "Copy All" JSON); confirm by copying from a real DevTools panel. Re-check the comparison
    page's figures about monthly (the curl/API calls are listed at the end of the page); a scheduled routine would be cheaper than by hand.
-12. Tests: the CORS check "access to both hosts works" flaked once in CI 44780455961 (passed on rerun); session 11 made it retry the fetch up to 5 times (a blocked case must stay blocked
-   on every try); if it still flakes, wait for the rules to show in `getDynamicRules` before fetching. The Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
+12. Tests: the CORS check "access to both hosts works" flaked in CI 44780455961 and again in 44789216993 (both passed on a rerun of the identical
+   commit). Session 12 made it wait until the ACAO rule shows in `getDynamicRules` before fetching; if it flakes again, the cause is not rule
+   installation (log the rules and the response headers). Still open: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
    the chrome scope) and the matched-request count (needs an activeTab grant from a real click).
 
 ## Metrics
@@ -495,3 +496,5 @@ that is how the incumbent died.
   is a public suffix", fixed line `sid=s%3Aj2k1; Path=/; Secure; HttpOnly; SameSite=None`, share link = Store row on shop-api.vercel.app and opens on
   the share page; 0 requests after load; 390px wide; `gsc.py submit` 204. Not verified: the page in Firefox or Safari (Chromium only), Edge, pasting
   from a real DevTools tooltip (texts read from the shipped locale file and CDP reasons, not copied from the UI).
+  The VENTURE.md commit's CI 44789216993 failed "access to both hosts works" (the CORS flake, second sighting; attempt 2 on the same commit passed
+  test, firefox, deploy). The check now waits for the rule to be installed before fetching (Chromium e2e 43/43 locally).

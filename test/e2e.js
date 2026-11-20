@@ -850,6 +850,9 @@ async function fetchVia(page, url) {
       await chrome.storage.local.set({ state });
       await chrome.runtime.sendMessage({ type: 'sync' });
     });
+    // Wait until the rules are really installed (CI flaked twice here: 44780455961, 44789216993).
+    await until(() => u.evaluate(async () => (await chrome.declarativeNetRequest.getDynamicRules())
+      .some((r) => (r.action.responseHeaders || []).some((h) => h.header.toLowerCase() === 'access-control-allow-origin'))), 'CORS rules installed', 15000);
     const pg = await l.ctx.newPage();
     await pg.goto(A + '/');
     await sleep(300);
