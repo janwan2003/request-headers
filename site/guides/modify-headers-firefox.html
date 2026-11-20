@@ -1,0 +1,68 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to modify HTTP request headers in Firefox – HeaderDial</title><meta name="description" content="Add, change or remove HTTP request and response headers in Firefox 128 or later with HeaderDial: site access, profiles, filters, import from Chrome, and Firefox's built-in Edit and Resend.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/modify-headers-firefox.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to modify HTTP request headers in Firefox","description":"Add, change or remove HTTP request and response headers in Firefox 128 or later with the HeaderDial add-on, limited to the sites you choose.","tool":[{"@type":"HowToTool","name":"HeaderDial add-on for Firefox 128 or later"}],"step":[{"@type":"HowToStep","name":"Install HeaderDial","text":"Add HeaderDial to Firefox from Firefox Add-ons."},{"@type":"HowToStep","name":"Grant site access","text":"Open HeaderDial from the toolbar and choose Allow on all sites or Only the current host, then confirm Firefox's permission prompt."},{"@type":"HowToStep","name":"Add a header","text":"Click + Request header, enter the header name and value, and choose set, append or remove."},{"@type":"HowToStep","name":"Limit where it applies","text":"Open Where it applies and add an Only on filter for the host you are working on."},{"@type":"HowToStep","name":"Verify","text":"Reload the page and check the request headers in the Firefox DevTools Network panel."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to modify HTTP request headers in Firefox</h1>
+<p>Firefox has no setting for adding or changing arbitrary request headers on the pages you browse. Its DevTools can resend a single request with edited headers, but for anything lasting you need an add-on. HeaderDial for Firefox (Firefox 128 or later) adds, changes or removes request and response headers, limited to the sites you choose. It has the same profiles, filters, timers and import as the Chrome version, so a setup exported from Chrome works unchanged.</p>
+
+<h2>Install and requirements</h2>
+<p>Install <a href="https://addons.mozilla.org/firefox/addon/headerdial/">HeaderDial on Firefox Add-ons</a>. As of 20 November 2026 the listing is in review; if the link does not open yet, the review has not finished. HeaderDial needs desktop Firefox 128 or later, which includes Firefox ESR 128 and every release since.</p>
+<p>If you want to run it from source in the meantime, clone the repository, run <code>node scripts/build.js</code>, open <code>about:debugging</code>, choose <strong>This Firefox</strong>, click <strong>Load Temporary Add-on…</strong> and select <code>dist/firefox/manifest.json</code>. Firefox removes temporary add-ons when it restarts.</p>
+
+<h2>Site access in Firefox</h2>
+<p>HeaderDial asks for no website access when you install it. The first time you open it, a banner says "HeaderDial needs your permission before it can change headers on websites" and offers two buttons:</p>
+<ul>
+<li><strong>Allow on all sites</strong>: headers can be changed anywhere your filters say.</li>
+<li><strong>Only &lt;current host&gt;</strong>: access for the site in the current tab only. You can add more sites later the same way.</li>
+</ul>
+<p>Firefox then shows its own prompt to confirm. Until access is granted, HeaderDial's rules exist but change nothing, which is the behaviour our Firefox end-to-end test checks. If a page on one host calls an API on another, allow both hosts, or all sites. You can review or withdraw access later on HeaderDial's page in <code>about:addons</code>.</p>
+<p>Firefox does not run add-ons in private windows unless you allow it. To change headers there, open HeaderDial's page in <code>about:addons</code> and set <strong>Run in Private Windows</strong> to <strong>Allow</strong>.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon in the toolbar (it may be inside Firefox's Extensions menu until you pin it) and grant site access as described above.</li>
+<li>Click <strong>+ Request header</strong>, type a name such as <code>X-Debug</code> and a value such as <code>1</code>. Names like <code>Authorization</code>, <code>Accept-Language</code> and <code>User-Agent</code> are in the suggestions.</li>
+<li>Pick the operation: <strong>set</strong> replaces the value, <strong>append</strong> adds to it, <strong>remove</strong> drops the header. To change what the server sends back, use <strong>+ Response header</strong> instead.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter your host, for example <code>staging.example.com</code>.</li>
+<li>Reload the page. Open DevTools (F12), go to the <strong>Network</strong> panel, select a request and check its request headers.</li>
+</ol>
+
+<h2>The same features as in Chrome</h2>
+<p>The Firefox version is built from the same source files as the Chrome and Edge version; only the manifest differs. Everything works the same way:</p>
+<ul>
+<li><strong>Profiles</strong> with colours, each with its <strong>Active</strong> switch, and the global <strong>On/Paused</strong> switch. If two active profiles set the same header, the leftmost chip wins.</li>
+<li><strong>Filters</strong>: <strong>+ Only on…</strong> and <strong>+ Never on…</strong> with domains, URL patterns or regular expressions, request types, and <strong>Only in this tab (until it closes)</strong>.</li>
+<li><strong>Timed headers</strong>: an expiry of <strong>15 min</strong>, <strong>1 hour</strong>, <strong>8 hours</strong> or <strong>1 day</strong>, after which the row switches itself off.</li>
+<li><strong>Import and export</strong>: <strong>Import…</strong> accepts a HeaderDial export, a HeaderDial share link or a ModHeader profile export, and <strong>Export all</strong> saves your profiles as JSON. To move from Chrome to Firefox, click <strong>Export all</strong> in Chrome and import the file in Firefox. See <a href="modheader-alternative-import.html">switching header extensions</a> for the ModHeader case.</li>
+<li><strong>Share as link…</strong> in the <strong>⋯</strong> menu, which puts a profile into a link without uploading it anywhere.</li>
+</ul>
+<p>The same append limit applies too: browsers let extensions append only to a short list of request headers, such as <code>Accept-Language</code>, <code>Cache-Control</code> and <code>X-Forwarded-For</code>. For other headers HeaderDial uses set and tells you so.</p>
+
+<h2>How it works in Firefox</h2>
+<p>HeaderDial uses Firefox's declarativeNetRequest API, the same API Chrome uses for Manifest V3 extensions. HeaderDial turns your profiles into a list of rules and hands it to Firefox; Firefox applies the rules to matching requests. The add-on never reads your traffic and makes no network requests of its own. In our tests in Firefox 158, rules added and removed headers on page loads and on <code>fetch()</code> calls, changed response headers that the page could read, and respected domain and regex filters.</p>
+
+<h2>Firefox's built-in alternatives</h2>
+<p>For some jobs you don't need an add-on:</p>
+<ul>
+<li><strong>Edit and Resend.</strong> In the DevTools Network panel, right-click a request and choose <strong>Edit and Resend</strong>. You can change the URL, method, headers and body and send it once. The response appears in the Network panel; the page itself does not change. This is the quickest way to test a single API call.</li>
+<li><strong>Language.</strong> Settings › General › Language › Choose sets the list Firefox sends in <code>Accept-Language</code> for every site. See <a href="test-accept-language-header.html">testing Accept-Language</a> for a per-site approach.</li>
+<li><strong>User-Agent.</strong> Responsive Design Mode accepts a custom user agent for the current tab, and the <code>general.useragent.override</code> preference in <code>about:config</code> changes it everywhere.</li>
+</ul>
+<p>None of these can add a header such as <code>Authorization</code> to every request a page makes, limit it to one host or switch it off on a timer. That is what an add-on is for.</p>
+
+<h2>The curl equivalent</h2>
+<pre><code>curl -H "X-Debug: 1" https://staging.example.com/</code></pre>
+<p>In the Network panel, right-click a request and use <strong>Copy as cURL</strong> to get the full command with every header Firefox sent.</p>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header</a></li>
+<li><a href="modheader-alternative-import.html">Switch header extensions and import your profiles</a></li>
+<li><a href="remove-request-header.html">Remove a request header</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

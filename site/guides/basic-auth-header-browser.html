@@ -1,0 +1,73 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to send HTTP Basic auth without the login prompt – HeaderDial</title><meta name="description" content="Send an Authorization: Basic header from Chrome, Edge or Firefox to skip the login prompt on a password-protected staging site. How to compute the base64 value, and how to keep it safe.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/basic-auth-header-browser.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to send HTTP Basic auth without the login prompt","description":"Send an Authorization: Basic header from Chrome, Edge or Firefox so a staging site protected by HTTP Basic authentication opens without the browser's login dialog.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"supply":[{"@type":"HowToSupply","name":"The staging username and password"}],"step":[{"@type":"HowToStep","name":"Encode the credentials","text":"Run printf 'user:pass' | base64 in a terminal, or btoa('user:pass') in the browser console."},{"@type":"HowToStep","name":"Add the header","text":"In HeaderDial click + Request header, enter Authorization as the name and Basic followed by a space and the encoded string as the value."},{"@type":"HowToStep","name":"Limit it to the staging host","text":"Under Where it applies, add an Only on filter with type Domain for the staging host."},{"@type":"HowToStep","name":"Set an expiry","text":"Optionally choose 8 hours or 1 day in the expiry select so the credentials stop being sent automatically."},{"@type":"HowToStep","name":"Open the site","text":"Load the staging site. The server accepts the header and the login dialog does not appear."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to send HTTP Basic auth without the login prompt</h1>
+<p>To open a staging site protected by HTTP Basic authentication without the browser's username and password dialog, send the credentials yourself in an <code>Authorization</code> header. Encode <code>user:pass</code> as base64 (<code>printf 'user:pass' | base64</code> gives <code>dXNlcjpwYXNz</code>), then in HeaderDial add the request header <code>Authorization</code> with the value <code>Basic dXNlcjpwYXNz</code>, limited to the staging host. This works in Chrome, Edge or Firefox. Base64 is an encoding, not encryption, so only do this over HTTPS.</p>
+
+<h2>Why the prompt appears and how the header avoids it</h2>
+<p>A server using Basic authentication answers an unauthenticated request with <code>401 Unauthorized</code> and a header like <code>WWW-Authenticate: Basic realm="Staging"</code>. The browser reacts by showing its login dialog, then repeats the request with <code>Authorization: Basic &lt;base64 of username:password&gt;</code>. The browser remembers what you typed only for the current session, so the dialog comes back after a restart, in a private window and on every new test profile.</p>
+<p>If the very first request already carries a valid <code>Authorization</code> header, the server never sends the 401 and the browser never asks. We checked this in Chrome 159 and Firefox 158 with HeaderDial 0.1.0, against a test server that returns 401 for any request without the right header: with the header set, the protected page loaded directly.</p>
+
+<h2>Compute the header value</h2>
+<p>Join the username and password with a colon and base64-encode the result. In a terminal:</p>
+<pre><code>printf 'user:pass' | base64
+# dXNlcjpwYXNz
+
+# if the password contains a % sign, pass it as an argument instead
+printf '%s' 'user:p%ss' | base64</code></pre>
+<p>Avoid <code>echo 'user:pass' | base64</code>: echo adds a newline, which gets encoded too (<code>dXNlcjpwYXNzCg==</code>) and the server rejects it. In the browser's DevTools console:</p>
+<pre><code>btoa('user:pass')   // "dXNlcjpwYXNz"
+
+// btoa only accepts Latin-1 text; for other characters encode as UTF-8 first
+btoa(String.fromCharCode(...new TextEncoder().encode('jürgen:pass')))</code></pre>
+<p>The username cannot contain a colon, because the first colon separates it from the password. The password can contain colons. To check a value you were given, decode it with <code>printf 'dXNlcjpwYXNz' | base64 -d</code>.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon to open the popup. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Click <strong>+ Request header</strong>, type <code>Authorization</code> as the name and <code>Basic dXNlcjpwYXNz</code> as the value: the word <code>Basic</code>, one space, then your encoded string. Leave the operation on <strong>set</strong>.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter the staging host, for example <code>staging.example.com</code>.</li>
+<li>Optionally pick <strong>8 hours</strong> or <strong>1 day</strong> in the expiry select. The row counts down and the header switches itself off when the time is up.</li>
+<li>Open the staging site. No dialog should appear. If it still does, the encoded value is wrong or the filter does not match the host.</li>
+</ol>
+
+<h2>When the site uses Authorization itself</h2>
+<p><strong>set</strong> replaces any <code>Authorization</code> header a request would have carried. If the staging app's own JavaScript sends <code>Authorization: Bearer …</code> to an API on the same host, your Basic value overwrites it and API calls fail. Add a <strong>+ Never on…</strong> filter with type <strong>URL pattern</strong> for the API path, such as <code>||staging.example.com/api/</code>, so those requests keep their own token. For Bearer tokens themselves, see <a href="add-authorization-header-chrome.html">how to add an Authorization header</a>.</p>
+
+<h2>The curl equivalent</h2>
+<pre><code># let curl build the header
+curl -u user:pass https://staging.example.com/
+
+# or send it yourself
+curl -H "Authorization: Basic dXNlcjpwYXNz" https://staging.example.com/</code></pre>
+
+<h2>Security caveats</h2>
+<div class="callout"><strong>Base64 is not encryption.</strong> Anyone who sees the header can decode it in a second. Over plain HTTP the password crosses the network readable by anyone on the path. Only send Basic credentials to HTTPS sites.</div>
+<ul>
+<li><strong>Scope it to one domain.</strong> Without an <strong>Only on</strong> filter the header goes with every request to every site, including third-party scripts, fonts and analytics hosts, and they all receive your staging password.</li>
+<li><strong>Use the timer.</strong> An expiry means you don't keep sending credentials weeks after the project ends. To stop everything at once, switch HeaderDial to <strong>Paused</strong>.</li>
+<li><strong>Exports contain the password.</strong> <strong>Export all</strong> and <strong>Export this profile</strong> write header values into the file. When you use <strong>Share as link…</strong>, tick <strong>Leave header values empty</strong> so colleagues get the setup without your credentials.</li>
+<li><strong>Prefer per-person accounts.</strong> If the staging server supports several users, give each tester their own password so one can be revoked without changing everyone's.</li>
+<li><strong>Not in the URL.</strong> <code>https://user:pass@staging.example.com/</code> puts the password into history and logs, and Chrome blocks subresource requests that carry credentials in the URL, so pages often break.</li>
+</ul>
+
+<h2>Pitfalls</h2>
+<ul>
+<li><strong>Credentials you already typed.</strong> After you log in through the dialog, the browser keeps sending those credentials for the rest of the session, and your header replaces them. To be sure the header alone gets you in, test in a private window with HeaderDial allowed there.</li>
+<li><strong>Two profiles, one header.</strong> If two active profiles set Authorization, the leftmost chip wins. Reorder with <strong>Move left (higher priority)</strong> in the <strong>⋯</strong> menu.</li>
+<li><strong>Redirects to another host.</strong> If staging redirects to a login or asset host with its own Basic auth, add that host to the filter, or if it needs different credentials, put them in a second profile with its own filter.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header (Bearer tokens)</a></li>
+<li><a href="feature-flag-headers-staging.html">Send custom headers to staging and feature-flag headers</a></li>
+<li><a href="remove-request-header.html">Remove a request header in Chrome</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

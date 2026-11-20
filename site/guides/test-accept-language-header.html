@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to test localisation with the Accept-Language header – HeaderDial</title><meta name="description" content="Set Accept-Language in Chrome, Edge or Firefox to test server-side language negotiation: q-value syntax, test cases, caching with Vary, and why navigator.language does not change.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/test-accept-language-header.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to test localisation with the Accept-Language header","description":"Send a chosen Accept-Language header from Chrome, Edge or Firefox to check which language a server picks, without changing the browser's language settings.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Add the header","text":"Click + Request header, enter Accept-Language and a value such as de-DE,de;q=0.9,en;q=0.5."},{"@type":"HowToStep","name":"Choose set","text":"Leave the operation on set so your list replaces the browser's own list."},{"@type":"HowToStep","name":"Limit it to your site","text":"Under Where it applies, add an Only on filter for the host you are testing."},{"@type":"HowToStep","name":"One profile per locale","text":"Create a profile for each language you test and switch between them with the Active switch."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to test localisation with the Accept-Language header</h1>
+<p>To see your site the way a German, Brazilian or Japanese visitor's browser asks for it, set the <code>Accept-Language</code> request header in Chrome, Edge or Firefox. In HeaderDial, add a request header named <code>Accept-Language</code> with a value such as <code>de-DE,de;q=0.9,en;q=0.5</code>, leave it on <strong>set</strong> and limit it to your site. Server-side language negotiation sees the new value at once. JavaScript does not: <code>navigator.language</code> keeps reporting the browser's real language.</p>
+
+<h2>How the header is written</h2>
+<p>The value is a comma-separated list of language tags, each with an optional weight called a q-value:</p>
+<pre><code>Accept-Language: de-CH, de;q=0.9, fr;q=0.6, en;q=0.4, *;q=0.1</code></pre>
+<ul>
+<li>Tags follow BCP 47: a language (<code>de</code>), optionally a region (<code>de-CH</code>) or a script (<code>zh-Hant</code>).</li>
+<li><code>q</code> runs from <code>0</code> to <code>1</code> with at most three decimals. A tag without one has <code>q=1</code>. <code>q=0</code> means "not acceptable".</li>
+<li><code>*</code> stands for any language not listed.</li>
+<li>Spaces after the commas are optional.</li>
+</ul>
+<p>The server compares this list with the languages it has, picks the best match and should answer with <code>Content-Language</code> naming the language it chose. If the response varies by language, it should also send <code>Vary: Accept-Language</code> so that caches keep one copy per language.</p>
+
+<h2>Test cases worth trying</h2>
+<table>
+<tr><th>Value</th><th>What it checks</th></tr>
+<tr><td><code>de-DE,de;q=0.9</code></td><td>The plain case: a supported language is served.</td></tr>
+<tr><td><code>pt-BR</code></td><td>Region fallback: if you only have <code>pt</code> or <code>pt-PT</code>, does the server fall back to it or jump to the default?</td></tr>
+<tr><td><code>ja</code></td><td>An unsupported language: the default language should appear, not an error page.</td></tr>
+<tr><td><code>fr;q=0.5,en;q=0.8</code></td><td>Order versus weight: q-values decide, not the order in the list, so English should win.</td></tr>
+<tr><td><code>*</code></td><td>Wildcard only: the server should use its default.</td></tr>
+</table>
+<p>To test a browser that expresses no preference at all, remove the header instead; see <a href="remove-request-header.html">how to remove a request header</a>.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon to open the popup. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Click <strong>+ Request header</strong> and type <code>Accept-Language</code> (it is in the suggestions). Enter the list you want to send.</li>
+<li>Leave the operation on <strong>set</strong>, which replaces the list the browser builds from its language settings.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter your host, for example <code>www.example.com</code>. Every other site keeps your normal language.</li>
+<li>Make one profile per locale with <strong>+</strong> next to the profile chips, name them ("de-DE", "pt-BR", "ja") and switch between them with each profile's <strong>Active</strong> switch. If two active profiles set the header, the leftmost chip wins.</li>
+</ol>
+
+<h2>Set or append</h2>
+<p><code>Accept-Language</code> is one of the request headers browsers allow extensions to append to. <strong>append</strong> adds your entry after the browser's own list. In our test (Chrome 159 and Firefox 158, HeaderDial 0.1.0, browser language English), appending <code>fr;q=0.1</code> produced <code>en-US,en;q=0.9, fr;q=0.1</code>. That is handy for adding a low-priority fallback, but the result depends on each tester's browser settings. For repeatable tests, use <strong>set</strong>.</p>
+
+<h2>What the header does not change</h2>
+<p>The header changes what servers receive. It does not change the browser's language settings, so anything decided in the page itself stays the same:</p>
+<ul>
+<li><code>navigator.language</code> and <code>navigator.languages</code> keep their values. We confirmed this in the same test: the server received the new list while <code>navigator.languages</code> still read <code>en-US,en</code>.</li>
+<li><code>Intl</code> formatters without an explicit locale, and client-side libraries that detect the language from <code>navigator</code>, keep using the real language.</li>
+<li>A language cookie, a <code>/de/</code> URL prefix or IP-based geolocation can take precedence over the header on the server.</li>
+</ul>
+<p>To test client-side detection, change the browser's own language list instead: in Chrome and Edge under Settings › Languages, in Firefox under Settings › General › Language › Choose. That changes both the header and <code>navigator.languages</code>, but for every site.</p>
+
+<h2>The curl equivalent</h2>
+<pre><code>curl -s -o /dev/null -D - -H "Accept-Language: de-DE,de;q=0.9,en;q=0.5" \
+  https://www.example.com/ | grep -i -E '^(content-language|vary|location):'</code></pre>
+<p>Checking the response headers this way shows which language was chosen and whether the server sent <code>Vary: Accept-Language</code> and any redirect.</p>
+
+<h2>Pitfalls</h2>
+<div class="callout">If a page is cached without <code>Vary: Accept-Language</code>, a CDN or the browser can serve the language of whoever requested it first. Testing several locales against the same URL is a good way to catch exactly that bug, but it also means a cached result can look like a negotiation failure. See <a href="cache-control-header-testing.html">testing with Cache-Control</a> to rule caching out.</div>
+<ul>
+<li><strong>Cached language redirects.</strong> If <code>/</code> redirects to <code>/de/</code> with <code>301</code>, browsers may remember the redirect and skip the server on later visits, whatever header you send. Language redirects should normally be <code>302</code> or <code>307</code>; while testing, use a private window or clear the cache.</li>
+<li><strong>A cookie from an earlier test.</strong> Many sites store the chosen language in a cookie after the first visit. Clear it, or use a fresh profile in a private window with HeaderDial allowed there.</li>
+<li><strong>Invalid values.</strong> Servers parse this header in different ways. A typo such as <code>de_DE</code> (underscore) is not a valid tag and may be ignored silently.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="change-user-agent-header.html">Change the User-Agent header</a></li>
+<li><a href="set-x-forwarded-for-header.html">Set X-Forwarded-For to test geo logic</a></li>
+<li><a href="remove-request-header.html">Remove a request header in Chrome</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

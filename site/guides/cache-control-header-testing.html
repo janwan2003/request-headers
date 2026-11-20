@@ -1,0 +1,73 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to test caching with Cache-Control headers in the browser – HeaderDial</title><meta name="description" content="Send Cache-Control: no-cache or max-age=0 from Chrome, Edge or Firefox, override response Cache-Control, and what each one really does to the browser cache, measured in Chrome and Firefox.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/cache-control-header-testing.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to test caching with Cache-Control headers in the browser","description":"Add request Cache-Control headers or override the response Cache-Control header in Chrome, Edge or Firefox to test revalidation and caching, scoped to one host.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Add a request header","text":"Click + Request header and enter Cache-Control with no-cache, or max-age=0 to force conditional revalidation."},{"@type":"HowToStep","name":"Override the response header","text":"In a second profile, click + Response header and enter Cache-Control with a value such as no-store or max-age=600."},{"@type":"HowToStep","name":"Limit it to your site","text":"Under Where it applies, add an Only on filter for the host you are testing."},{"@type":"HowToStep","name":"Watch the server","text":"Reload and count requests and 304 responses in the server log or the DevTools Network panel."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to test caching with Cache-Control headers in the browser</h1>
+<p>To make Chrome, Edge or Firefox go back to the server instead of using a cached response, add the request header <code>Cache-Control: max-age=0</code> (revalidate with <code>If-None-Match</code>, expect <code>304</code>) or <code>Cache-Control: no-cache</code> in HeaderDial, scoped to your host. To see how a different caching policy would behave, override the <em>response</em> <code>Cache-Control</code> header. That second technique changes the browser cache in Firefox but not in Chrome, where it only changes what the page's JavaScript sees. The details below were measured, not assumed.</p>
+
+<h2>Request and response Cache-Control are different things</h2>
+<p>On a <strong>response</strong>, <code>Cache-Control</code> is the server's caching policy: <code>max-age=600</code> (fresh for ten minutes), <code>no-cache</code> (may be stored, but must be revalidated before every use), <code>no-store</code> (never stored), <code>private</code> (browser only, not shared caches), <code>s-maxage</code> (lifetime in shared caches such as CDNs).</p>
+<p>On a <strong>request</strong>, it is the client asking caches along the way for something: <code>no-cache</code> means "check with the origin before giving me a stored copy", <code>max-age=0</code> means "a stored copy is only acceptable once revalidated". <code>Pragma: no-cache</code> is the HTTP/1.0 version of the request directive. It is deprecated and only matters to very old intermediaries, which is why DevTools and many tools still send it next to <code>Cache-Control</code>.</p>
+
+<h2>What actually happens in the browser</h2>
+<p>We tested this in November 2026 with HeaderDial 0.1.0, Chrome 159 and Firefox 158. A page called <code>fetch()</code> on a URL whose server sent <code>Cache-Control: max-age=3600</code> and an <code>ETag</code>; we made three requests and counted what reached the server. Edge uses Chrome's network stack, but we did not test it separately.</p>
+<table>
+<tr><th>HeaderDial rule</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td>No rule</td><td>1 request; the rest from cache</td><td>1 request; the rest from cache</td></tr>
+<tr><td>Request <code>Cache-Control: no-cache</code></td><td>Every request reaches the server, unconditionally (full <code>200</code>)</td><td>Every request reaches the server as a revalidation (<code>If-None-Match</code>, <code>304</code>)</td></tr>
+<tr><td>Request <code>Cache-Control: max-age=0</code></td><td>Revalidation every time (<code>304</code>)</td><td>Revalidation every time (<code>304</code>)</td></tr>
+<tr><td>Request <code>Pragma: no-cache</code> only</td><td>Every request reaches the server, unconditionally</td><td>No effect; served from cache</td></tr>
+<tr><td>Response <code>max-age=3600</code> overridden to <code>no-store</code></td><td>No effect on the cache; served from cache</td><td>Not stored; every request reaches the server</td></tr>
+<tr><td>Response <code>no-store</code> overridden to <code>max-age=3600</code></td><td>Still not cached</td><td>Cached; 1 request</td></tr>
+</table>
+<p>In both browsers, a page reading <code>response.headers.get('cache-control')</code> saw the overridden value. So request headers do reach the browser's own cache logic, and in Chrome <code>no-cache</code> works like a forced reload for matching requests. Response overrides change Firefox's caching decision, but Chrome's cache keeps following what the server really sent.</p>
+
+<h2>How this differs from DevTools "Disable cache"</h2>
+<p>The <strong>Disable cache</strong> checkbox in the Network panel makes the browser skip its HTTP cache for every request from the inspected tab, but only while DevTools is open. A HeaderDial rule differs in three ways:</p>
+<ul>
+<li><strong>Scope.</strong> It follows your filters: one host, one URL pattern, or one request type such as <strong>script</strong>, in every tab, with DevTools closed.</li>
+<li><strong>Behaviour.</strong> With <code>max-age=0</code>, or <code>no-cache</code> in Firefox, you get conditional requests and <code>304</code> responses. That exercises your <code>ETag</code> and <code>Last-Modified</code> handling, which "Disable cache" skips.</li>
+<li><strong>Visibility.</strong> The header travels to your CDN and origin, so you can test whether they honour a client's <code>no-cache</code>. Many CDNs are configured to ignore it; compare the <code>Age</code> header and your CDN's cache-status header with and without the rule.</li>
+</ul>
+<p>Neither approach touches responses a service worker answers from its own Cache Storage, or pages restored from the back/forward cache, because those never produce a network request. In Chrome, use <strong>Bypass for network</strong> under Application › Service workers for the first case.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Name the profile "Revalidate". Click <strong>+ Request header</strong>, type <code>Cache-Control</code> and enter <code>max-age=0</code> or <code>no-cache</code>. Keep the operation on <strong>set</strong>. Add <code>Pragma: no-cache</code> as a second row only if old proxies are part of the test.</li>
+<li>Open <strong>Where it applies</strong> and use <strong>+ Only on…</strong> with type <strong>Domain</strong> for your host, so other sites keep caching normally.</li>
+<li>For response-policy experiments (Firefox), create a second profile with <strong>+</strong>, click <strong>+ Response header</strong> and enter <code>Cache-Control</code> with the policy to try, such as <code>no-store</code> or <code>max-age=600</code>. Switch profiles with each one's <strong>Active</strong> switch.</li>
+<li>Reload and watch the Status column in the Network panel, or count requests in your server log.</li>
+</ol>
+
+<h2>The curl equivalent</h2>
+<pre><code># what the server says
+curl -sI https://www.example.com/app.js | grep -i -E '^(cache-control|etag|age|last-modified):'
+
+# ask caches on the way to revalidate
+curl -sI -H "Cache-Control: no-cache" -H "Pragma: no-cache" https://www.example.com/app.js
+
+# a conditional request: expect 304 if the ETag still matches
+curl -sI -H 'If-None-Match: "abc123"' https://www.example.com/app.js</code></pre>
+<p>curl has no cache of its own, so these test the server and any CDN in front of it, not a browser.</p>
+
+<h2>Pitfalls</h2>
+<div class="callout">Don't use a Chrome response override to conclude that a new <code>Cache-Control</code> policy works. The page sees your value, but Chrome caches according to the original. Test the policy on the server, or in Firefox.</div>
+<ul>
+<li><strong>append adds to the browser's value.</strong> <code>Cache-Control</code> is on the list of request headers browsers allow appending to, but a reload may already carry its own value. <strong>set</strong> gives predictable results.</li>
+<li><strong>Turn it off afterwards.</strong> A forgotten no-cache rule makes every page on that host slower. Give the rows an expiry such as <strong>1 hour</strong>, or use the global <strong>On/Paused</strong> switch.</li>
+<li><strong>Other headers in the response.</strong> <code>Expires</code> and <code>Vary</code> affect caching too. If you override one header, check the others; <a href="modify-response-headers-csp.html">modifying response headers</a> covers removing or replacing them.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="remove-request-header.html">Remove a request header in Chrome</a></li>
+<li><a href="test-accept-language-header.html">Test localisation with Accept-Language</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

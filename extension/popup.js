@@ -235,7 +235,9 @@ async function renderAccess() {
   const granted = ((await api.permissions.getAll()).origins || []).filter((o) => o !== '<all_urls>');
   const host = tab && tab.url && /^https?:/.test(tab.url) ? new URL(tab.url).origin : null;
   const hostGranted = host && (await api.permissions.contains({ origins: [host + '/*'] }));
-  const ask = (origins) => api.permissions.request({ origins }).then(renderAccess).catch((e) => alert(e.message));
+  // Errors are shown in the banner: Firefox popups cannot show alert().
+  const ask = (origins) => api.permissions.request({ origins }).then(renderAccess)
+    .catch((e) => box.append(el('span', { class: 'msg err' }, ' ' + ((e && e.message) || e))));
   box.className = 'banner' + (granted.length ? ' info' : '');
   box.replaceChildren(
     el('span', {}, granted.length

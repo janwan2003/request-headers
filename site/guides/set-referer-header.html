@@ -1,0 +1,77 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to change or remove the Referer header – HeaderDial</title><meta name="description" content="Set or remove the Referer header in Chrome, Edge or Firefox to test hotlink protection, referral tracking and CSRF checks, and what Referrer-Policy and document.referrer do.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/set-referer-header.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to change or remove the Referer header","description":"Set the Referer request header to a URL of your choice, or remove it, in Chrome, Edge or Firefox, limited to the host you are testing.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Add the header","text":"Click + Request header and enter Referer as the name and the full URL you want the server to see as the value."},{"@type":"HowToStep","name":"Choose set or remove","text":"Use set to replace the referrer, or remove to send the request without one."},{"@type":"HowToStep","name":"Limit it to the right host","text":"Under Where it applies, add an Only on filter for the host that receives the request, and optionally tick a request type such as image."},{"@type":"HowToStep","name":"Check what the server sees","text":"Reload and look at the Referer in your server log or an endpoint that echoes request headers."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to change or remove the Referer header</h1>
+<p>To change the <code>Referer</code> header in Chrome, Edge or Firefox, add a request header named <code>Referer</code> in HeaderDial, give it the full URL you want the server to see (for example <code>https://www.google.com/</code>) and leave the operation on <strong>set</strong>. To send no referrer at all, choose <strong>remove</strong> instead. Limit the rule to the host that receives the request. The edit changes only what the server receives: <code>document.referrer</code> in the page keeps its real value.</p>
+
+<h2>What browsers send by default</h2>
+<p>The header name really is spelled <code>Referer</code>, a misspelling that made it into the HTTP specification and was never corrected. The policy that controls it, <code>Referrer-Policy</code>, uses the correct spelling.</p>
+<p>Chrome, Edge and Firefox all default to the policy <code>strict-origin-when-cross-origin</code>:</p>
+<ul>
+<li>Same-origin requests carry the full URL, without the <code>#fragment</code>.</li>
+<li>Cross-origin requests carry only the origin, such as <code>https://shop.example/</code>, not the path or query string.</li>
+<li>Requests from an HTTPS page to an HTTP URL carry no referrer.</li>
+</ul>
+<p>A page can tighten or loosen this with a <code>Referrer-Policy</code> response header, a <code>&lt;meta name="referrer"&gt;</code> tag, or <code>rel="noreferrer"</code> and <code>referrerpolicy</code> attributes on links and elements. A HeaderDial rule acts after all of that: <strong>set</strong> sends your value even where the policy would have trimmed or dropped the referrer, and <strong>remove</strong> drops it even where the policy would have sent it.</p>
+
+<h2>When you need to change it</h2>
+<ul>
+<li><strong>Hotlink protection.</strong> Check that images or downloads load when the referrer is your own site and are refused when it is another site or missing.</li>
+<li><strong>Referral tracking.</strong> Test how analytics or landing pages classify a visit "from Google" or from a partner site, without clicking through from that site.</li>
+<li><strong>CSRF defences.</strong> Some frameworks compare the referrer with the site's own origin on HTTPS form posts, especially when no <code>Origin</code> header is present. Sending a foreign or missing referrer shows whether the check rejects the request.</li>
+<li><strong>Bug reports.</strong> Reproduce a request exactly as it arrived from a referring page listed in your logs.</li>
+</ul>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon to open the popup. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Click <strong>+ Request header</strong> and type <code>Referer</code> (it is in the suggestions). Enter the URL you want the server to see, such as <code>https://partner.example/blog/review</code>.</li>
+<li>Keep the operation on <strong>set</strong>, or pick <strong>remove</strong> to test the no-referrer case. Chrome's declarativeNetRequest API, which HeaderDial uses, allows set and remove on Referer but not append. If you choose <strong>append</strong>, HeaderDial sets the value instead and shows the message "browsers only allow appending to a few request headers, so it is set instead".</li>
+<li>Open <strong>Where it applies</strong> and click <strong>+ Only on…</strong> with type <strong>Domain</strong> for the host that receives the request.</li>
+<li>Reload and check the result in your server log or an endpoint that echoes request headers back.</li>
+</ol>
+
+<h2>Filters match the request, not the page</h2>
+<p>A filter is compared with the URL being requested, not with the page that made the request. If <code>www.example.com</code> shows images from <code>cdn.example.com</code> and you want to test the CDN's hotlink rule, the filter must be <code>cdn.example.com</code>. To leave page loads and scripts alone, tick only <strong>image</strong> under the request types; with none ticked, the rule covers every type, including page loads.</p>
+<p>For side-by-side comparisons, make one profile per referrer ("From Google", "No referrer", "Foreign site") and switch between them with each profile's <strong>Active</strong> switch. If two active profiles set Referer, the leftmost chip wins.</p>
+
+<h2>What a header rule does not change</h2>
+<p>We checked this in Chrome 159 and Firefox 158 with HeaderDial 0.1.0: with Referer set to <code>https://www.google.com/</code>, the server received that value on both page loads and <code>fetch()</code> calls, while <code>document.referrer</code> on the next page still showed the real previous page. Keep that in mind when you test:</p>
+<ul>
+<li><strong>Client-side code is unaffected.</strong> Analytics scripts that read <code>document.referrer</code> in the browser report the real referrer. Only server-side logic sees your value.</li>
+<li><strong><code>Origin</code> is a separate header.</strong> CSRF checks and CORS use <code>Origin</code> first. To test them you may need to set or remove <code>Origin</code> as well.</li>
+<li><strong><code>Sec-Fetch-Site</code> still tells the truth.</strong> Browsers send <code>Sec-Fetch-Site: same-origin</code>, <code>same-site</code> or <code>cross-site</code>, and a server that checks it is not fooled by a different referrer.</li>
+</ul>
+
+<h2>The curl equivalent</h2>
+<pre><code># send a referrer (-e is short for --referer)
+curl -e https://www.google.com/ https://www.example.com/landing
+
+# the same with an explicit header
+curl -H "Referer: https://partner.example/blog/review" https://cdn.example.com/photo.jpg
+
+# curl sends no Referer unless asked, so the missing case is simply
+curl https://cdn.example.com/photo.jpg</code></pre>
+
+<h2>Pitfalls</h2>
+<div class="callout">Without a filter, your Referer value goes to every site the browser talks to. That breaks hotlink-protected images elsewhere and pollutes other sites' analytics. Always add an <strong>Only on</strong> filter.</div>
+<ul>
+<li><strong>Cached responses.</strong> An image already in the browser cache is not requested again, so the server never sees the new referrer. Tick "Disable cache" in the DevTools Network panel while testing, or see <a href="cache-control-header-testing.html">testing with Cache-Control</a>.</li>
+<li><strong>Removing is not the same as an empty value.</strong> Servers can treat a missing referrer differently from an empty or foreign one. nginx's <code>valid_referers</code>, for example, has a separate <code>none</code> keyword for requests without the header. Use <strong>remove</strong> to test the missing case.</li>
+<li><strong>Switch it off afterwards.</strong> Give the row an expiry such as <strong>1 hour</strong>, or use the global <strong>On/Paused</strong> switch.</li>
+</ul>
+<p>To drop other headers the same way, see <a href="remove-request-header.html">how to remove a request header</a>.</p>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="remove-request-header.html">Remove a request header in Chrome</a></li>
+<li><a href="set-x-forwarded-for-header.html">Set X-Forwarded-For</a></li>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

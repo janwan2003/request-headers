@@ -62,7 +62,7 @@ async function launch() {
   ].join('\n') + '\n');
   const port = await freePort();
   const proc = spawn(FIREFOX, ['--headless', '--no-remote', '--profile', profile, '--remote-debugging-port', String(port), '--remote-allow-system-access'],
-    { stdio: ['ignore', 'ignore', 'pipe'] });
+    { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, MOZ_REMOTE_ALLOW_SYSTEM_ACCESS: '1' } }); // older Firefox reads the flag, newer the variable
   await new Promise((resolve, reject) => {
     let err = '';
     const t = setTimeout(() => reject(new Error('Firefox did not start BiDi: ' + err.slice(-500))), 30000);
