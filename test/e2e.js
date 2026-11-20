@@ -33,11 +33,11 @@ function serve() {
 
 // A copy of the build with host access pre-granted, because a test cannot click
 // Chrome's permission prompt. The shipped build asks at run time instead.
-function grantedCopy() {
+function grantedCopy(hosts = ['<all_urls>']) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hd-ext-'));
   fs.cpSync(built, dir, { recursive: true });
   const mf = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
-  mf.host_permissions = ['<all_urls>'];
+  mf.host_permissions = hosts;
   fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify(mf));
   return dir;
 }
@@ -133,6 +133,41 @@ async function fetchVia(page, url) {
   const badge = await sw.evaluate(() => chrome.action.getBadgeText({}));
   assert.strictEqual(badge, '2');
   ok('badge shows the number of active headers');
+
+  // Keyboard shortcut: registered with its default key, and its handler pauses and resumes.
+  const cmds = await sw.evaluate(() => chrome.commands.getAll());
+  const pauseCmd = cmds.find((c) => c.name === 'toggle-pause');
+  assert.ok(pauseCmd && /Alt\+Shift\+D/.test(pauseCmd.shortcut), 'toggle-pause shortcut: ' + JSON.stringify(cmds));
+  assert.strictEqual(await sw.evaluate(() => togglePause()), true);
+  await until(async () => (await sw.evaluate(() => chrome.action.getBadgeText({}))) === 'off', 'badge shows off');
+  assert.strictEqual((await echoVia(page, A + '/echo'))['x-headerdial'], undefined);
+  assert.strictEqual(await sw.evaluate(() => togglePause()), false);
+  await until(async () => (await sw.evaluate(() => chrome.action.getBadgeText({}))) === '2', 'badge back to 2');
+  assert.strictEqual((await echoVia(page, A + '/echo'))['x-headerdial'], 'on');
+  ok('Alt+Shift+D shortcut is registered and pauses then resumes every header');
+
+  // Method filter: a POST-only profile changes POST requests and leaves GET alone.
+  await ui.evaluate(async () => {
+    const { state } = await chrome.storage.local.get('state');
+    state.profiles.push({ id: 'post-only', name: 'POST only', active: true, requestMethods: ['post'],
+      headers: [{ target: 'request', name: 'X-Post-Only', value: 'yes' }] });
+    await chrome.storage.local.set({ state });
+  });
+  await settle();
+  await page.goto(A + '/');
+  const byMethod = await page.evaluate(async () => {
+    const g = await (await fetch('/echo?m')).json();
+    const p = await (await fetch('/echo?m', { method: 'POST', body: 'x' })).json();
+    return { get: g['x-post-only'] || null, post: p['x-post-only'] || null };
+  });
+  assert.deepStrictEqual(byMethod, { get: null, post: 'yes' });
+  await ui.evaluate(async () => {
+    const { state } = await chrome.storage.local.get('state');
+    state.profiles = state.profiles.filter((p) => p.id !== 'post-only');
+    await chrome.storage.local.set({ state });
+  });
+  await settle();
+  ok('a request-method filter (POST only) changes POST and leaves GET alone');
 
   // Remove and override existing headers.
   await ui.click('#add-req');
@@ -256,6 +291,40 @@ async function fetchVia(page, url) {
     await ui.screenshot({ path: path.join(SHOTS, 'page.png') });
   }
   await ctx.close();
+
+  // ---- 3. Which site access CORS needs when the page and the API are on different hosts
+  // (the CORS guide tells users this). Page on 127.0.0.1, API on localhost.
+  const corsWith = async (hosts) => {
+    const l = await launch(grantedCopy(hosts));
+    const u = await l.ctx.newPage();
+    await u.goto(`chrome-extension://${l.id}/popup.html?page=1`);
+    await u.evaluate(async () => {
+      const state = { profiles: [{ id: 'cors', name: 'CORS', active: true, filters: [{ kind: 'include', type: 'domain', value: 'localhost' }],
+        headers: [{ target: 'response', name: 'Access-Control-Allow-Origin', value: '*' },
+          { target: 'response', name: 'Access-Control-Allow-Headers', value: '*' }] }] };
+      await chrome.storage.local.set({ state });
+      await chrome.runtime.sendMessage({ type: 'sync' });
+    });
+    const pg = await l.ctx.newPage();
+    await pg.goto(A + '/');
+    await sleep(300);
+    const res = await pg.evaluate(async (url) => {
+      try { const r = await fetch(url); return (await r.json()).ok ? 'ok' : 'bad'; } catch (e) { return 'blocked'; }
+    }, B + '/nocors');
+    await l.ctx.close();
+    return res;
+  };
+  const access = {
+    pageOnly: await corsWith(['http://127.0.0.1/*']),
+    apiOnly: await corsWith(['http://localhost/*']),
+    both: await corsWith(['http://127.0.0.1/*', 'http://localhost/*']),
+  };
+  console.log('   site access needed for CORS:', JSON.stringify(access));
+  assert.strictEqual(access.pageOnly, 'blocked', 'access to the page host alone does not change the API response');
+  assert.strictEqual(access.apiOnly, 'blocked', 'access to the API host alone is not enough either (initiator needs it)');
+  assert.strictEqual(access.both, 'ok', 'access to both hosts works');
+  ok('CORS across hosts needs site access for both the page host and the API host');
+
   srv.close();
   console.log(`\n${passed} e2e checks passed`);
 })().catch((e) => { console.error('E2E FAILED:', e); process.exit(1); });

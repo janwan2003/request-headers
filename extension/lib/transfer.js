@@ -14,6 +14,7 @@
         value: blank ? '' : h.value, op: h.op, comment: h.comment })),
       filters: p.filters.map((f) => ({ enabled: f.enabled, kind: f.kind, type: f.type, value: f.value })),
       resourceTypes: p.resourceTypes.slice(),
+      requestMethods: p.requestMethods.slice(),
     };
   }
 

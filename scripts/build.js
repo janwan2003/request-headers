@@ -42,13 +42,29 @@ fs.writeFileSync(path.join(site, 'sitemap.xml'), '<?xml version="1.0" encoding="
 fs.writeFileSync(path.join(site, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${BASE}sitemap.xml\n`);
 fs.writeFileSync(path.join(site, '.nojekyll'), '');
 
-const version = JSON.parse(fs.readFileSync(path.join(ext, 'manifest.json'), 'utf8')).version;
+// Firefox build: the same files with a Firefox manifest. Firefox MV3 runs background
+// scripts as an event page (no service worker), needs an add-on id, and requires the
+// data-collection declaration for new AMO listings. optional_host_permissions needs 128.
+const firefox = path.join(dist, 'firefox');
+copyDir(ext, firefox);
+const mf = JSON.parse(fs.readFileSync(path.join(ext, 'manifest.json'), 'utf8'));
+// AMO limits the name to 45 characters.
+const fxMf = { ...mf, name: 'HeaderDial: Modify Request & Response Headers', background: { scripts: ['lib/model.js', 'lib/transfer.js', 'background.js'] } };
+delete fxMf.minimum_chrome_version;
+fxMf.browser_specific_settings = {
+  gecko: { id: 'headerdial@plainbyte', strict_min_version: '128.0', data_collection_permissions: { required: ['none'] } },
+};
+fs.writeFileSync(path.join(firefox, 'manifest.json'), JSON.stringify(fxMf, null, 2) + '\n');
+
+const version = mf.version;
 const zip = path.join(dist, `headerdial-${version}.zip`);
+const fxZip = path.join(dist, `headerdial-firefox-${version}.zip`);
 try {
   execFileSync('zip', ['-qrX', zip, '.'], { cwd: ext });
+  execFileSync('zip', ['-qrX', fxZip, '.'], { cwd: firefox });
   fs.mkdirSync(path.join(site, 'download'), { recursive: true });
   fs.copyFileSync(zip, path.join(site, 'download', 'headerdial.zip'));
-  console.log('built', path.relative(root, zip));
+  console.log('built', path.relative(root, zip), 'and', path.relative(root, fxZip));
 } catch (e) {
   console.warn('zip not available; skipped extension archive');
 }

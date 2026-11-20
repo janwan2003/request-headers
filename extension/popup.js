@@ -161,7 +161,12 @@ function renderEditor() {
     el('input', { type: 'checkbox', checked: p.resourceTypes.includes(t), onchange: (e) => {
       p.resourceTypes = e.target.checked ? p.resourceTypes.concat(t) : p.resourceTypes.filter((x) => x !== t); save(true);
     } }), ' ', t.replace('_', ' '))));
-  const nFilters = p.filters.filter((f) => f.enabled && f.value.trim()).length + (p.tabId != null ? 1 : 0) + (p.resourceTypes.length ? 1 : 0);
+  const methods = el('div', { class: 'types methods' }, ...HD.METHODS.map((m) => el('label', {},
+    el('input', { type: 'checkbox', checked: p.requestMethods.includes(m), onchange: (e) => {
+      p.requestMethods = e.target.checked ? p.requestMethods.concat(m) : p.requestMethods.filter((x) => x !== m); save(true);
+    } }), ' ', m.toUpperCase())));
+  const nFilters = p.filters.filter((f) => f.enabled && f.value.trim()).length + (p.tabId != null ? 1 : 0) +
+    (p.resourceTypes.length ? 1 : 0) + (p.requestMethods.length ? 1 : 0);
   const det = el('details', { open: (filtersOpen == null ? nFilters > 0 : filtersOpen) || null,
     ontoggle: (e) => { filtersOpen = e.target.open; } },
     el('summary', {}, nFilters ? `Where it applies (${nFilters} filter${nFilters > 1 ? 's' : ''})` : 'Where it applies: all sites'),
@@ -175,7 +180,8 @@ function renderEditor() {
     el('p', { class: 'hint' }, 'Pattern: ', el('code', {}, '||example.com^'), ' matches a domain and its subdomains, ',
       el('code', {}, '*'), ' is a wildcard. With no "Only on" filter the profile applies everywhere.'),
     tabOnly,
-    el('p', { class: 'hint' }, 'Request types (none ticked = all, including page loads):'), types);
+    el('p', { class: 'hint' }, 'Request types (none ticked = all, including page loads):'), types,
+    el('p', { class: 'hint' }, 'Methods (none ticked = all). CORS preflights are OPTIONS requests:'), methods);
   main.replaceChildren(
     el('div', { class: 'pbar' },
       el('input', { type: 'color', value: p.color, title: 'Profile colour', 'aria-label': 'Profile colour',

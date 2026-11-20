@@ -23,7 +23,7 @@
 
 <h2>Steps</h2>
 <ol>
-<li>Click the HeaderDial icon. Grant site access when the banner asks; <strong>Only &lt;current host&gt;</strong> is not enough here if the API is on a different host from the page, so also grant the API host (open an API URL in a tab and choose <strong>Only &lt;that host&gt;</strong> there) or choose <strong>Allow on all sites</strong>.</li>
+<li>Click the HeaderDial icon. Grant site access when the banner asks; <strong>Only &lt;current host&gt;</strong> is not enough here if the API is on a different host from the page. The browser only changes a response when the extension has access to both the page's host and the API's host, so also grant the API host (open an API URL in a tab and choose <strong>Only &lt;that host&gt;</strong> there) or choose <strong>Allow on all sites</strong>. Our automated Chromium test checks all three cases: page host only and API host only both leave the call blocked, and both hosts together make it succeed.</li>
 <li>Click <strong>+</strong> next to the profile chips to create a profile and name it, for example, "CORS (dev)". A separate profile lets you turn it on and off with its <strong>Active</strong> switch.</li>
 <li>Click <strong>+ Response header</strong>. Name <code>Access-Control-Allow-Origin</code>, value <code>*</code>, operation <strong>set</strong> (this replaces a value the server already sends).</li>
 <li>If your requests are preflighted, add <code>Access-Control-Allow-Headers</code> with value <code>*</code>, and <code>Access-Control-Allow-Methods</code> if you use methods such as <code>PUT</code> or <code>DELETE</code>.</li>

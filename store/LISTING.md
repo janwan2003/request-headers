@@ -23,7 +23,7 @@ What you can do:
 • Remove or replace Content-Security-Policy and X-Frame-Options while debugging
 
 Features:
-• Profiles with colours. Run several at once; one switch pauses everything
+• Profiles with colours. Run several at once; one switch (or Alt+Shift+D) pauses everything
 • Set, append or remove, on requests and on responses
 • Filters: domains, URL patterns, regular expressions, exclusions, request types, or a single tab
 • Timed headers that switch themselves off after 15 minutes, an hour or a day
@@ -61,3 +61,19 @@ Collects no user data. Does not sell or transfer data. Not used for creditworthi
 - Icon 128×128: extension/icons/128.png
 - Screenshots 1280×800: store/screenshot-1-editor.png, store/screenshot-2-private.png
   (regenerate: `node scripts/build.js && node scripts/screenshots.js store`)
+
+## Firefox Add-ons (AMO)
+
+Submitted 2026-11-20 through the AMO API (`scripts/publish-amo.py`, metadata in
+`store/amo-listing.json`). Slug `headerdial`, add-on id `headerdial@plainbyte`, listed
+channel, category Web Development, licence MIT, Firefox 128+.
+Listing: https://addons.mozilla.org/firefox/addon/headerdial/ (status `nominated` = waiting for review).
+
+- Name on Firefox: "HeaderDial: Modify Request & Response Headers" (AMO allows at most 45 characters).
+- Description: Markdown (AMO does not render HTML). The first submission sent HTML, which shows
+  escaped; the Markdown version in `amo-listing.json` must be PATCHed once the API write
+  throttle lifts (it returned 429 "available in 3441 seconds" at 12:28 UTC).
+- Screenshots (previews) are not uploaded yet: `POST /api/v5/addons/addon/headerdial/previews/`
+  with `store/screenshot-1-editor.png` and `store/screenshot-2-private.png`.
+- Validator: 0 errors, 2 warnings (`data_collection_permissions` is ignored before Firefox 140 /
+  Android 142; harmless because older versions do not need it).

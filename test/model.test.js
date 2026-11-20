@@ -156,3 +156,13 @@ test('import errors are readable', () => {
   assert.throws(() => HD.parseImport('{"a":1}'), /Unrecognised/);
   assert.throws(() => HD.parseImport('https://example.com/'), /no HeaderDial profile/);
 });
+
+test('request-method filter: normalised, compiled into requestMethods, kept on export/import', () => {
+  const s = state([{ headers: [hdr('A', '1')], requestMethods: ['POST', 'put', 'post', 'bogus'] }]);
+  assert.deepStrictEqual(s.profiles[0].requestMethods, ['post', 'put']);
+  const out = HD.compile(s);
+  assert.deepStrictEqual(out.dynamic[0].condition.requestMethods, ['post', 'put']);
+  assert.strictEqual(HD.compile(state([{ headers: [hdr('A', '1')] }])).dynamic[0].condition.requestMethods, undefined);
+  const back = HD.parseImport(HD.exportJSON(s.profiles));
+  assert.deepStrictEqual(back.profiles[0].requestMethods, ['post', 'put']);
+});

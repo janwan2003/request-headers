@@ -1,6 +1,6 @@
 # HeaderDial
 
-Open-source browser extension (Chrome and Edge, Manifest V3) to add, change or remove
+Open-source browser extension (Chrome, Edge and Firefox 128+, Manifest V3) to add, change or remove
 HTTP request and response headers. Website: https://janwan2003.github.io/request-headers/
 
 - Profiles (several active at once, leftmost wins), each with request and response headers
@@ -28,10 +28,24 @@ There is no bundler: the files in `extension/` are exactly what ships.
 pnpm install            # only playwright-core, for the end-to-end test
 pnpm test               # unit tests (node --test)
 pnpm e2e                # builds, loads the extension into Chromium, checks real headers
-node scripts/build.js   # dist/extension, dist/headerdial-<version>.zip, dist/site
+pnpm e2e:firefox        # builds, installs it into Firefox over WebDriver BiDi, same kind of checks
+node scripts/build.js   # dist/extension, dist/firefox, both zips, dist/site
 ```
 
 Load `extension/` (or `dist/extension`) with "Load unpacked" on `chrome://extensions`.
+In Firefox, load `dist/firefox/manifest.json` from `about:debugging` → This Firefox →
+Load Temporary Add-on. The Firefox build is the same files with a different manifest
+(event-page background scripts, an add-on id, `data_collection_permissions: none`).
+
+## Release
+
+```sh
+node scripts/build.js
+python3 scripts/publish-amo.py     # Firefox: new listing on first run, new version after
+python3 scripts/publish-cws.py     # Chrome Web Store: upload; --publish to submit for review
+```
+
+Both read store credentials from the studio `.env` and print no secrets.
 
 ## Licence
 

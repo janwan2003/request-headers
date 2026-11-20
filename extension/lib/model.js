@@ -11,6 +11,8 @@
   const APPENDABLE_REQUEST = new Set(['accept', 'accept-encoding', 'accept-language', 'access-control-request-headers',
     'cache-control', 'connection', 'content-language', 'cookie', 'forwarded', 'if-match', 'if-none-match', 'keep-alive',
     'range', 'te', 'trailer', 'transfer-encoding', 'upgrade', 'user-agent', 'via', 'want-digest', 'x-forwarded-for']);
+  // HTTP methods declarativeNetRequest can match on (lower case, as DNR expects).
+  const METHODS = ['get', 'head', 'post', 'put', 'patch', 'delete', 'options', 'connect', 'other'];
   const NAME_RE = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
   const COLORS = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#ea580c', '#0891b2', '#ca8a04', '#db2777'];
   const OPS = ['set', 'append', 'remove'];
@@ -33,7 +35,7 @@
   function newProfile(index, o) {
     const i = index || 0;
     return Object.assign({ id: uid(), name: 'Profile ' + (i + 1), color: COLORS[i % COLORS.length], active: true,
-      headers: [newHeader('request')], filters: [], resourceTypes: [], tabId: null, tabLabel: '' }, o || {});
+      headers: [newHeader('request')], filters: [], resourceTypes: [], requestMethods: [], tabId: null, tabLabel: '' }, o || {});
   }
 
   function defaultState() {
@@ -79,6 +81,8 @@
       headers: Array.isArray(p.headers) ? p.headers.map(normalizeHeader) : [],
       filters: Array.isArray(p.filters) ? p.filters.map(normalizeFilter) : [],
       resourceTypes: Array.isArray(p.resourceTypes) ? p.resourceTypes.filter((t) => RESOURCE_TYPES.includes(t)) : [],
+      requestMethods: Array.isArray(p.requestMethods)
+        ? [...new Set(p.requestMethods.map((m) => String(m).toLowerCase()))].filter((m) => METHODS.includes(m)) : [],
       tabId: Number.isInteger(p.tabId) ? p.tabId : null,
       tabLabel: str(p.tabLabel, ''),
     };
@@ -192,6 +196,7 @@
       const excludedDomains = exc.filter((f) => f.type === 'domain').map((f) => f.value.trim().toLowerCase());
       if (excludedDomains.length) base.excludedRequestDomains = excludedDomains;
       if (p.tabId != null) base.tabIds = [p.tabId];
+      if (p.requestMethods.length) base.requestMethods = p.requestMethods.slice();
 
       const conditions = [];
       const incDomains = inc.filter((f) => f.type === 'domain').map((f) => f.value.trim().toLowerCase());
@@ -219,7 +224,7 @@
   }
 
   root.HeaderDial = Object.assign(root.HeaderDial || {}, {
-    SCHEMA, RESOURCE_TYPES, APPENDABLE_REQUEST, COLORS, OPS, uid, newHeader, newFilter, newProfile, defaultState,
+    SCHEMA, RESOURCE_TYPES, METHODS, APPENDABLE_REQUEST, COLORS, OPS, uid, newHeader, newFilter, newProfile, defaultState,
     normalizeState, normalizeProfile, normalizeHeader, normalizeFilter, headerProblem, filterProblem, liveHeaders,
     compile,
   });

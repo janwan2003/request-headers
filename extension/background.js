@@ -109,6 +109,15 @@ api.tabs.onRemoved.addListener(async (tabId) => {
   for (const p of state.profiles) if (p.tabId === tabId) { p.tabId = null; p.tabLabel = ''; p.active = false; changed = true; }
   if (changed) await api.storage.local.set({ state });
 });
+// Keyboard shortcut (Alt+Shift+D by default; users can change it in the browser's
+// extension shortcuts page). Pausing goes through storage like the popup's switch.
+async function togglePause() {
+  const state = await loadState();
+  state.paused = !state.paused;
+  await api.storage.local.set({ state });
+  return state.paused;
+}
+if (api.commands) api.commands.onCommand.addListener((c) => { if (c === 'toggle-pause') togglePause(); });
 api.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg && msg.type === 'sync') { sync().then(() => reply({ ok: true })); return true; }
   return false;

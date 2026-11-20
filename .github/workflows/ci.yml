@@ -29,10 +29,23 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: headerdial-extension
-          path: dist/*.zip
+          path: dist/headerdial-[0-9]*.zip
+  firefox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: firefox --version
+      - run: node scripts/build.js && node test/e2e-firefox.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: headerdial-firefox
+          path: dist/headerdial-firefox-*.zip
   deploy:
     if: github.ref == 'refs/heads/main'
-    needs: test
+    needs: [test, firefox]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
