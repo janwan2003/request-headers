@@ -99,7 +99,7 @@ about 500K Chrome users. The rest is fragmented into small or copycat listings.
 
 ## Status
 
-HeaderDial 0.7.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
+HeaderDial 0.8.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
 - **Firefox Add-ons:** submitted 2026-11-20 through the AMO API, slug `headerdial`, id
   `headerdial@plainbyte`, https://addons.mozilla.org/firefox/addon/headerdial/. Version 0.2.0
   with Markdown description and 2 screenshots; add-on status `nominated`, file `unreviewed`
@@ -107,11 +107,11 @@ HeaderDial 0.7.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and sit
   0.1.0 was superseded. **0.3.x/0.4.0 are deliberately not on AMO yet**: wait until 0.2.0 is approved
   so the first review is not disturbed, then `publish-amo.py` (version) and `--listing` (the
   description in `store/amo-listing.json` already mentions redirects, cookies and curl). Still
-  `nominated` on 2026-11-20 (session 4, 5, 6 and 7 rechecks). `amo-listing.json` now also mentions ModHeader
+  `nominated` on 2026-11-20 (session 4 to 8 rechecks). `amo-listing.json` now also mentions ModHeader
   recovery.
-- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5), 0.6.0 (session 6) and 0.7.0 (session 7), uploaded through the API on 2026-11-20 as a draft, item id
+- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5), 0.6.0 (session 6), 0.7.0 (session 7) and 0.8.0 (session 8), uploaded through the API on 2026-11-20 as a draft, item id
   `hfacpfgfdcpacffioinklbocgjiglhig` (`store/cws-item.json`, upload state SUCCESS). Publishing
-  fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in sessions 4, 5, 6 and 7) listing
+  fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in sessions 4 to 8) listing
   privacy practices, certification, language, category, icon, screenshot, description and a
   verified publisher contact email. Exact text for every field: `store/chrome-privacy.md`
   (inbox line added). Promo tiles: `store/promo-small-440x280.png`, `store/promo-marquee-1400x560.png`
@@ -139,6 +139,13 @@ What exists:
   if the profile has one); Store adds one `Set-Cookie` line per row with attributes. ModHeader
   `cookieHeaders`/`setCookieHeaders` import as these rows. **Copy as curl…** (profile ⋯ menu) builds a
   curl command for the tab's URL (removes as `-H 'Name:'`, cookies as `-b`, browser-only parts as comments).
+  **Paste a copied request** (0.8.0, `extension/lib/paste.js`; Import… dialog shows a tick list before importing): curl in bash form
+  (incl. `$'...'`) and Windows cmd form (`^"`, `\^"` and the newer `""`), DevTools "Copy as fetch" (Chrome, Chrome Node.js, Firefox
+  `await fetch`), raw header lines (HTTP/1.1 request line, HTTP/2 `:authority:`), a JSON object of headers. In a browser copy (has
+  `sec-fetch-*`/`sec-ch-ua*`, or a DevTools fetch) the browser's own headers and cookies come unticked; `-u` becomes Basic, `--oauth2-bearer`
+  Bearer, `-H 'X:'` a remove row; the profile gets a Domain filter for the URL's host (tick box). Formats were checked by a subagent against
+  the generators' source (devtools-frontend NetworkLogView.ts, gecko-dev devtools/client/shared/curl.js); not checked by pasting from a real
+  DevTools UI. Site tool page `guides/curl-to-browser-headers.html` runs the same code. The share page now lists cookie and redirect rows.
   **ModHeader recovery** (0.5.0): `extension/lib/leveldb.js` is our own read-only LevelDB reader (log records,
   .ldb/.sst tables, snappy) that finds ModHeader-shaped profiles in a disabled extension's `Local Extension
   Settings/<id>` (or `Sync Extension Settings`, or `Local Storage/leveldb`) folder, newest value per key. Used by
@@ -161,8 +168,8 @@ What exists:
   share page, how-to guides plus a hub, sitemap.xml, robots.txt, `/download/headerdial.zip`.
 - `store/LISTING.md` (CWS/Edge text + AMO notes), `store/amo-listing.json`, two 1280×800 screenshots.
 
-Verified on 2026-11-20 (0.7.0) locally and in CI run 44764858148 (see Log, session 7): unit 34/34 (incl. a 400-state property test comparing compiled
-rules to intended per-profile behaviour); Chromium e2e 32/32 (Chrome for Testing 159.0.8154.6); Firefox e2e 21/21 in Firefox 158.0.1 over WebDriver BiDi
+Verified on 2026-11-20 (0.8.0) locally and in CI (see Log, session 8): unit 45/45 (incl. a 400-state property test comparing compiled
+rules to intended per-profile behaviour); Chromium e2e 34/34 (Chrome for Testing 159.0.8154.6); Firefox e2e 22/22 in Firefox 158.0.1 over WebDriver BiDi
 (request set/remove/override, response header, fetch, domain/regex/method filters, URL redirects in
 both modes, cookie rows, empty-value rows, pause, no change without host access, access banner, shortcut).
 The Chromium e2e also opens the real toolbar popup (`chrome.action.openPopup()` over CDP) with
@@ -180,7 +187,7 @@ check the binding and call the handler).
    and `--status` until published; switch the Chrome install section of `site/index.html` from the
    zip to the store link. This is the biggest lever: ~900K displaced Chrome users.
 2. **AMO follow-through:** `python3 scripts/publish-amo.py --status` until 0.2.0 is `public`. Then
-   submit the current version, 0.5.0 (`publish-amo.py`, then `--listing`), change the Firefox install line on
+   submit the current version, 0.8.0 (`publish-amo.py`, then `--listing`), change the Firefox install line on
    `site/index.html` and `guides/modify-headers-firefox.html` from "in review" to live, and record
    AMO daily users in Metrics.
 3. **Search Console:** `python3 scripts/gsc.py status` from about 2026-11-27 for indexing and the
@@ -199,7 +206,11 @@ check the binding and call the handler).
 7. More recipes once GSC shows which queries land (each recipe should have a guide, as CORS and iframe do). Consider letting the
    iframe recipe tick the `sub_frame` request type when the profile has no other rows (now it removes CSP on page loads too unless
    the user adds a Domain filter; the guide says to).
-8. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
+8. Paste import, continued: Firefox's POSIX "Copy as cURL" writes `&` and `|` as `^&`/`^|` inside quotes (upstream bug, per the
+   format check); the parser keeps the caret (a real `^&` looks the same). Only matters for header values with `&`; host extraction is
+   unaffected. Consider stripping it when the copy is clearly from Firefox (Title-Case `Sec-Fetch-*`). Watch GSC for "curl" queries
+   landing on the tool page; if they come, add "Copy as fetch to headers" and "Postman headers to browser" pages.
+9. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
    the chrome scope) and the matched-request count (needs an activeTab grant from a real click).
 
 ## Metrics
@@ -222,6 +233,10 @@ check the binding and call the handler).
 - 2026-11-20 (session 7): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed`; CWS `--publish` 400, dashboard unfilled;
   draft now 0.7.0). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for 2026-10-23..11-20. Sitemap: 33 URLs
   (live, curl), resubmitted (`gsc.py submit` 204).
+
+- 2026-11-20 (session 8): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS `--publish` 400
+  on the same dashboard fields; draft now 0.8.0). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for
+  2026-10-23..11-20. Sitemap: 34 URLs (live, curl), resubmitted (`gsc.py submit` 204).
 
 ## Monetization plan
 
@@ -345,3 +360,16 @@ that is how the incumbent died.
   Firefox e2e 21/21 locally; CI 44764858148 (commit 48501b9) passed (test, firefox, deploy). Live (curl): both guides and the hub 200,
   landing has the recipes card, /download/headerdial.zip is 0.7.0 with `applyRecipe`, sitemap 33 URLs, `gsc.py submit` 204. CWS draft
   upload 0.7.0 SUCCESS (`--status` crxVersion 0.7.0).
+- 2026-11-20 builder (session 8): channels unchanged (AMO `nominated`, CWS `--publish` 400, GSC no rows). Built 0.8.0: **paste a request
+  copied from DevTools to make a profile** (curl bash/cmd, fetch, header lines, JSON headers; `extension/lib/paste.js`), with a tick-list
+  preview in Import… that unticks the browser's own headers and cookies and adds a Domain filter for the URL's host. A subagent checked the
+  formats against the Chromium and Firefox DevTools generator source and found 2 misparses (Chrome's newer cmd `""` quote, Node.js fetch
+  cookies ticked) and 2 gaps (POST without `-X`, `\[` in `--url`); all fixed, its verbatim samples are now fixtures. Second subagent built the
+  tool page `guides/curl-to-browser-headers.html` (HowTo JSON-LD, runs locally, share link / JSON download, "leave values empty"). The share
+  page now lists cookie and redirect rows (was headers only); `parseImport` accepts share links with any URL scheme. Tests: unit 45/45 (11
+  new), Chromium e2e 34/34 (new: curl import through the dialog with ticks and host filter checked against the echo server; tool page with no
+  network requests), Firefox e2e 22/22 (new: curl-made profile applies in Firefox 158). CI 44768441229 (commit 702e1a1) passed (test,
+  firefox, deploy). Live (curl + headless Chrome 159 against the live URL): tool page, js/paste.js, guides hub 200; example ticks
+  authorization, x-feature-flags, x-tenant-id; 0 requests after load; its share link opens on the live share page with 3 rows; zip is 0.8.0
+  with lib/paste.js; sitemap 34 URLs, `gsc.py submit` 204. CWS draft upload 0.8.0 SUCCESS (`--status` crxVersion 0.8.0). Not verified:
+  pasting from a real DevTools UI (formats come from reading the generators' source), Edge.
