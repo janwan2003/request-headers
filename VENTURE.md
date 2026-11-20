@@ -489,3 +489,9 @@ that is how the incumbent died.
   themselves. Tests: unit 107/107 (8 new incl. every captured text recognised); Chromium e2e 43/43 locally (new: Chrome's real SameSiteNoneInsecure
   refusal over CDP → explainer → its profile → the cookie is stored as Secure; SameSite=None on http://localhost and sent cross-site; page test with
   no network; every site page ≤390px wide). Firefox e2e not run locally (extension code unchanged; CI runs it).
+  CI 44788404871 (commit af53991): attempt 1 firefox job failed before any test ("Firefox did not start BiDi" within 30 s on the runner: infra,
+  nothing ran); attempt 2 on the identical commit passed test, firefox, deploy. Live (curl + headless Chrome 159 on the live URL): page,
+  js/cookie-explain.js, hub, style.css 200; sitemap 39 URLs incl. the explainer; "Chrome Lax by default" example → samesite-default-lax, "vercel.app
+  is a public suffix", fixed line `sid=s%3Aj2k1; Path=/; Secure; HttpOnly; SameSite=None`, share link = Store row on shop-api.vercel.app and opens on
+  the share page; 0 requests after load; 390px wide; `gsc.py submit` 204. Not verified: the page in Firefox or Safari (Chromium only), Edge, pasting
+  from a real DevTools tooltip (texts read from the shipped locale file and CDP reasons, not copied from the UI).
