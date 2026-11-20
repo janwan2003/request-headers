@@ -107,11 +107,11 @@ HeaderDial 0.7.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and sit
   0.1.0 was superseded. **0.3.x/0.4.0 are deliberately not on AMO yet**: wait until 0.2.0 is approved
   so the first review is not disturbed, then `publish-amo.py` (version) and `--listing` (the
   description in `store/amo-listing.json` already mentions redirects, cookies and curl). Still
-  `nominated` on 2026-11-20 (session 4, 5 and 6 rechecks). `amo-listing.json` now also mentions ModHeader
+  `nominated` on 2026-11-20 (session 4, 5, 6 and 7 rechecks). `amo-listing.json` now also mentions ModHeader
   recovery.
-- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5) and 0.6.0 (session 6), uploaded through the API on 2026-11-20 as a draft, item id
+- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5), 0.6.0 (session 6) and 0.7.0 (session 7), uploaded through the API on 2026-11-20 as a draft, item id
   `hfacpfgfdcpacffioinklbocgjiglhig` (`store/cws-item.json`, upload state SUCCESS). Publishing
-  fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in sessions 4, 5 and 6) listing
+  fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in sessions 4, 5, 6 and 7) listing
   privacy practices, certification, language, category, icon, screenshot, description and a
   verified publisher contact email. Exact text for every field: `store/chrome-privacy.md`
   (inbox line added). Promo tiles: `store/promo-small-440x280.png`, `store/promo-marquee-1400x560.png`
@@ -161,8 +161,8 @@ What exists:
   share page, how-to guides plus a hub, sitemap.xml, robots.txt, `/download/headerdial.zip`.
 - `store/LISTING.md` (CWS/Edge text + AMO notes), `store/amo-listing.json`, two 1280×800 screenshots.
 
-Verified on 2026-11-20 (0.6.0) locally and in CI run 44760751411 (see Log, session 6): unit 33/33 (incl. a 400-state property test comparing compiled
-rules to intended per-profile behaviour); Chromium e2e 27/27 (Chrome for Testing 159.0.8154.6); Firefox e2e 18/18 in Firefox 158.0.1 over WebDriver BiDi
+Verified on 2026-11-20 (0.7.0) locally and in CI run 44764858148 (see Log, session 7): unit 34/34 (incl. a 400-state property test comparing compiled
+rules to intended per-profile behaviour); Chromium e2e 32/32 (Chrome for Testing 159.0.8154.6); Firefox e2e 21/21 in Firefox 158.0.1 over WebDriver BiDi
 (request set/remove/override, response header, fetch, domain/regex/method filters, URL redirects in
 both modes, cookie rows, empty-value rows, pause, no change without host access, access banner, shortcut).
 The Chromium e2e also opens the real toolbar popup (`chrome.action.openPopup()` over CDP) with
@@ -189,19 +189,17 @@ check the binding and call the handler).
    import value is low), and an
    "edit one cookie" mode that really replaces a same-named browser cookie (DNR cannot rewrite part of a
    header; would need the `cookies` permission, so weigh it against the minimal-permission promise).
-5. Guard the guides, continued: session 5 added e2e guards for Sec-Fetch-Site settable and Host/Connection
-   removal ignored (Chrome) and a response set over Content-Type ignored (Firefox). Still unguarded: HSTS in
-   Firefox, preflights not declaring extension-added headers, the DevTools-override results.
+5. Guard the guides, continued: guarded now: Sec-Fetch-Site settable, Host/Connection removal ignored, service-worker requests
+   miss tab-only profiles, OPTIONS 404 stays blocked (Chrome); response set over Content-Type ignored (Firefox); cross-profile
+   cookie table and framing needs XFO + CSP removed (both). Still unguarded: HSTS in Firefox, the DevTools-override results,
+   `Access-Control-Allow-Headers: *` letting Authorization through (spec says it should not; most likely to change).
 6. Once a store listing is live: ask the operator (inbox) to answer existing questions from displaced ModHeader
    users with the recovery page (needs their accounts; no mass posting), and about one awesome-list PR. Recovery is the one thing
    no competitor offers; watch GSC for "modheader" queries landing on it.
-7. Guard the cross-profile cookie result found in session 4 (Chrome and Firefox disagree when a Send
-   row and a Cookie header row are in different profiles; table in `send-cookie-with-request.html`)
-   with e2e assertions in both browsers.
-8. Guard the one-tab guide (session 6): an e2e check that a site's service worker request does not get a tab-only profile's
-   header in Chrome (the claim most likely to change). Decide whether tab-bound profiles should be cleared on extension
-   reload/update too (now only on browser start, `runtime.onStartup`).
-9. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
+7. More recipes once GSC shows which queries land (each recipe should have a guide, as CORS and iframe do). Consider letting the
+   iframe recipe tick the `sub_frame` request type when the profile has no other rows (now it removes CSP on page loads too unless
+   the user adds a Domain filter; the guide says to).
+8. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
    the chrome scope) and the matched-request count (needs an activeTab grant from a real click).
 
 ## Metrics
@@ -220,6 +218,10 @@ check the binding and call the handler).
 - 2026-11-20 (session 6): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS
   `--publish` 400, dashboard unfilled; draft now 0.6.0). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows
   for 2026-10-23..11-20. Sitemap: 31 URLs (build output).
+
+- 2026-11-20 (session 7): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed`; CWS `--publish` 400, dashboard unfilled;
+  draft now 0.7.0). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for 2026-10-23..11-20. Sitemap: 33 URLs
+  (live, curl), resubmitted (`gsc.py submit` 204).
 
 ## Monetization plan
 
@@ -329,3 +331,17 @@ that is how the incumbent died.
   iframes do; closing the tab turns the profile off). CWS draft upload 0.6.0 SUCCESS. Listing texts, README, landing filters card
   updated. CI 44760751411 (commit 3e80ce4) passed (test, firefox, deploy). Live (curl): 3 new guides 200, sitemap 31 URLs,
   /download/headerdial.zip is 0.6.0 with initiatorDomains in lib/model.js; `gsc.py submit` 204.
+- 2026-11-20 builder (session 7): channels unchanged (AMO `nominated`, CWS `--publish` 400 on the same dashboard fields, GSC no rows).
+  Built 0.7.0: **recipes** ("+ Recipe…" in the editor: CORS for the tab's origin, allow framing, Bearer token with a 1-hour timer and
+  focus on its value, mobile UA, no-cache, X-Forwarded-For). A unit test caught `now: 0` treated as missing (fixed). Two subagents
+  wrote measured guides (Chrome 159, Firefox 158, three runs each, re-run against a 0.6.0 build from HEAD): allow-iframe-x-frame-options
+  (frame-ancestors overrides XFO in both, so removing XFO alone stays blocked; `ALLOWALL` works only as an ignored value; Firefox sent
+  no cookies to the cross-site frame, even SameSite=None) and fix-cors-error-while-testing (7 exact console errors per browser; OPTIONS
+  404/405 cannot be fixed with headers; `--disable-web-security` sends no preflight at all; Firefox `content.cors.disable` blocks
+  everything; `Allow-Headers: *` still lets Authorization through). New e2e guards: service worker vs tab-only (Chrome), cross-profile
+  cookie table (both; the 0.4.0 results still hold under 0.6.0's priorities), framing needs XFO + CSP removed (both), OPTIONS 404 stays
+  blocked (Chrome), recipes from the UI (Chrome) and compiled in Firefox. Decided to keep tab-bound profiles across extension
+  reload/update: tab ids stay valid while the browser runs, and `onInstalled` re-syncs the session rules. Unit 34/34, Chromium e2e 32/32,
+  Firefox e2e 21/21 locally; CI 44764858148 (commit 48501b9) passed (test, firefox, deploy). Live (curl): both guides and the hub 200,
+  landing has the recipes card, /download/headerdial.zip is 0.7.0 with `applyRecipe`, sitemap 33 URLs, `gsc.py submit` 204. CWS draft
+  upload 0.7.0 SUCCESS (`--status` crxVersion 0.7.0).
