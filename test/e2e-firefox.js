@@ -268,6 +268,17 @@ async function launch() {
   await s.setState(`p.headers = p.headers.filter((h) => h.name !== 'X-Empty');`);
   ok('Firefox: an empty header value skips only that row, not the whole profile');
 
+  // Guide guard: guides/headers-browsers-wont-let-you-change.html and override-content-type-header.html
+  // say Firefox ignores a response "set" over an existing Content-Type, but adds a new header fine.
+  await s.go(A + '/');
+  st = await s.setState(`p.headers.push(HeaderDial.newHeader('response', { name: 'Content-Type', value: 'text/plain' }));`);
+  assert.deepStrictEqual(st.problems.filter((x) => !/X-Empty/.test(x.message)), []);
+  const ct = JSON.parse(await s.run(`fetch('${A}/echo?ct').then((r) => JSON.stringify({ ct: r.headers.get('content-type'), x: r.headers.get('x-served-by') }))`));
+  assert.strictEqual(ct.x, 'headerdial', 'the same profile\'s new response header still applies');
+  assert.strictEqual(ct.ct, 'application/json', 'Firefox still ignores a set over an existing Content-Type (guide claim)');
+  await s.setState(`p.headers = p.headers.filter((h) => h.name !== 'Content-Type');`);
+  ok('Firefox: guide claim holds, a response set over an existing Content-Type is ignored');
+
   // Pause.
   st = await s.setState(`s.paused = true; p.filters = [];`);
   got = await s.echo();

@@ -432,6 +432,27 @@ async function fetchVia(page, url) {
   assert.strictEqual(await corsTry(B + '/nocors?pre', true), 'ok');
   ok('a preflighted request (custom header) also succeeds: the added headers apply to the OPTIONS response too');
 
+  // Guide guard: guides/headers-browsers-wont-let-you-change.html says Chrome lets an extension
+  // set Sec-Fetch-Site, but removing Host or Connection has no effect. Fail if a release changes that.
+  {
+    const saved = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state);
+    await ui.evaluate(async () => {
+      await chrome.storage.local.set({ state: { profiles: [{ id: 'guard', name: 'Guard', active: true, headers: [
+        { target: 'request', name: 'Sec-Fetch-Site', value: 'hd-guard' },
+        { target: 'request', name: 'Host', op: 'remove', value: '' },
+        { target: 'request', name: 'Connection', op: 'remove', value: '' }] }] } });
+    });
+    await settle();
+    const got = await until(async () => { const g = await echoVia(page, A + '/echo'); return g['sec-fetch-site'] === 'hd-guard' && g; }, 'Sec-Fetch-Site set');
+    assert.strictEqual(got.host, `127.0.0.1:${port}`, 'removing Host has no effect (guide claim)');
+    assert.ok(got.connection, 'removing Connection has no effect in Chrome (guide claim)');
+    const st = await status();
+    assert.deepStrictEqual(st.problems, [], 'the browser accepted the rule; it just ignores the removals');
+    await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
+    await settle();
+    ok('guide claims hold in this Chrome: Sec-Fetch-Site can be set, Host and Connection cannot be removed');
+  }
+
   if (SHOTS) {
     await ui.setViewportSize({ width: 1280, height: 800 });
     await ui.reload();

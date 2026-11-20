@@ -4,6 +4,7 @@
   python3 scripts/gsc.py token    # print the META verification tag to put in site/index.html
   python3 scripts/gsc.py verify   # after the tag is live: verify, add the site, submit the sitemap
   python3 scripts/gsc.py status   # sitemap state + last 28 days of queries and pages
+  python3 scripts/gsc.py submit   # resubmit the sitemap after adding pages
 
 Reads CWS_CLIENT_ID / CWS_CLIENT_SECRET / GSC_REFRESH_TOKEN from the studio .env and never
 prints them. The token also sees the operator's other sites: this script only ever names SITE.
@@ -51,6 +52,8 @@ def main(cmd):
                     {"site": {"type": "SITE", "identifier": SITE}})
         print("verify", s, "ok" if s == 200 else r)  # a 200 body lists owner emails: never print it
         print("add site", *call(tok, "PUT", wm))
+        print("submit sitemap", *call(tok, "PUT", f"{wm}/sitemaps/" + urllib.parse.quote(SITEMAP, safe="")))
+    elif cmd == "submit":  # resubmit the sitemap after adding pages
         print("submit sitemap", *call(tok, "PUT", f"{wm}/sitemaps/" + urllib.parse.quote(SITEMAP, safe="")))
     elif cmd == "status":
         s, r = call(tok, "GET", f"{wm}/sitemaps")
