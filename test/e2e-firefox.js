@@ -352,6 +352,20 @@ async function launch() {
     ok('Firefox: every recipe compiles to rules Firefox accepts, and the request rows arrive');
   }
 
+  // A DevTools-style curl command becomes a profile Firefox accepts (paste.js loads in the editor page).
+  {
+    const orig = await s.run(`chrome.storage.local.get('state').then((x) => JSON.stringify(x.state.profiles))`);
+    const curl = JSON.stringify(`curl '${A}/api' \\\n  -H 'Authorization: Bearer ff-curl' \\\n  -H 'Accept: text/x-frozen' \\\n  -H 'Cookie: sid=frozen' \\\n  -H 'Sec-Fetch-Mode: cors' \\\n  -H $'X-Quote: it\\'s'`);
+    st = await s.setState(`s.profiles = [HeaderDial.profileFromRequest(HeaderDial.parseRequestText(${curl}))];`);
+    assert.deepStrictEqual(st.problems, [], JSON.stringify(st.problems));
+    const g = await s.echo();
+    assert.deepStrictEqual([g.authorization, g['x-quote']], ['Bearer ff-curl', "it's"]);
+    assert.notStrictEqual(g.accept, 'text/x-frozen');
+    assert.ok(!String(g.cookie || '').includes('sid=frozen'));
+    await s.setState(`s.profiles = HeaderDial.normalizeState({ profiles: ${orig} }).profiles;`);
+    ok('Firefox: a pasted curl command becomes a profile with only the non-browser headers, and they arrive');
+  }
+
   // Guide guard (allow-iframe-x-frame-options.html): removing X-Frame-Options alone still blocks
   // a page that also sends CSP frame-ancestors; removing both loads it.
   {

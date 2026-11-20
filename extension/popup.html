@@ -35,8 +35,9 @@
 <dialog id="import-dialog">
   <form method="dialog" class="dlg">
     <h2>Import profiles</h2>
-    <p class="muted">Paste a HeaderDial export, a HeaderDial share link, or a ModHeader profile export. Or choose a .json file, or the .ldb and .log files from a disabled ModHeader's data folder (<a href="https://janwan2003.github.io/request-headers/guides/recover-modheader-profiles.html" target="_blank" rel="noopener">where to find them</a>).</p>
-    <textarea id="import-text" rows="8" spellcheck="false" placeholder='[{"title": "Profile 1", "headers": [...]}]'></textarea>
+    <p class="muted">Paste a request copied from DevTools or Postman (<strong>Copy as cURL</strong>, Copy as fetch, or header lines), a HeaderDial export or share link, or a ModHeader profile export. Or choose a .json file, or the .ldb and .log files from a disabled ModHeader's data folder (<a href="https://janwan2003.github.io/request-headers/guides/recover-modheader-profiles.html" target="_blank" rel="noopener">where to find them</a>).</p>
+    <textarea id="import-text" rows="8" spellcheck="false" placeholder="curl 'https://api.example.com/' -H 'Authorization: Bearer …'"></textarea>
+    <div id="import-preview" hidden></div>
     <div class="row">
       <input type="file" id="import-file" multiple accept=".json,application/json,text/plain,.ldb,.log">
       <label><input type="checkbox" id="import-replace"> Replace existing profiles</label>
@@ -89,6 +90,7 @@
 <script src="lib/model.js"></script>
 <script src="lib/transfer.js"></script>
 <script src="lib/leveldb.js"></script>
+<script src="lib/paste.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

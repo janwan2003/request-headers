@@ -397,12 +397,41 @@ $('share-copy').addEventListener('click', async (e) => {
 });
 
 $('import').addEventListener('click', () => { $('import-msg').textContent = ''; $('import-dialog').showModal(); });
+
+// A request pasted from DevTools (curl, fetch, header lines): show what the profile will
+// send, with the browser's own headers unticked, before importing.
+let pasteReq = null, pasteFor = null;
+const PASTE_WHAT = { curl: 'a curl command', fetch: 'a fetch() call', headers: 'header lines', 'JSON headers': 'a JSON object of headers' };
+function renderPastePreview() {
+  const box = $('import-preview');
+  box.textContent = '';
+  pasteReq = null;
+  pasteFor = $('import-text').value;
+  try { pasteReq = HD.parseRequestText($('import-text').value); } catch (_) { pasteReq = null; }
+  box.hidden = !pasteReq;
+  if (!pasteReq) return;
+  const req = pasteReq;
+  const short = (v) => (v.length > 70 ? v.slice(0, 70) + '…' : v);
+  box.append(el('p', { class: 'muted' }, `Recognised ${PASTE_WHAT[req.source]}${req.host ? ' for ' + req.host : ''}. Tick what the new profile should send:`));
+  box.append(el('ul', { class: 'pick' }, req.items.map((it) => el('li', {},
+    el('label', { title: it.value },
+      el('input', { type: 'checkbox', checked: it.keep, onchange: (e) => { it.keep = e.target.checked; } }),
+      el('code', {}, (it.kind === 'cookie' ? 'Cookie ' + it.name + '=' : it.name + (it.remove ? ' (remove)' : ': ')) + (it.remove ? '' : short(it.value))),
+      it.why ? el('span', { class: 'why' }, it.why) : null)))));
+  if (req.host) {
+    box.append(el('label', {}, el('input', { type: 'checkbox', id: 'import-onlyhost', checked: true }),
+      ` Only on ${req.host} and its subdomains (Domain filter)`));
+  }
+  for (const n of req.notes) box.append(el('p', { class: 'muted' }, n));
+}
+let pasteTimer = null;
+$('import-text').addEventListener('input', () => { clearTimeout(pasteTimer); pasteTimer = setTimeout(renderPastePreview, 120); });
 $('import-file').addEventListener('change', async (e) => {
   const files = [...e.target.files];
   const msg = $('import-msg');
   msg.textContent = '';
   const db = files.filter((f) => /\.(ldb|log|sst)$/i.test(f.name));
-  if (!db.length) { if (files[0]) $('import-text').value = await files[0].text(); return; }
+  if (!db.length) { if (files[0]) { $('import-text').value = await files[0].text(); renderPastePreview(); } return; }
   // LevelDB files from a disabled ModHeader: read locally, keep the largest profile set.
   const input = await Promise.all(db.map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })));
   const r = self.HeaderDialLevelDB.findModHeaderProfiles(input);
@@ -420,8 +449,18 @@ $('import-file').addEventListener('change', async (e) => {
 $('import-go').addEventListener('click', (e) => {
   e.preventDefault();
   const msg = $('import-msg');
+  clearTimeout(pasteTimer);
+  if ($('import-text').value !== pasteFor) renderPastePreview();
   try {
-    const res = HD.parseImport($('import-text').value);
+    let res;
+    if (pasteReq) {
+      const onlyHost = !!($('import-onlyhost') && $('import-onlyhost').checked);
+      const p = HD.profileFromRequest(pasteReq, { onlyHost, index: state.profiles.length });
+      if (!p.headers.length && !p.cookies.length) throw new Error('Tick at least one header or cookie to import.');
+      res = { source: PASTE_WHAT[pasteReq.source], profiles: [p], warnings: [] };
+      const n = p.headers.length + p.cookies.length;
+      res.warnings.push(`${n} row${n > 1 ? 's' : ''}` + (p.filters.length ? `, only on ${pasteReq.host}.` : ', on every site (no Domain filter).'));
+    } else res = HD.parseImport($('import-text').value);
     if ($('import-replace').checked) state.profiles = res.profiles;
     else state.profiles = state.profiles.concat(res.profiles);
     state.selectedId = res.profiles[0].id;
@@ -430,6 +469,7 @@ $('import-go').addEventListener('click', (e) => {
     msg.textContent = `Imported ${res.profiles.length} profile${res.profiles.length > 1 ? 's' : ''} from ${res.source}.` +
       (res.warnings.length ? '\n' + res.warnings.join('\n') : '');
     $('import-text').value = '';
+    renderPastePreview();
   } catch (err) {
     msg.className = 'msg err'; msg.textContent = err.message;
   }

@@ -18,7 +18,7 @@ copyDir(path.join(root, 'extension'), ext);
 copyDir(path.join(root, 'site'), site);
 // The share page decodes links with the same code the extension uses.
 fs.mkdirSync(path.join(site, 'js'), { recursive: true });
-for (const f of ['model.js', 'transfer.js', 'leveldb.js']) fs.copyFileSync(path.join(root, 'extension/lib', f), path.join(site, 'js', f));
+for (const f of ['model.js', 'transfer.js', 'leveldb.js', 'paste.js']) fs.copyFileSync(path.join(root, 'extension/lib', f), path.join(site, 'js', f));
 fs.copyFileSync(path.join(root, 'extension/icons/128.png'), path.join(site, 'icon.png'));
 fs.copyFileSync(path.join(root, 'extension/icons/32.png'), path.join(site, 'favicon.png'));
 

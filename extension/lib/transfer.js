@@ -105,13 +105,24 @@
   function parseImport(text) {
     let t = String(text || '').trim();
     if (!t) throw new Error('Nothing to import.');
-    if (/^https?:\/\//i.test(t)) {
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(t)) {
       const m = t.match(/#p=([A-Za-z0-9_-]+)/);
       if (!m) throw new Error('This link has no HeaderDial profile in it.');
       try { t = b64urlDecode(m[1]); } catch (e) { throw new Error('This share link is damaged.'); }
     }
+    // A copied request (curl, fetch, raw header lines, a JSON object of headers).
+    const req = HD.parseRequestText ? HD.parseRequestText(t) : null;
+    if (req) {
+      const p = HD.profileFromRequest(req);
+      if (!p.headers.length && !p.cookies.length) throw new Error('Nothing to import: every header in it is one the browser sends itself.');
+      return { source: req.source === 'curl' ? 'a curl command' : req.source === 'fetch' ? 'a fetch() call' : 'pasted headers',
+        profiles: [p], warnings: req.notes.slice(), request: req };
+    }
     let data;
-    try { data = JSON.parse(t); } catch (e) { throw new Error('This is not valid JSON: ' + e.message); }
+    try { data = JSON.parse(t); } catch (e) {
+      if (/^[[{]/.test(t)) throw new Error('This is not valid JSON: ' + e.message);
+      throw new Error('Unrecognised format. Paste a HeaderDial export, a share link, a ModHeader profile export, a curl command, or header lines (Name: value).');
+    }
     const warnings = [];
     if (data && data.format === FORMAT && Array.isArray(data.profiles)) {
       const profiles = data.profiles.map((p, i) => HD.normalizeProfile(Object.assign({}, p, {
@@ -130,7 +141,7 @@
     if (list && list.length && list.every(looksLikeModHeader)) {
       return { source: 'ModHeader', profiles: list.map((m, i) => fromModHeader(m, i, warnings)), warnings };
     }
-    throw new Error('Unrecognised format. Paste a HeaderDial export, a share link, or a ModHeader profile export.');
+    throw new Error('Unrecognised format. Paste a HeaderDial export, a share link, a ModHeader profile export, a curl command, or header lines (Name: value).');
   }
 
   // Quote one argument for a POSIX shell.

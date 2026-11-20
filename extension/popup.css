@@ -87,4 +87,11 @@ dialog::backdrop { background: #0005; }
 .msg { min-height: 1.2em; font-size: 12px; white-space: pre-line; }
 .msg.err { color: var(--err); }
 .msg.ok { color: var(--ok); }
+.pick { list-style: none; margin: 4px 0; padding: 0; max-height: 200px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+.pick li { padding: 3px 6px; font-size: 12px; }
+.pick li + li { border-top: 1px solid var(--line); }
+.pick label { display: flex; gap: 6px; align-items: baseline; }
+.pick code { word-break: break-all; }
+.pick .why { color: var(--muted); }
+#import-preview { font-size: 12px; }
 .empty { color: var(--muted); font-size: 12px; padding: 2px 0; }

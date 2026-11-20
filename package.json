@@ -1,6 +1,6 @@
 {
   "name": "headerdial",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "HeaderDial: open-source browser extension to modify HTTP request and response headers",
   "license": "MIT",

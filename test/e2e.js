@@ -383,6 +383,38 @@ async function fetchVia(page, url) {
     ok('import dialog reads a disabled ModHeader\'s LevelDB files into importable JSON');
   }
 
+  // A request copied from DevTools ("Copy as cURL"): the preview unticks what the browser sends
+  // itself, a tick the user removes is respected, and the profile only applies on the URL's host.
+  {
+    const saved = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state);
+    const curl = [`curl '${B}/api/me' \\`, "  -H 'accept: text/x-frozen' \\", "  -H 'authorization: Bearer e2e-token' \\",
+      "  -b 'sid=frozen' \\", "  -H 'sec-fetch-mode: cors' \\", "  -H 'x-tenant: acme' \\", "  -H $'x-quote: it\\'s'"].join('\n');
+    await ui.click('#import');
+    await ui.locator('#import-text').fill(curl);
+    await until(async () => /Recognised a curl command for localhost/.test(await ui.locator('#import-preview').innerText()), 'curl preview');
+    const rows = await ui.locator('#import-preview li').evaluateAll((lis) => lis.map((li) => [li.querySelector('code').textContent, li.querySelector('input').checked]));
+    assert.deepStrictEqual(rows, [['accept: text/x-frozen', false], ['authorization: Bearer e2e-token', true], ['Cookie sid=frozen', false],
+      ['sec-fetch-mode: cors', false], ['x-tenant: acme', true], ["x-quote: it's", true]]);
+    await ui.locator('#import-preview li:has-text("x-tenant") input').uncheck();
+    if (SHOTS) await ui.screenshot({ path: path.join(SHOTS, 'import-curl.png') });
+    await ui.click('#import-go');
+    await until(async () => /Imported 1 profile from a curl command\.\n2 rows, only on localhost\./.test(await ui.locator('#import-msg').innerText()), 'curl import message');
+    assert.strictEqual(await ui.locator('#import-preview').isHidden(), true, 'preview cleared after import');
+    await ui.locator('#import-dialog button[value=cancel]').click();
+    await settle();
+    const got = await until(async () => { const g = await echoVia(page, B + '/echo'); return g.authorization === 'Bearer e2e-token' && g; }, 'curl profile applied');
+    assert.strictEqual(got['x-quote'], "it's");
+    assert.strictEqual(got['x-tenant'], undefined, 'unticked row not imported');
+    assert.notStrictEqual(got.accept, 'text/x-frozen', 'browser header left alone');
+    assert.ok(!String(got.cookie || '').includes('sid=frozen'), 'browser cookie not copied');
+    assert.strictEqual((await echoVia(page, A + '/echo')).authorization, undefined, 'only on the curl URL\'s host');
+    const names = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state.profiles.map((p) => p.name));
+    assert.ok(names.includes('localhost (curl)'), names.join());
+    await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
+    await settle();
+    ok('a DevTools curl command imports through the dialog: browser headers unticked, ticks respected, only on its host');
+  }
+
   // Timed header: expires on its own.
   await ui.evaluate(async () => {
     const { state } = await chrome.storage.local.get('state');
@@ -707,6 +739,30 @@ async function fetchVia(page, url) {
     await until(async () => /No LevelDB files/.test(await page.locator('#status').innerText()), 'no-data message');
     assert.deepStrictEqual(errors, []);
     ok('recover page reads a real Chromium LevelDB folder locally and downloads the newest ModHeader profiles');
+    await browser.close();
+  }
+
+  // ---- 6. The "curl to browser headers" tool page (no extension): the example's browser
+  // headers come unticked, and the share link carries the ticked rows and the Domain filter.
+  {
+    const browser = await chromium.launch({ executablePath: fs.existsSync(CHROME) ? CHROME : undefined, headless: true });
+    const page = await (await browser.newContext()).newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    page.on('request', (r) => { if (!r.url().startsWith('file:')) errors.push('network request: ' + r.url()); });
+    await page.goto('file://' + path.join(root, 'dist/site/guides/curl-to-browser-headers.html'));
+    await page.click('#example');
+    await until(async () => /Read as a curl command/.test(await page.locator('#status').innerText()), 'tool page parsed the example');
+    const ticked = await page.locator('#items tbody tr').evaluateAll((trs) => trs.filter((tr) => tr.querySelector('input').checked)
+      .map((tr) => tr.cells[1].textContent.trim()));
+    assert.deepStrictEqual(ticked, ['authorization', 'x-feature-flags', 'x-tenant-id']);
+    await page.click('#copy');
+    const link = await page.locator('#link').inputValue();
+    const p = await page.evaluate((l) => HeaderDial.parseImport(l).profiles[0], link);
+    assert.deepStrictEqual(p.headers.map((h) => h.name), ['authorization', 'x-feature-flags', 'x-tenant-id']);
+    assert.deepStrictEqual(p.filters.map((f) => [f.type, f.value]), [['domain', 'api.staging.example.com']]);
+    assert.deepStrictEqual(errors, []);
+    ok('curl tool page: example parsed locally, browser headers unticked, share link holds the ticked rows and the domain filter');
     await browser.close();
   }
 

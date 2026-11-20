@@ -30,6 +30,17 @@
       [h.enabled ? 'on' : 'off', (h.target === 'response' ? 'Response: ' : 'Request: ') + h.name, h.op, h.op === 'remove' ? '' : h.value].forEach(function (v) { tr.appendChild(cell(v)); });
       table.appendChild(tr);
     });
+    (p.cookies || []).forEach(function (c) {
+      var tr = document.createElement('tr');
+      [c.enabled ? 'on' : 'off', (c.target === 'response' ? 'Store cookie: ' : 'Send cookie: ') + c.name, c.target === 'response' ? 'Set-Cookie' : 'add to Cookie',
+        c.value + (c.target === 'response' && c.attrs ? '; ' + c.attrs : '')].forEach(function (v) { tr.appendChild(cell(v)); });
+      table.appendChild(tr);
+    });
+    (p.redirects || []).forEach(function (r) {
+      var tr = document.createElement('tr');
+      [r.enabled ? 'on' : 'off', 'Redirect (' + r.mode + '): ' + r.from, 'redirect', r.to].forEach(function (v) { tr.appendChild(cell(v)); });
+      table.appendChild(tr);
+    });
     out.appendChild(table);
     if (p.filters.length) {
       var ul = document.createElement('ul');

@@ -30,6 +30,7 @@ Features:
 • Filters: domains, URL patterns, regular expressions, the page that made the request, exclusions, request types, methods, or a single tab
 • Timed headers that switch themselves off after 15 minutes, an hour or a day
 • Cookies by name: send an extra cookie with matching requests, or store one in the browser as if the server set it
+• Paste a request copied from DevTools (Copy as cURL, Copy as fetch, or header lines) to make a profile: your Authorization and custom headers are ticked, the headers the browser sends itself are not
 • Copy a profile as a curl command for the current page
 • Import profiles exported from ModHeader (headers, cookies, URL replacements, filters); export and import JSON
 • Recover profiles from a disabled ModHeader's data folder, read locally, when you have no export

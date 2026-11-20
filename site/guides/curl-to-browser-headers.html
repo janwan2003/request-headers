@@ -1,0 +1,234 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Convert a curl command to browser headers – HeaderDial</title><meta name="description" content="Paste a curl command, fetch() call or header lines and get a profile that sends the same headers from Chrome, Edge or Firefox. Runs in your browser.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/curl-to-browser-headers.html">
+<meta property="og:title" content="Convert a curl command to browser headers"><meta property="og:description" content="Paste DevTools' Copy as cURL output and send the same Authorization and custom headers from your browser. Parsed in the page; nothing is uploaded."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<style>
+#tool { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--soft); margin: 16px 0; }
+#tool label.big { display: block; font-weight: 600; margin-bottom: 6px; }
+#paste { width: 100%; min-height: 150px; resize: vertical; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+#tool .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 4px; }
+#tool button { font: inherit; font-size: 15px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+#tool button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#tool button:disabled { opacity: .5; cursor: default; }
+#status.err { color: #b91c1c; }
+@media (prefers-color-scheme: dark) { #status.err { color: #f87171; } }
+#items { table-layout: fixed; background: var(--bg); }
+#items col.tick { width: 44px; }
+#items col.name { width: 32%; }
+#items td { overflow: hidden; }
+#items td.n { overflow-wrap: anywhere; }
+#items .v { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#items .why { display: block; font-size: 13px; color: var(--muted); }
+#items .kind { display: inline-block; font-size: 12px; color: var(--muted); margin-left: 4px; }
+@media (max-width: 600px) { #items col.tick { width: 34px; } #items col.name { width: 42%; } #items th, #items td { padding: 6px; } #items td.n { font-size: 14px; } }
+#items tr.off td.n, #items tr.off .v { color: var(--muted); }
+#items input { width: 17px; height: 17px; margin: 3px 0 0; }
+#opts label { display: block; margin: 4px 0; }
+#opts label[hidden] { display: none; }
+#link { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Send the headers from a curl command in your browser","description":"Paste a curl command copied from DevTools, keep the headers your server needs, and import them into HeaderDial as a profile limited to that host.","tool":[{"@type":"HowToTool","name":"This page (runs locally in your browser)"},{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Copy the request as cURL","text":"In Chrome or Edge DevTools, open the Network panel, right-click the request and choose Copy, then Copy as cURL (bash). In Firefox, right-click the request and choose Copy Value, then Copy as cURL."},{"@type":"HowToStep","name":"Paste it on this page","text":"Paste the command into the box. The page lists every header and cookie in it, with the ones your browser already sends unticked."},{"@type":"HowToStep","name":"Check the ticks","text":"Keep Authorization and your own X- headers ticked. Tick anything else only if you want to fix its value for every request."},{"@type":"HowToStep","name":"Keep it on one host","text":"Leave Only on the request's host ticked, so the profile gets a Domain filter and the token is not sent to other sites."},{"@type":"HowToStep","name":"Import into HeaderDial","text":"Click Copy share link and open it, or download the JSON, then use Import… in HeaderDial."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Convert a curl command to browser headers</h1>
+<p>A request works in curl, or in DevTools' <strong>Copy as cURL</strong>, and you want your browser to send the same <code>Authorization</code> and custom headers on every request to that API. Paste the command below. The page lists its headers and cookies, unticks the ones your browser sends by itself, and turns the rest into a <a href="../">HeaderDial</a> profile limited to the request's host. It reads the text <strong>in this page</strong>: nothing you paste is sent anywhere, and the page makes no network requests after it has loaded.</p>
+
+<div id="tool">
+  <label class="big" for="paste">Paste a curl command, a fetch() call, or header lines</label>
+  <textarea id="paste" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="curl 'https://api.example.com/v1/me' -H 'authorization: Bearer …'"></textarea>
+  <div class="actions"><button type="button" id="example">Try an example</button><button type="button" id="clear">Clear</button></div>
+  <p class="note" id="status" role="status">Read locally. Nothing you paste leaves this tab.</p>
+  <div id="out" hidden>
+    <table id="items"><colgroup><col class="tick"><col class="name"><col></colgroup>
+      <thead><tr><th><span class="note">Use</span></th><th>Name</th><th>Value</th></tr></thead><tbody></tbody></table>
+    <ul id="notes" class="note"></ul>
+    <div id="opts">
+      <label id="host-wrap"><input type="checkbox" id="only-host" checked> Only on <code id="host"></code> <span class="note">(a Domain filter; subdomains included)</span></label>
+      <label><input type="checkbox" id="blank"> Leave values empty in the link and the file <span class="note">(share the header names only; fill in the values in HeaderDial)</span></label>
+    </div>
+    <div class="actions"><button type="button" class="primary" id="copy">Copy share link</button><button type="button" id="download">Download JSON</button></div>
+    <p class="note" id="link-wrap" hidden><label for="link">Share link (opens the share page, which shows the profile and imports into HeaderDial):</label><br><input id="link" readonly></p>
+    <p class="note">The same import is built into HeaderDial 0.8.0: click <strong>Import…</strong> in the popup and paste the command there.</p>
+  </div>
+</div>
+
+<div class="callout"><strong>A copied request holds live credentials.</strong> DevTools' Copy as cURL includes your session cookies and any access token the page sent. This page does not upload them. Do not paste them into other online converters you do not trust, and remember that the share link and the JSON file contain the values in plain text. Tick <strong>Leave values empty</strong> before sharing a link with someone else, and delete the downloaded file after importing.</div>
+
+<h2>Get the command from your browser</h2>
+<ul>
+<li><strong>Chrome and Edge:</strong> open DevTools (<kbd>F12</kbd>), go to the <strong>Network</strong> panel and make the request (reload the page or click the button that calls the API). Right-click the request, then <strong>Copy</strong> › <strong>Copy as cURL (bash)</strong>. On Windows the <strong>(cmd)</strong> variant also works here.</li>
+<li><strong>Firefox:</strong> in the <strong>Network</strong> panel, right-click the request, then <strong>Copy Value</strong> › <strong>Copy as cURL</strong>. On Windows, pick the POSIX variant if you are offered two.</li>
+<li><strong>Also accepted:</strong> <strong>Copy as fetch</strong> from either browser, the request headers as <code>Name: value</code> lines (DevTools' raw view, including HTTP/2 lines like <code>:authority:</code>), a JSON object of headers, and a hand-written <code>curl</code> command.</li>
+</ul>
+
+<h2>Why most of the headers are unticked</h2>
+<p>A command copied from a browser carries everything the browser sent, and most of that it will send again on its own. Fixing those values for every request would change every page you load on that host. The page treats the text as a browser copy when it has a <code>sec-fetch-*</code> or <code>sec-ch-ua*</code> header, or when it is a DevTools fetch() copy.</p>
+<table>
+<tr><th>Header</th><th>Default</th><th>Why</th></tr>
+<tr><td><code>authorization</code>, <code>x-…</code> and other custom headers</td><td>ticked</td><td>These are usually what the server checks, and what you want to send.</td></tr>
+<tr><td><code>accept</code>, <code>accept-language</code>, <code>user-agent</code>, <code>referer</code>, <code>origin</code>, <code>cache-control</code></td><td>unticked in a browser copy</td><td>Your browser already sends its own, with the right value for each request. In a hand-written curl command they stay ticked: you typed them on purpose.</td></tr>
+<tr><td><code>sec-fetch-*</code>, <code>sec-ch-ua*</code>, <code>host</code>, <code>connection</code>, <code>content-length</code>, <code>accept-encoding</code>, <code>priority</code></td><td>unticked</td><td>The browser sets these itself, and some of them an extension cannot change at all. See <a href="headers-browsers-wont-let-you-change.html">headers browsers won't let you change</a>.</td></tr>
+<tr><td>cookies (<code>-b</code> or <code>cookie:</code>)</td><td>unticked in a browser copy</td><td>The browser already sends its own cookies for that site. Each cookie gets its own row. Tick one to send a fixed value with HeaderDial's cookie rows; see <a href="send-cookie-with-request.html">send a cookie without setting it</a>.</td></tr>
+<tr><td><code>content-type</code>, <code>if-none-match</code>, <code>if-modified-since</code>, <code>range</code></td><td>unticked</td><td>They describe that one request (its body, or the cached copy it asked about), not every request.</td></tr>
+</table>
+<p>If a header appears twice, only the last copy is ticked. <code>-H 'X-Name:'</code> with nothing after the colon tells curl not to send that header, so it becomes a <strong>remove</strong> row. <code>-H 'X-Name;'</code> sends the header with an empty value.</p>
+
+<h2>What -u and --oauth2-bearer become</h2>
+<ul>
+<li><code>-u user:password</code> becomes <code>Authorization: Basic</code> followed by the base64 of <code>user:password</code>, which is what curl sends. With <code>-u user</code> and no password, curl would ask for one; here it is encoded with an empty password, so edit the value in HeaderDial. More in <a href="basic-auth-header-browser.html">Basic auth without the login prompt</a>.</li>
+<li><code>--oauth2-bearer TOKEN</code> becomes <code>Authorization: Bearer TOKEN</code>.</li>
+<li><code>-A</code> becomes <code>User-Agent</code> and <code>-e</code> becomes <code>Referer</code>. <code>-b</code> with a file name instead of <code>name=value</code> is skipped, with a note.</li>
+</ul>
+
+<h2>What a profile does not include</h2>
+<p>A profile changes headers on requests your pages make. It does not send requests of its own, so the method (<code>-X POST</code>), the body (<code>-d</code>, <code>--data-raw</code>, <code>--json</code>, <code>-F</code>) and the URL's path and query are left out, with a note when there was a body. To replay the request itself, run the curl command, or use Firefox's <strong>Edit and Resend</strong> in the Network panel.</p>
+
+<h2>Keep the token on one site</h2>
+<p>Without a filter, a profile applies to every request the browser makes: your <code>Authorization</code> header would go to every site you open, including analytics and CDN hosts. <strong>Only on &lt;host&gt;</strong> adds a <strong>Domain</strong> filter with the host from the command's URL. It matches that host and its subdomains, so <code>api.example.com</code> also covers <code>eu.api.example.com</code>, but not <code>example.com</code> or <code>app.example.com</code>. For more ways to scope a profile, see <a href="headers-only-from-one-site.html">headers only on requests made by one site</a>.</p>
+<p>Tokens copied from DevTools often expire within an hour. In HeaderDial, set the expiry select on the <code>Authorization</code> row (15 min, 1 hour, 8 hours or 1 day) so it stops being sent when the token is dead anyway. See <a href="add-authorization-header-chrome.html">add an Authorization header</a>.</p>
+
+<h2>Import it into HeaderDial</h2>
+<ol>
+<li>Click <strong>Copy share link</strong> and open the link. The share page shows the profile; the profile is in the link after the <code>#</code>, which browsers do not send to the server.</li>
+<li>Copy the share page's address, open HeaderDial, click <strong>Import…</strong>, paste it and click <strong>Import</strong>.</li>
+<li>Or click <strong>Download JSON</strong> and choose the file in the same <strong>Import…</strong> dialog.</li>
+</ol>
+<p>With HeaderDial 0.8.0 you can skip this page: paste the curl command straight into <strong>Import…</strong>, which shows the same list with the same ticks.</p>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
+<li><a href="headers-browsers-wont-let-you-change.html">Headers browsers won't let you change</a></li>
+<li><a href="send-cookie-with-request.html">Send a cookie without setting it</a></li>
+<li><a href="headers-only-from-one-site.html">Send a header only on requests made by one site</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div>
+<script src="../js/model.js"></script><script src="../js/transfer.js"></script><script src="../js/paste.js"></script>
+<script>
+(function () {
+  'use strict';
+  var HD = window.HeaderDial;
+  var $ = function (id) { return document.getElementById(id); };
+  var paste = $('paste'), status = $('status'), out = $('out'), tbody = document.querySelector('#items tbody');
+  var onlyHost = $('only-host'), blank = $('blank'), linkWrap = $('link-wrap'), link = $('link');
+  var req = null;
+  // Ticks the user changed, kept while they edit the text (key: kind + lower-case name).
+  var overrides = new Map();
+  var EXAMPLE = [
+    "curl 'https://api.staging.example.com/v2/orders?limit=20' \\",
+    "  -H 'accept: application/json, text/plain, */*' \\",
+    "  -H 'accept-language: en-GB,en;q=0.9' \\",
+    "  -H 'authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXIiLCJleHAiOjE4OTM0NTYwMDB9.FAKE-signature-for-this-example-only' \\",
+    "  -b 'session_id=fake_3f9c2a7d1e; theme=dark' \\",
+    "  -H 'origin: https://app.staging.example.com' \\",
+    "  -H 'priority: u=1, i' \\",
+    "  -H 'referer: https://app.staging.example.com/' \\",
+    "  -H 'sec-ch-ua: \"Chromium\";v=\"159\", \"Not-A.Brand\";v=\"24\"' \\",
+    "  -H 'sec-ch-ua-mobile: ?0' \\",
+    "  -H 'sec-ch-ua-platform: \"Linux\"' \\",
+    "  -H 'sec-fetch-dest: empty' \\",
+    "  -H 'sec-fetch-mode: cors' \\",
+    "  -H 'sec-fetch-site: same-site' \\",
+    "  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/159.0.0.0 Safari/537.36' \\",
+    "  -H 'x-feature-flags: new-checkout' \\",
+    "  -H 'x-tenant-id: acme-staging'"
+  ].join('\n');
+
+  function el(tag, text, cls) { var e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
+  function say(t, err) { status.textContent = t; status.className = 'note' + (err ? ' err' : ''); }
+  function key(it) { return it.kind + ':' + it.name.toLowerCase(); }
+
+  function parse() {
+    var text = paste.value;
+    linkWrap.hidden = true; link.value = '';
+    req = null;
+    if (!text.trim()) { out.hidden = true; overrides.clear(); say('Read locally. Nothing you paste leaves this tab.'); return; }
+    try { req = HD.parseRequestText(text); } catch (e) { out.hidden = true; say(e.message, true); return; }
+    if (!req) {
+      out.hidden = true;
+      say('Not recognised. Paste a command that starts with curl, a fetch(…) call, or lines of Name: value.', true);
+      return;
+    }
+    // An item unticked with no reason is an earlier copy of a repeated header.
+    // Then re-apply the user's own ticks to items that are still there.
+    req.items.forEach(function (it) {
+      it.dup = !it.keep && !it.why && !it.remove;
+      if (overrides.has(key(it))) it.keep = overrides.get(key(it));
+    });
+    render();
+  }
+
+  function render() {
+    tbody.textContent = '';
+    req.items.forEach(function (it) {
+      var tr = el('tr');
+      var box = document.createElement('input');
+      box.type = 'checkbox'; box.checked = it.keep;
+      box.setAttribute('aria-label', 'Use ' + (it.kind === 'cookie' ? 'cookie ' : '') + it.name);
+      box.addEventListener('change', function () { it.keep = box.checked; overrides.set(key(it), box.checked); tr.className = box.checked ? '' : 'off'; update(); });
+      var td = el('td'); td.appendChild(box); tr.appendChild(td);
+      var n = el('td', it.name, 'n');
+      if (it.kind === 'cookie') n.appendChild(el('span', 'cookie', 'kind'));
+      tr.appendChild(n);
+      var v = el('td');
+      var code = el('code', it.remove ? '(remove this header)' : it.value === '' ? '(empty)' : it.value, 'v');
+      if (!it.remove) code.title = it.value;
+      v.appendChild(code);
+      var why = it.why || (it.dup ? 'the same header appears again below; the last one is used' : '');
+      if (why) v.appendChild(el('span', why, 'why'));
+      tr.appendChild(v);
+      tr.className = it.keep ? '' : 'off';
+      tbody.appendChild(tr);
+    });
+    var notes = $('notes');
+    notes.textContent = '';
+    req.notes.forEach(function (t) { notes.appendChild(el('li', t)); });
+    $('host-wrap').hidden = !req.host;
+    $('host').textContent = req.host || '';
+    out.hidden = false;
+    update();
+  }
+
+  function profile() { return HD.profileFromRequest(req, { onlyHost: !!req.host && onlyHost.checked }); }
+
+  function update() {
+    var kept = req.items.filter(function (it) { return it.keep; }).length;
+    var what = { curl: 'a curl command', fetch: 'a fetch() call', headers: 'header lines', 'JSON headers': 'a JSON object of headers' }[req.source] || req.source;
+    say('Read as ' + what + (req.url ? ' for ' + (req.method ? req.method + ' ' : '') + req.url : '') + ': ' +
+      (req.items.length ? req.items.length + ' item' + (req.items.length === 1 ? '' : 's') + ', ' + kept + ' ticked.' + (kept ? '' : ' Tick at least one to build a profile.') : 'no headers or cookies in it.'));
+    $('items').hidden = !req.items.length;
+    $('copy').disabled = $('download').disabled = !kept;
+    linkWrap.hidden = true;
+  }
+
+  paste.addEventListener('input', parse);
+  onlyHost.addEventListener('change', function () { if (req) update(); });
+  blank.addEventListener('change', function () { if (req) update(); });
+  $('example').addEventListener('click', function () { overrides.clear(); paste.value = EXAMPLE; parse(); });
+  $('clear').addEventListener('click', function () { paste.value = ''; parse(); paste.focus(); });
+
+  $('copy').addEventListener('click', function () {
+    var btn = this;
+    link.value = HD.shareLink(profile(), { blankValues: blank.checked });
+    linkWrap.hidden = false;
+    var done = function (t) { btn.textContent = t; setTimeout(function () { btn.textContent = 'Copy share link'; }, 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link.value).then(function () { done('Copied'); }, function () { link.select(); done('Copy the link below'); });
+    } else { link.select(); done('Copy the link below'); }
+  });
+
+  $('download').addEventListener('click', function () {
+    var p = profile();
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([HD.exportJSON([p], { blankValues: blank.checked })], { type: 'application/json' }));
+    a.download = 'headerdial-' + ((req.host || 'pasted').replace(/[^a-z0-9.-]/gi, '_')) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  if (paste.value.trim()) parse();
+})();
+</script></body></html>
