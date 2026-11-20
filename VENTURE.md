@@ -498,3 +498,6 @@ that is how the incumbent died.
   from a real DevTools tooltip (texts read from the shipped locale file and CDP reasons, not copied from the UI).
   The VENTURE.md commit's CI 44789216993 failed "access to both hosts works" (the CORS flake, second sighting; attempt 2 on the same commit passed
   test, firefox, deploy). The check now waits for the rule to be installed before fetching (Chromium e2e 43/43 locally).
+  CI 44790066492 (commit 87d9a3f): attempt 1 passed test (43/43) and firefox but I cancelled it by mistake while the playwright install step
+  was slow (~8 min); attempt 2 failed firefox again on "Firefox did not start BiDi" (infra, second time this session). The Firefox harness now
+  waits 60 s and restarts Firefox up to 3 times; Firefox e2e 23/23 locally (Firefox 158.0.1).

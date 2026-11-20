@@ -66,15 +66,31 @@ async function launch() {
     'user_pref("browser.aboutwelcome.enabled", false);',
     'user_pref("devtools.jsonview.enabled", false);',
   ].join('\n') + '\n');
-  const port = await freePort();
-  const proc = spawn(FIREFOX, ['--headless', '--no-remote', '--profile', profile, '--remote-debugging-port', String(port), '--remote-allow-system-access'],
-    { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, MOZ_REMOTE_ALLOW_SYSTEM_ACCESS: '1' } }); // older Firefox reads the flag, newer the variable
-  await new Promise((resolve, reject) => {
-    let err = '';
-    const t = setTimeout(() => reject(new Error('Firefox did not start BiDi: ' + err.slice(-500))), 30000);
-    proc.stderr.on('data', (d) => { err += d; if (/WebDriver BiDi listening/.test(err)) { clearTimeout(t); resolve(); } });
-    proc.on('exit', (c) => reject(new Error('Firefox exited ' + c + ': ' + err.slice(-500))));
-  });
+  // CI runners sometimes take over 30 s to start Firefox (CI 44788404871 and 44790066492, nothing ran):
+  // wait up to 60 s, and start it again (up to 3 tries) before failing.
+  let proc, port;
+  for (let attempt = 1; ; attempt++) {
+    port = await freePort();
+    proc = spawn(FIREFOX, ['--headless', '--no-remote', '--profile', profile, '--remote-debugging-port', String(port), '--remote-allow-system-access'],
+      { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, MOZ_REMOTE_ALLOW_SYSTEM_ACCESS: '1' } }); // older Firefox reads the flag, newer the variable
+    const p = proc;
+    try {
+      await new Promise((resolve, reject) => {
+        let err = '';
+        const t = setTimeout(() => reject(new Error('Firefox did not start BiDi: ' + err.slice(-500))), 60000);
+        p.stderr.on('data', (d) => { err += d; if (/WebDriver BiDi listening/.test(err)) { clearTimeout(t); resolve(); } });
+        p.on('exit', (c) => { clearTimeout(t); reject(new Error('Firefox exited ' + c + ': ' + err.slice(-500))); });
+      });
+      break;
+    } catch (e) {
+      p.removeAllListeners('exit');
+      p.kill('SIGKILL');
+      for (const f of ['lock', '.parentlock', 'parent.lock']) fs.rmSync(path.join(profile, f), { force: true });
+      if (attempt >= 3) throw e;
+      console.log('   Firefox start attempt ' + attempt + ' failed, retrying: ' + String(e.message).slice(0, 120));
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
   const ws = new WebSocket(`ws://127.0.0.1:${port}/session`);
   await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
   let next = 1;
