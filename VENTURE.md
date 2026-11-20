@@ -238,4 +238,6 @@ that is how the incumbent died.
   override, HSTS, GraphQL Authorization, headers browsers won't let you change), each with Chrome
   159 / Firefox 158 results; one correction found: Firefox ignores a response-rule set over an
   existing Strict-Transport-Security or Content-Type value. GitHub repo description and topics now
-  include Firefox and Edge. CI 44746865351 passed (test, firefox, deploy) for 0.3.0.
+  include Firefox and Edge. CI 44746865351 (0.3.0) and 44749753458 (0.3.1) passed (test, firefox,
+  deploy). Live check: /download/headerdial.zip is 0.3.1, the 5 new guides return 200, sitemap 25 URLs
+  (resubmitted to Search Console).
