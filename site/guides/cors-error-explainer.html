@@ -1,0 +1,273 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CORS error explainer: paste the console error, get the cause and the fix – HeaderDial</title><meta name="description" content="Paste a CORS error from the Chrome, Edge, Firefox or Safari console. See what failed, whether the request reached the server, the exact headers to send (Express, nginx, Apache), and test the fix in your browser first. Runs locally.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/cors-error-explainer.html">
+<meta property="og:title" content="CORS error explainer: paste the console error, get the cause and the fix"><meta property="og:description" content="Paste a 'blocked by CORS policy' or 'Cross-Origin Request Blocked' message. It names the cause, says whether headers can fix it, writes the server config, and builds a browser profile to test the fix before you deploy. Nothing is uploaded."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<style>
+#tool { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--soft); margin: 16px 0; }
+#tool .big { display: block; font-weight: 600; margin: 4px 0 6px; }
+#tool h3 { margin: 22px 0 8px; }
+#tool .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 4px; }
+#tool button { font: inherit; font-size: 15px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+#tool button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#tool button:disabled { opacity: .5; cursor: default; }
+#paste, #tool input[type=text], #output, #link { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+#paste { width: 100%; min-height: 96px; resize: vertical; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
+#tool input[type=text] { width: 100%; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+#facts { margin: 10px 0; padding-left: 20px; }
+.cause { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 10px 12px; margin: 10px 0; }
+.cause h4 { margin: 0 0 6px; font-size: 16px; }
+.cause p { margin: 6px 0; }
+.cause .src { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.badge { display: inline-block; margin-right: 6px; padding: 0 8px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.b-yes { background: #dcfce7; color: #166534; } .b-no { background: #fee2e2; color: #991b1b; } .b-maybe { background: var(--code); color: var(--muted); }
+@media (prefers-color-scheme: dark) { .b-yes { background: #14532d; color: #bbf7d0; } .b-no { background: #7f1d1d; color: #fecaca; } }
+#todo li { margin: 6px 0; }
+#opts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 12px; align-items: center; }
+#opts label.chk { grid-column: 1 / -1; }
+#fmt { font: inherit; font-size: 15px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+#output { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; border: 1px solid var(--line); background: var(--bg); min-height: 3em; }
+#link { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font-size: 12px; }
+#origin-warn { color: #b91c1c; } @media (prefers-color-scheme: dark) { #origin-warn { color: #f87171; } }
+@media (max-width: 600px) { #opts { grid-template-columns: 1fr; } }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Find the cause of a CORS error and fix it","description":"Paste the CORS message from the browser console to see what failed, whether added response headers can fix it, the server configuration to send, and a browser profile to test the fix first.","tool":[{"@type":"HowToTool","name":"This page (runs locally in your browser)"},{"@type":"HowToTool","name":"HeaderDial browser extension (optional, to test the fix)"}],"step":[{"@type":"HowToStep","name":"Copy the console line","text":"Open DevTools, Console. Copy the line that says has been blocked by CORS policy (Chrome, Edge), Cross-Origin Request Blocked (Firefox) or is not allowed by Access-Control-Allow-Origin (Safari). Copy every CORS line if there are several."},{"@type":"HowToStep","name":"Paste it here","text":"The page names the cause, says whether the request reached the server, and whether headers can fix it."},{"@type":"HowToStep","name":"Check the headers","text":"Enter your page's origin if the message did not include it, and tick whether the request sends cookies. The page lists the response headers the API must send, as plain headers or Express, nginx or Apache config."},{"@type":"HowToStep","name":"Test before deploying","text":"Copy the share link or download the JSON and import it into HeaderDial. It adds the headers to the API's responses in your browser only, limited to the API host."},{"@type":"HowToStep","name":"Fix the server","text":"When the request works, put the same headers in the server configuration and remove the test profile."}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does 'has been blocked by CORS policy' mean?","acceptedAnswer":{"@type":"Answer","text":"Your page tried to read a response from another origin (scheme, host and port), and the response did not allow it. The text after the colon gives the exact reason, for example No 'Access-Control-Allow-Origin' header is present on the requested resource."}},{"@type":"Question","name":"Did my request reach the server?","acceptedAnswer":{"@type":"Answer","text":"For a simple request (such as a plain GET or a form-style POST) yes: the server ran it, and the browser only hid the response from your code. For a preflighted request (custom headers, a JSON Content-Type, PUT or DELETE) only the OPTIONS preflight reached the server, and the real request was never sent."}},{"@type":"Question","name":"Can I fix a CORS error from the frontend?","acceptedAnswer":{"@type":"Answer","text":"Not in your code: the response headers come from the server. While developing you can call the API through your dev server's proxy, or add the missing response headers in your own browser with a header extension to test the fix. The real fix is on the server."}},{"@type":"Question","name":"Why does mode: 'no-cors' not fix it?","acceptedAnswer":{"@type":"Answer","text":"With mode no-cors the request is sent, but the response is opaque: your code cannot read its body or status, and it cannot send custom headers. It only helps when you do not need the response."}}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>CORS error explainer: paste the console error, get the cause and the fix</h1>
+<p>Paste the CORS message from the browser console: <code>has been blocked by CORS policy</code> (Chrome and Edge), <code>Cross-Origin Request Blocked</code> (Firefox), or <code>is not allowed by Access-Control-Allow-Origin</code> (Safari). The page says what failed, whether your request reached the server, and whether response headers can fix it. Then it writes the headers the API must send, as plain headers or Express, nginx or Apache config, and a <a href="../">HeaderDial</a> profile to try the fix in your own browser before you change the server. Everything runs <strong>in this page</strong>: it makes no network requests after it has loaded, and nothing you paste is sent anywhere.</p>
+
+<div id="tool">
+  <label class="big" for="paste">Paste the console error (all CORS lines, if there are several)</label>
+  <textarea id="paste" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Access to fetch at 'https://api.example.com/items' from origin 'http://localhost:5173' has been blocked by CORS policy: …"></textarea>
+  <div class="actions"><span class="note">Examples:</span>
+    <button type="button" data-example="chrome-preflight">Chrome preflight</button>
+    <button type="button" data-example="firefox-missing">Firefox missing header</button>
+    <button type="button" data-example="chrome-credentials">Cookies + *</button>
+    <button type="button" data-example="chrome-404">OPTIONS 404</button>
+    <button type="button" id="clear">Clear</button></div>
+  <p class="note" id="status" role="status">Read locally. Nothing you paste leaves this tab.</p>
+
+  <div id="result" hidden>
+    <ul id="facts"></ul>
+    <div id="causes"></div>
+    <div id="todo-wrap" hidden><h3>What to do instead</h3><ul id="todo"></ul></div>
+
+    <div id="fix" hidden>
+      <h3>The headers the API must send</h3>
+      <div id="opts">
+        <label for="origin">Page origin</label><input type="text" id="origin" spellcheck="false" autocomplete="off" placeholder="http://localhost:5173 (scheme, host and port of the page making the request)">
+        <label for="methods">Methods</label><input type="text" id="methods" spellcheck="false" autocomplete="off" placeholder="extra methods, e.g. PURGE (the usual ones are included)">
+        <label for="hdrs">Request headers</label><input type="text" id="hdrs" spellcheck="false" autocomplete="off" placeholder="headers your code sends, e.g. X-Api-Key, X-Request-Id">
+        <label class="chk"><input type="checkbox" id="creds"> The request sends cookies or HTTP auth (<code>credentials: 'include'</code>, <code>withCredentials</code>)</label>
+        <label class="chk"><input type="checkbox" id="pre"> The request is preflighted (custom headers, JSON <code>Content-Type</code>, or <code>PUT</code>/<code>PATCH</code>/<code>DELETE</code>)</label>
+      </div>
+      <p class="note" id="origin-warn" hidden>With cookies or HTTP auth, the origin must be named exactly: enter the page's origin above.</p>
+      <div class="actions"><label for="fmt">Show as</label> <select id="fmt">
+        <option value="headers">response headers</option><option value="express">Express (cors package)</option><option value="nginx">nginx</option><option value="apache">Apache</option></select>
+        <button type="button" id="copy-out">Copy</button></div>
+      <pre id="output" aria-live="polite"></pre>
+      <p class="note" id="fmt-note"></p>
+
+      <h3 id="test">Test the fix in your browser first</h3>
+      <p class="note">A HeaderDial profile with these as response headers, limited to the API host. HeaderDial needs site access to both the API host and the page's host.</p>
+      <div id="opts2"><label>Only on <input type="text" id="host" spellcheck="false" autocomplete="off" placeholder="api.example.com" style="width:16em" aria-label="API host for the Domain filter"></label> <span class="note">(a Domain filter; subdomains included)</span></div>
+      <div class="actions"><button type="button" class="primary" id="copy">Copy share link</button><button type="button" id="download">Download JSON</button></div>
+      <p class="note" id="rows-note"></p>
+      <p class="note" id="link-wrap" hidden><label for="link">Share link (opens the share page, which shows the profile and imports into HeaderDial):</label><br><input id="link" readonly></p>
+    </div>
+  </div>
+</div>
+
+<div class="callout"><strong>Your own APIs only.</strong> CORS protects users: it stops other sites from reading data with their browser and cookies. Add these headers to APIs you run, and send <code>Access-Control-Allow-Origin</code> with credentials only for origins you trust. The browser profile is for testing; it changes responses in your browser alone.</div>
+
+<h2 id="read">How to read a CORS error</h2>
+<p>The error your code catches says nothing useful on purpose: Chrome throws <code>TypeError: Failed to fetch</code>, Firefox <code>TypeError: NetworkError when attempting to fetch resource.</code>, Safari <code>TypeError: Load failed</code>, and Axios <code>AxiosError: Network Error</code>. The reason is in a separate console line:</p>
+<ul>
+<li><strong>Chrome and Edge:</strong> <code>Access to fetch at '<em>URL</em>' from origin '<em>your origin</em>' has been blocked by CORS policy: <em>reason</em></code>. <code>fetch</code> becomes <code>XMLHttpRequest</code>, <code>script</code> or <code>font</code> for other request kinds. <code>Response to preflight request doesn't pass access control check:</code> before the reason means the OPTIONS preflight failed and the real request was never sent.</li>
+<li><strong>Firefox:</strong> <code>Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at <em>URL</em>. (Reason: <em>reason</em>). Status code: <em>N</em>.</code> It does not name your origin. A failed preflight usually adds a second line, <code>(Reason: CORS request did not succeed). Status code: (null).</code>; the first line is the one that matters. The Network panel shows a short label such as <code>CORS Missing Allow Origin</code>.</li>
+<li><strong>Safari:</strong> <code>Origin <em>your origin</em> is not allowed by Access-Control-Allow-Origin. Status code: <em>N</em></code>, followed by <code>Fetch API cannot load <em>URL</em> due to access control checks.</code></li>
+</ul>
+
+<h2 id="causes-list">Every cause the explainer knows</h2>
+<p>Chrome and Firefox texts below were captured from Chrome 159 and Firefox 158 (three runs each, identical text; the full set is in the project's test fixtures); the Safari forms follow WebKit's message strings and were not captured in Safari.</p>
+<table>
+<tr><th>Cause</th><th>Chrome / Edge says</th><th>Firefox says</th><th>Headers fix it?</th></tr>
+<tr><td>No <code>Access-Control-Allow-Origin</code></td><td><code>No 'Access-Control-Allow-Origin' header is present on the requested resource.</code></td><td><code>CORS header ‘Access-Control-Allow-Origin’ missing</code></td><td>Yes</td></tr>
+<tr><td>Preflight answer has no CORS headers</td><td><code>Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header…</code></td><td>same as above, then <code>CORS request did not succeed</code></td><td>Yes: origin, methods and headers</td></tr>
+<tr><td>Header not allowed</td><td><code>Request header field x-api-key is not allowed by Access-Control-Allow-Headers in preflight response.</code></td><td><code>header ‘x-api-key’ is not allowed according to header ‘Access-Control-Allow-Headers’ from CORS preflight response</code></td><td>Yes</td></tr>
+<tr><td>Method not allowed</td><td><code>Method PUT is not allowed by Access-Control-Allow-Methods in preflight response.</code></td><td><code>Did not find method in CORS header ‘Access-Control-Allow-Methods’</code></td><td>Yes</td></tr>
+<tr><td><code>*</code> with cookies</td><td><code>…must not be the wildcard '*' when the request's credentials mode is 'include'.</code></td><td><code>Credential is not supported if the CORS header ‘Access-Control-Allow-Origin’ is ‘*’</code></td><td>Yes: exact origin + <code>Allow-Credentials: true</code></td></tr>
+<tr><td>Credentials not allowed</td><td><code>…'Access-Control-Allow-Credentials' header in the response is '' which must be 'true'…</code></td><td><code>expected ‘true’ in CORS header ‘Access-Control-Allow-Credentials’</code></td><td>Yes</td></tr>
+<tr><td>Wrong origin allowed</td><td><code>…has a value 'http://example.com' that is not equal to the supplied origin.</code></td><td><code>CORS header ‘Access-Control-Allow-Origin’ does not match ‘…’</code></td><td>Yes</td></tr>
+<tr><td>Two values</td><td><code>…contains multiple values '…', but only one is allowed.</code></td><td><code>CORS header ‘Access-Control-Allow-Origin’ does not match ‘http://127.0.0.1:3000, http://example.com’</code> (the list, for a comma list or two header lines alike)</td><td>Yes (a <strong>set</strong> row replaces both)</td></tr>
+<tr><td>Preflight gets 404/405/401</td><td><code>…It does not have HTTP ok status.</code></td><td><code>CORS preflight response did not succeed). Status code: 404</code></td><td><strong>No</strong>: the server must answer OPTIONS</td></tr>
+<tr><td>Preflight redirected</td><td><code>Redirect is not allowed for a preflight request.</code></td><td><code>CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 301</code> (or 302, 307, 308)</td><td><strong>No</strong>: call the final URL</td></tr>
+<tr><td>Server not running, wrong port</td><td>no CORS line, only <code>net::ERR_CONNECTION_REFUSED</code></td><td><code>CORS request did not succeed). Status code: (null)</code> alone</td><td><strong>No</strong>: not a CORS problem</td></tr>
+<tr><td>Page opened as a file</td><td><code>Cross origin requests are only supported for protocol schemes: …</code></td><td><code>CORS request not HTTP</code> (Firefox 158 let a file:// page fetch a file in our test)</td><td><strong>No</strong>: serve it over http</td></tr>
+</table>
+
+<h2 id="unfixable">When headers cannot fix it</h2>
+<ul>
+<li><strong>The preflight gets an error status.</strong> A preflight needs a 2xx answer. A server with no <code>OPTIONS</code> route answers <code>404</code> or <code>405</code>; one whose auth middleware runs before CORS answers <code>401</code>, because the browser never sends your <code>Authorization</code> header with a preflight. Enable your framework's CORS middleware before auth, or answer <code>OPTIONS</code> with <code>204</code>. In our tests in Chrome 159 and Firefox 158, adding every CORS header to a <code>404</code> preflight still failed (<a href="fix-cors-error-while-testing.html">details</a>), because a header rule cannot change a status code.</li>
+<li><strong>The preflight is redirected.</strong> Often <code>http</code> to <code>https</code>, or <code>/items</code> to <code>/items/</code>. Call the URL the redirect points to. A redirect of the request itself is no better: after a redirect to another origin the browser sends <code>Origin: null</code>, so in our tests a target that named the page's origin failed in both browsers, and only <code>*</code> on both hops worked.</li>
+<li><strong>A file:// page.</strong> Serve the folder over http: <code>python3 -m http.server 8000</code> or <code>npx serve</code>, then open <code>http://localhost:8000</code>.</li>
+<li><strong>While developing, use a proxy.</strong> If you cannot change the API yet, let your dev server forward the calls. The browser then sees a same-origin request and sends no preflight. In Vite: <code>server.proxy: { '/api': { target: 'https://api.example.com', changeOrigin: true } }</code>, and call <code>/api/…</code> from your code.</li>
+</ul>
+
+<h2 id="no-cors">Why <code>mode: 'no-cors'</code> is not the fix</h2>
+<p>Chrome's message ends with <em>If an opaque response serves your needs, set the request's mode to 'no-cors'</em>. With <code>no-cors</code> the request is sent, but your code gets an opaque response: status <code>0</code>, no body, no headers, and it cannot send custom headers or a JSON <code>Content-Type</code>. It is for fire-and-forget requests and some images or scripts, not for reading an API.</p>
+
+<h2 id="test-first">Why test the fix in the browser first</h2>
+<p>CORS fixes often need two or three rounds: the origin first, then a header the preflight did not allow, then credentials. Each round on the server is a deploy. A HeaderDial profile adds the same response headers in your own browser, so you can paste each new error here, update the profile, and deploy once the request works. It needs site access to both the API host and the page's host, because the browser checks the response for the page that made the request. Give the profile an expiry (15 min to 1 day on each row) so it does not outlive the test. More on this in <a href="fix-cors-error-while-testing.html">fix a CORS error while testing</a> and <a href="cors-headers-for-local-development.html">CORS headers for local development</a>.</p>
+
+<h2 id="how">How the page works</h2>
+<p>It matches the pasted text against the CORS messages Chrome, Edge, Firefox and Safari log in English, and reads the URL, the page origin (Chrome and Safari name it; Firefox does not) and any method or header name. The headers it suggests: <code>Access-Control-Allow-Origin</code> set to your page's origin (or <code>*</code> when the origin is unknown and no cookies are sent), <code>Access-Control-Allow-Credentials: true</code> when cookies are sent, and for a preflighted request <code>Access-Control-Allow-Methods</code> with the usual methods and <code>Access-Control-Allow-Headers</code> with <code>Authorization</code>, <code>Content-Type</code> and any header the error named. With a named origin the server should also send <code>Vary: Origin</code>, so caches keep one answer per origin. It is not in the browser profile, which only changes your own responses. Our end-to-end test feeds Chrome's real console errors into this page's code and applies the profile it builds until a credentialed <code>PUT</code> with a custom header works.</p>
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="fix-cors-error-while-testing.html">Fix a CORS error on your own test API without changing the server (measured)</a></li>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+<li><a href="change-origin-header.html">Change or remove the Origin header to test CORS and CSRF checks</a></li>
+<li><a href="security-headers-checker.html">Security headers checker: paste the response headers</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div>
+<script src="../js/model.js"></script><script src="../js/transfer.js"></script><script src="../js/cors-explain.js"></script>
+<script>
+(function () {
+  'use strict';
+  var HD = window.HeaderDial, CE = window.CorsExplain;
+  var $ = function (id) { return document.getElementById(id); };
+  var last = null;
+
+  var EXAMPLES = {
+    'chrome-preflight': "Access to fetch at 'http://localhost:8080/api/items' from origin 'http://localhost:5173' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.",
+    'firefox-missing': 'Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at https://api.example.com/v1/me. (Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 200.',
+    'chrome-credentials': "Access to fetch at 'https://api.example.com/v1/me' from origin 'https://app.example.com' has been blocked by CORS policy: The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*' when the request's credentials mode is 'include'.",
+    'chrome-404': "Access to fetch at 'http://localhost:8080/api/items' from origin 'http://localhost:5173' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.",
+  };
+
+  var TODO = {
+    'preflight-status': ['Make the server answer <code>OPTIONS</code> with <code>204</code> (or <code>200</code>) for this path. Most CORS middleware does this once it is enabled for the route.',
+      'Register the CORS middleware <strong>before</strong> authentication: browsers never send <code>Authorization</code> or cookies with a preflight, so auth middleware answers it with <code>401</code>.',
+      'Check the <code>OPTIONS</code> row in the Network panel: its status code tells you which case you are in.',
+      'Until the server is fixed, call the API through your dev server\'s proxy (see <a href="#unfixable">below</a>); a same-origin call sends no preflight.'],
+    'preflight-redirect': ['Open the URL in a tab or run <code>curl -i -X OPTIONS <em>URL</em></code> to see where it redirects (often http → https, or a trailing slash), and call that final URL from your code.'],
+    'redirect': ['Call the final URL directly. If the redirect is needed, the target must send CORS headers too, and allow the origin <code>null</code> after a cross-origin redirect.'],
+    'not-http': ['Serve the folder over http instead of opening the file: <code>python3 -m http.server 8000</code> or <code>npx serve</code>, then open <code>http://localhost:8000</code>.'],
+    'disabled': ['In Firefox, open <code>about:config</code> and set <code>content.cors.disable</code> back to <code>false</code>.'],
+    'mode': ['Remove <code>mode: \'same-origin\'</code> from the request, or call a same-origin URL.'],
+    'private-network': ['Serve the page over <code>https</code>, allow the local network permission if Chrome asks, and have the local server answer the preflight with <code>Access-Control-Allow-Private-Network: true</code> as well as the usual CORS headers.'],
+    'unreachable': ['Open the URL in a new tab. Fix the host, port or certificate until it loads there, then try again; if a CORS error follows, paste that.'],
+    'did-not-succeed': ['Open the URL in a new tab. If it does not load, the server is down, the port is wrong, or the certificate is not trusted: that is not CORS.',
+      'If it loads, look for a second Firefox line with another reason and paste it too.'],
+  };
+
+  function el(tag, html, cls) { var e = document.createElement(tag); if (html != null) e.innerHTML = html; if (cls) e.className = cls; return e; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function list(v) { return String(v || '').split(/[\s,]+/).map(function (x) { return x.trim(); }).filter(Boolean); }
+  var BROWSER = { chrome: 'Chrome or Edge', firefox: 'Firefox', safari: 'Safari' };
+  var REACHED = { yes: 'Yes. The server ran the request; the browser hid the response from your code.', preflight: 'Only the OPTIONS preflight. The real request was never sent.', no: 'No. The browser refused before sending it.', unknown: 'Not clear from this message.' };
+
+  function run() {
+    var text = $('paste').value;
+    var r = CE.explain(text);
+    last = r;
+    $('result').hidden = !r.main;
+    if (!r.main) {
+      $('status').textContent = text.trim() ? 'No CORS message found. Copy the whole console line that mentions CORS, Access-Control-Allow-Origin or Cross-Origin Request Blocked.' : 'Read locally. Nothing you paste leaves this tab.';
+      return;
+    }
+    var n = r.messages.length;
+    $('status').textContent = 'Read ' + n + ' message' + (n > 1 ? 's' : '') + (r.browser ? ' from ' + BROWSER[r.browser] : '') + '.';
+    var facts = $('facts'); facts.textContent = '';
+    if (r.url) facts.appendChild(el('li', 'Request URL: <code>' + esc(r.url) + '</code>' + (r.main.redirectedFrom ? ' (redirected from <code>' + esc(r.main.redirectedFrom) + '</code>)' : '')));
+    facts.appendChild(el('li', 'Page origin: ' + (r.origin ? '<code>' + esc(r.origin) + '</code>' : (r.browser === 'firefox' ? 'not in Firefox\'s message; enter it below' : 'not in the message'))));
+    if (r.main.kind) facts.appendChild(el('li', 'Request kind: ' + esc(r.main.kind)));
+    facts.appendChild(el('li', 'Preflight (OPTIONS) involved: ' + (r.preflight ? 'yes' : 'no sign of one')));
+    var causes = $('causes'); causes.textContent = '';
+    var shown = {};
+    r.messages.slice().sort(function (a, b) { return a === r.main ? -1 : b === r.main ? 1 : 0; }).forEach(function (m) {
+      if (shown[m.id + (m.header || '') + (m.method || '')]) return;
+      shown[m.id + (m.header || '') + (m.method || '')] = 1;
+      var c = CE.CAUSES[m.id] || { title: 'A CORS message this page does not know yet', what: 'Its text is below. The table further down lists the messages it knows.', reached: 'unknown', fixable: null };
+      var box = el('div', null, 'cause'); box.setAttribute('data-cause', m.id);
+      var badge = c.fixable === true ? '<span class="badge b-yes">Headers can fix this</span>' : c.fixable === false ? '<span class="badge b-no">Headers cannot fix this</span>' : '<span class="badge b-maybe">Need the reason line</span>';
+      var title = esc(c.title) + (m.header ? ': <code>' + esc(m.header) + '</code>' : '') + (m.method ? ': <code>' + esc(m.method) + '</code>' : '') + (m.value != null && m.value !== '' ? ' (<code>' + esc(m.value) + '</code>)' : '') + (m.status && m.status !== '(null)' ? ' (status ' + esc(m.status) + ')' : '');
+      box.appendChild(el('h4', badge + title));
+      box.appendChild(el('p', esc(c.what)));
+      box.appendChild(el('p', '<strong>Did the request reach the server?</strong> ' + REACHED[c.reached]));
+      if (m.noCorsHint) box.appendChild(el('p', 'Chrome\'s hint about <code>mode: \'no-cors\'</code> will not help if you need the response: it makes the response unreadable. <a href="#no-cors">Why</a>.'));
+      box.appendChild(el('p', esc(m.text.length > 400 ? m.text.slice(0, 400) + '…' : m.text), 'src'));
+      causes.appendChild(box);
+    });
+    var todo = $('todo'); todo.textContent = '';
+    r.messages.forEach(function (m) { (TODO[m.id] || []).forEach(function (t) { if (r.fixable === false && m.id === 'did-not-succeed') return; todo.appendChild(el('li', t)); }); });
+    $('todo-wrap').hidden = !todo.children.length;
+    $('fix').hidden = r.fixable !== true;
+    if (r.fixable === true) {
+      $('origin').value = r.origin && r.origin !== 'null' ? r.origin : '';
+      $('methods').value = r.needs.methods.filter(function (x) { return CE.DEFAULT_METHODS.indexOf(x) < 0; }).join(', ');
+      $('hdrs').value = r.needs.headers.join(', ');
+      $('creds').checked = r.credentials;
+      $('pre').checked = r.preflight;
+      $('host').value = r.host;
+      update();
+    }
+  }
+
+  function rows() {
+    return CE.responseHeaders({ origin: $('origin').value, credentials: $('creds').checked, preflight: $('pre').checked, methods: list($('methods').value), headers: list($('hdrs').value) });
+  }
+  function update() {
+    var rs = rows();
+    var needOrigin = $('creds').checked && !rs[0].value;
+    $('origin-warn').hidden = !needOrigin;
+    var fmt = $('fmt').value;
+    $('output').textContent = needOrigin ? '' : CE.snippet(rs, fmt);
+    $('fmt-note').innerHTML = fmt === 'express' ? 'With the <a href="https://www.npmjs.com/package/cors">cors</a> package; it also answers OPTIONS with 204 and adds <code>Vary: Origin</code>.' :
+      fmt === 'nginx' ? 'In the <code>location</code> that serves the API. <code>always</code> adds the headers to error responses too, so a 401 or 500 is still readable. nginx does not inherit <code>add_header</code> into a block that has its own, hence the repeat inside <code>if</code>.' :
+      fmt === 'apache' ? 'The rewrite answers every OPTIONS request with 204 before your app sees it.' :
+      'Send these on the API\'s responses' + ($('pre').checked ? ', including the answer to the OPTIONS preflight (with a 2xx status).' : '.');
+    var prof = rs.filter(function (r) { return r.name !== 'Vary' && r.value; });
+    $('rows-note').textContent = needOrigin ? '' : 'Profile rows (response, set): ' + prof.map(function (r) { return r.name; }).join(', ') + '.';
+    $('copy').disabled = $('download').disabled = needOrigin;
+    $('link-wrap').hidden = true;
+  }
+  function profile() { return CE.buildProfile(rows(), $('host').value); }
+
+  ['origin', 'methods', 'hdrs', 'host'].forEach(function (id) { $(id).addEventListener('input', update); });
+  ['creds', 'pre', 'fmt'].forEach(function (id) { $(id).addEventListener('change', update); });
+  $('paste').addEventListener('input', run);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-example]'), function (b) {
+    b.addEventListener('click', function () { $('paste').value = EXAMPLES[b.getAttribute('data-example')]; run(); });
+  });
+  $('clear').addEventListener('click', function () { $('paste').value = ''; run(); $('paste').focus(); });
+
+  function copyText(btn, text, label, fallback) {
+    var done = function (t) { btn.textContent = t; setTimeout(function () { btn.textContent = label; }, 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done('Copied'); }, function () { fallback(); done('Select and copy'); });
+    else { fallback(); done('Select and copy'); }
+  }
+  $('copy-out').addEventListener('click', function () {
+    var pre = $('output');
+    copyText(this, pre.textContent, 'Copy', function () { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); });
+  });
+  $('copy').addEventListener('click', function () {
+    var link = $('link');
+    link.value = HD.shareLink(profile());
+    $('link-wrap').hidden = false;
+    copyText(this, link.value, 'Copy share link', function () { link.select(); });
+  });
+  $('download').addEventListener('click', function () {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([HD.exportJSON([profile()])], { type: 'application/json' }));
+    a.download = 'headerdial-cors-' + ($('host').value.trim() || 'test') + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+  if ($('paste').value) run();
+})();
+</script></body></html>

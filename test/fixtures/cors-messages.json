@@ -1,0 +1,384 @@
+[
+ {
+  "scenario": "s0-baseline-missing-acao",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/nocors' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s1-acao-other-origin",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s1' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'http://example.com' that is not equal to the supplied origin. Have the server send the header with a valid value.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s2a-acao-two-values-one-line",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s2a' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header contains multiple values 'http://127.0.0.1:8080, http://example.com', but only one is allowed. Have the server send the header with a valid value.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s2b-acao-two-header-lines",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s2b' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header contains multiple values 'http://127.0.0.1:8080, http://example.com', but only one is allowed. Have the server send the header with a valid value.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s3a-preflight-301",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s3-301' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: Redirect is not allowed for a preflight request.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s3b-preflight-302",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s3-302' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: Redirect is not allowed for a preflight request.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s4a-redirect-noacao-to-star",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s4a' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s4c-redirect-star-to-noacao",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://127.0.0.2:8080/nocors' (redirected from 'http://localhost:8080/s4c') from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s4d-redirect-exact-to-exact",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://127.0.0.2:8080/exact' (redirected from 'http://localhost:8080/s4d') from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'http://127.0.0.1:8080' that is not equal to the supplied origin. Have the server send the header with a valid value.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s5a-file-page-fetch-file",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'file:///tmp/cors/data.json' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-experimental-site-token-provider, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s5b-file-page-fetch-http-nocors",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/nocors' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s6a-xhr-missing-acao",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to XMLHttpRequest at 'http://localhost:8080/nocors' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s6b-module-script-missing-acao",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to script at 'http://localhost:8080/mod.js' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s6c-font-face-missing-acao",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to font at 'http://localhost:8080/font.woff2' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s7a-cred-acac-false",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s7' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: The value of the 'Access-Control-Allow-Credentials' header in the response is 'false' which must be 'true' when the request's credentials mode is 'include'.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s7b-cred-acac-TRUE-uppercase",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s7b' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: The value of the 'Access-Control-Allow-Credentials' header in the response is 'TRUE' which must be 'true' when the request's credentials mode is 'include'.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s7c-cred-acac-missing",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s7c' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s7d-cred-acao-star",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s7d' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*' when the request's credentials mode is 'include'.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s8-preflight-cred-no-acac",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s8' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s9a-connection-refused-localhost",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+  ]
+ },
+ {
+  "scenario": "s9b-connection-refused-same-host",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+  ]
+ },
+ {
+  "scenario": "s10-preflight-x-custom-not-allowed",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/s10' from origin 'http://127.0.0.1:8080' has been blocked by CORS policy: Request header field x-custom is not allowed by Access-Control-Allow-Headers in preflight response.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ },
+ {
+  "scenario": "s0-baseline-missing-acao",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/nocors. (Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 200."
+  ]
+ },
+ {
+  "scenario": "s1-acao-other-origin",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s1. (Reason: CORS header ‘Access-Control-Allow-Origin’ does not match ‘http://example.com’)."
+  ]
+ },
+ {
+  "scenario": "s2a-acao-two-values-one-line",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s2a. (Reason: CORS header ‘Access-Control-Allow-Origin’ does not match ‘http://127.0.0.1:8080, http://example.com’)."
+  ]
+ },
+ {
+  "scenario": "s2b-acao-two-header-lines",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s2b. (Reason: CORS header ‘Access-Control-Allow-Origin’ does not match ‘http://127.0.0.1:8080, http://example.com’)."
+  ]
+ },
+ {
+  "scenario": "s3a-preflight-301",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s3-301. (Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 301.",
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s3-301. (Reason: CORS request did not succeed). Status code: (null).",
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s3-301. (Reason: CORS request did not succeed). Status code: (null)."
+  ]
+ },
+ {
+  "scenario": "s3b-preflight-302",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s3-302. (Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 302.",
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s3-302. (Reason: CORS request did not succeed). Status code: (null).",
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s3-302. (Reason: CORS request did not succeed). Status code: (null)."
+  ]
+ },
+ {
+  "scenario": "s4a-redirect-noacao-to-star",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s4a. (Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 302.",
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s4a. (Reason: CORS request did not succeed). Status code: (null)."
+  ]
+ },
+ {
+  "scenario": "s4c-redirect-star-to-noacao",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://127.0.0.2:8080/nocors. (Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 200."
+  ]
+ },
+ {
+  "scenario": "s4d-redirect-exact-to-exact",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://127.0.0.2:8080/exact. (Reason: CORS header ‘Access-Control-Allow-Origin’ does not match ‘http://127.0.0.1:8080’)."
+  ]
+ },
+ {
+  "scenario": "s5b-file-page-fetch-http-nocors",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/nocors. (Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 200."
+  ]
+ },
+ {
+  "scenario": "s6a-xhr-missing-acao",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/nocors. (Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 200."
+  ]
+ },
+ {
+  "scenario": "s6b-module-script-missing-acao",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/mod.js. (Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 200.",
+   "Module source URI is not allowed in this document: “http://localhost:8080/mod.js”."
+  ]
+ },
+ {
+  "scenario": "s6c-font-face-missing-acao",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/font.woff2. (Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 200.",
+   "downloadable font: download failed (font-family: \"XF\" style:normal weight:400 width:100 src index:0): bad URI or cross-site access not allowed source: http://localhost:8080/font.woff2"
+  ]
+ },
+ {
+  "scenario": "s7a-cred-acac-false",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s7. (Reason: expected ‘true’ in CORS header ‘Access-Control-Allow-Credentials’)."
+  ]
+ },
+ {
+  "scenario": "s7b-cred-acac-TRUE-uppercase",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s7b. (Reason: expected ‘true’ in CORS header ‘Access-Control-Allow-Credentials’)."
+  ]
+ },
+ {
+  "scenario": "s7c-cred-acac-missing",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s7c. (Reason: expected ‘true’ in CORS header ‘Access-Control-Allow-Credentials’)."
+  ]
+ },
+ {
+  "scenario": "s7d-cred-acao-star",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at ‘http://localhost:8080/s7d’. (Reason: Credential is not supported if the CORS header ‘Access-Control-Allow-Origin’ is ‘*’)."
+  ]
+ },
+ {
+  "scenario": "s8-preflight-cred-no-acac",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s8. (Reason: expected ‘true’ in CORS header ‘Access-Control-Allow-Credentials’).",
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s8. (Reason: CORS request did not succeed). Status code: (null)."
+  ]
+ },
+ {
+  "scenario": "s9a-connection-refused-localhost",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:9/x. (Reason: CORS request did not succeed). Status code: (null)."
+  ]
+ },
+ {
+  "scenario": "s9b-connection-refused-same-host",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://127.0.0.1:9/x. (Reason: CORS request did not succeed). Status code: (null)."
+  ]
+ },
+ {
+  "scenario": "s10-preflight-x-custom-not-allowed",
+  "browser": "firefox",
+  "version": "158.0.1",
+  "messages": [
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s10. (Reason: header ‘x-custom’ is not allowed according to header ‘Access-Control-Allow-Headers’ from CORS preflight response).",
+   "Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8080/s10. (Reason: CORS request did not succeed). Status code: (null)."
+  ]
+ },
+ {
+  "scenario": "s11-lna-public-to-loopback",
+  "browser": "chrome",
+  "version": "159.0.8154.6",
+  "messages": [
+   "Access to fetch at 'http://localhost:8080/pna' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: Permission was denied for this request to access the `loopback` address space.",
+   "Failed to load resource: net::ERR_FAILED"
+  ]
+ }
+]

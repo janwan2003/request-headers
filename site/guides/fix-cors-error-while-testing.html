@@ -14,7 +14,7 @@
 <div class="callout"><strong>Only for your own test APIs.</strong> CORS protects users: it stops other sites from reading your data with your browser. Scope the profile to the API host with a <strong>Domain</strong> filter. Never leave <code>Access-Control-Allow-Origin: *</code> on everywhere, and never pair it with credentials. Give the rows an expiry (the select on each row offers 15 min, 1 hour, 8 hours or 1 day) so they switch themselves off.</div>
 
 <h2>Find your error</h2>
-<p>The error your code catches says nothing useful. Chrome throws <code>TypeError: Failed to fetch</code> and logs <code>Failed to load resource: net::ERR_FAILED</code>. Firefox throws <code>TypeError: NetworkError when attempting to fetch resource.</code> The reason is in the console line just above. Chrome's line starts with <code>Access to fetch at '…' from origin '…' has been blocked by CORS policy:</code>. Firefox's starts with <code>Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at …</code>. The texts below are copied from our test runs.</p>
+<p>The error your code catches says nothing useful. Chrome throws <code>TypeError: Failed to fetch</code> and logs <code>Failed to load resource: net::ERR_FAILED</code>. Firefox throws <code>TypeError: NetworkError when attempting to fetch resource.</code> The reason is in the console line just above. Chrome's line starts with <code>Access to fetch at '…' from origin '…' has been blocked by CORS policy:</code>. Firefox's starts with <code>Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at …</code>. The texts below are copied from our test runs. To match your own message to one of them, paste it into the <a href="cors-error-explainer.html">CORS error explainer</a>.</p>
 
 <h3>1. No 'Access-Control-Allow-Origin' header is present on the requested resource</h3>
 <p>Chrome: <code>has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.</code></p>
@@ -126,6 +126,7 @@ Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE</code></pre>
 <p><a class="btn" href="../#install">Get HeaderDial</a></p>
 </article>
 <div class="related"><h2>Related guides</h2><ul>
+<li><a href="cors-error-explainer.html">CORS error explainer: paste the console error, get the cause and the fix</a></li>
 <li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
 <li><a href="add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
 <li><a href="headers-only-from-one-site.html">Send a header only on requests made by one site</a></li>

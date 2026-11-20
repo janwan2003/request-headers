@@ -27,6 +27,13 @@ function serve() {
         res.end('<!doctype html><script>window.v=[];document.addEventListener("securitypolicyviolation",(e)=>v.push([e.disposition,e.originalPolicy]))</script><img src="/img-probe">');
         return;
       }
+      if (req.url.startsWith('/twoacao')) {
+        // Two Access-Control-Allow-Origin lines, neither the page's (cors-error-explainer.html).
+        res.setHeader('access-control-allow-origin', ['http://example.com', 'http://other.example']);
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end('{"ok":true}');
+        return;
+      }
       if (req.url.startsWith('/nocors')) {
         // No CORS headers at all; answers preflights with an empty 204 (or 404 for /nocors404).
         res.writeHead(req.method === 'OPTIONS' ? (req.url.startsWith('/nocors404') ? 404 : 204) : 200, req.method === 'OPTIONS' ? {} : { 'content-type': 'application/json' });
@@ -703,6 +710,64 @@ async function fetchVia(page, url) {
     ok('guide claim holds: CSP builder rows (Report-Only next to the site policy, remove, enforce replaces it)');
   }
 
+  // Tool guard (cors-error-explainer.html): feed Chrome's real console errors to the explainer,
+  // apply the profile it builds, and repeat, as a user would. A credentialed PUT with a custom
+  // header to an API with no CORS headers must work within a few rounds; and a response with two
+  // Access-Control-Allow-Origin lines is fixed by one set row (set replaces both).
+  {
+    require('../extension/lib/model.js');
+    const CE = require('../site/js/cors-explain.js');
+    const saved = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state);
+    const consoleErrors = [];
+    const onConsole = (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); };
+    page.on('console', onConsole);
+    const apply = async (rows) => {
+      const p = CE.buildProfile(rows, 'localhost');
+      await ui.evaluate(async (pr) => chrome.storage.local.set({ state: HeaderDial.normalizeState({ profiles: [pr] }) }), p);
+      await settle();
+    };
+    const attempt = async (url, init) => {
+      consoleErrors.length = 0;
+      await page.goto(A + '/');
+      const res = await page.evaluate(async ([u, i]) => { try { const r = await fetch(u, i); return (await r.json()).ok ? 'ok' : 'bad'; } catch (e) { return 'blocked'; } }, [url, init]);
+      await sleep(200);
+      return { res, text: consoleErrors.filter((t) => /CORS policy/.test(t)).join('\n') };
+    };
+    await ui.evaluate(async () => chrome.storage.local.set({ state: HeaderDial.normalizeState({ profiles: [] }) }));
+    await settle();
+    const init = { method: 'PUT', credentials: 'include', headers: { 'content-type': 'application/json', 'x-custom': '1' }, body: '{}' };
+    let paste = '', seen = [], res = '';
+    for (let round = 0; round < 5; round++) {
+      const r = await attempt(B + '/nocors?r=' + round, init);
+      res = r.res;
+      if (res === 'ok') break;
+      assert.ok(r.text, 'Chrome logged a CORS console error in round ' + round);
+      paste += r.text + '\n';
+      const ex = CE.explain(paste);
+      seen.push(CE.explain(r.text).main.id);
+      assert.strictEqual(ex.origin, A, 'origin read from the error');
+      assert.strictEqual(ex.host, 'localhost');
+      assert.notStrictEqual(ex.fixable, false);
+      await apply(CE.responseHeaders(ex.needs));
+    }
+    console.log('   explainer rounds:', JSON.stringify(seen));
+    assert.strictEqual(res, 'ok', 'credentialed PUT works after following the explainer: ' + seen.join(' > '));
+    assert.strictEqual(seen[0], 'preflight-missing-acao');
+    // Two Access-Control-Allow-Origin lines.
+    await ui.evaluate(async () => chrome.storage.local.set({ state: HeaderDial.normalizeState({ profiles: [] }) }));
+    await settle();
+    const two = await attempt(B + '/twoacao');
+    assert.strictEqual(two.res, 'blocked', 'control: two ACAO lines are refused');
+    const ex2 = CE.explain(two.text);
+    assert.strictEqual(ex2.main.id, 'multiple-acao', two.text);
+    await apply(CE.responseHeaders(ex2.needs));
+    assert.strictEqual((await attempt(B + '/twoacao?2')).res, 'ok', 'one set row replaces both ACAO lines');
+    page.off('console', onConsole);
+    await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
+    await settle();
+    ok('CORS explainer: real Chrome errors parsed, its profile fixes a credentialed PUT (' + seen.join(' > ') + ') and a doubled ACAO');
+  }
+
   if (SHOTS) {
     await ui.setViewportSize({ width: 1280, height: 800 });
     await ui.reload();
@@ -726,9 +791,15 @@ async function fetchVia(page, url) {
     const pg = await l.ctx.newPage();
     await pg.goto(A + '/');
     await sleep(300);
-    const res = await pg.evaluate(async (url) => {
-      try { const r = await fetch(url); return (await r.json()).ok ? 'ok' : 'bad'; } catch (e) { return 'blocked'; }
-    }, B + '/nocors');
+    // Rules can take a moment to apply after the sync (one CI flake, run 44780455961): try a few
+    // times. A blocked result must stay blocked on every try.
+    let res = 'blocked';
+    for (let i = 0; i < 5 && res !== 'ok'; i++) {
+      if (i) await sleep(300);
+      res = await pg.evaluate(async (url) => {
+        try { const r = await fetch(url); return (await r.json()).ok ? 'ok' : 'bad'; } catch (e) { return 'blocked'; }
+      }, B + '/nocors?try=' + i);
+    }
     await l.ctx.close();
     return res;
   };
@@ -915,6 +986,56 @@ async function fetchVia(page, url) {
     assert.deepStrictEqual(p.headers.map((h) => [h.name, h.op, h.value]), [['Content-Security-Policy', 'set', "default-src 'none'; img-src 'self'; sandbox allow-forms"]]);
     assert.deepStrictEqual(errors, []);
     ok('CSP builder: presets and chips build the header, a pasted <meta> policy loads, share link holds the rows for the host, no network');
+    await browser.close();
+  }
+
+  // ---- 9. The CORS error explainer page (no extension): an example explains, the fix section
+  // fills from the message, a Firefox message asks for the origin when cookies are ticked, an
+  // unfixable cause hides the fix, and the share link holds the rows for the API host.
+  {
+    const browser = await chromium.launch({ executablePath: fs.existsSync(CHROME) ? CHROME : undefined, headless: true });
+    const page = await (await browser.newContext()).newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    page.on('request', (r) => { if (!/^file:|\/favicon\.png$/.test(r.url())) errors.push('network request: ' + r.url()); });
+    await page.goto('file://' + path.join(root, 'dist/site/guides/cors-error-explainer.html'));
+    assert.ok(await page.locator('#result').isHidden());
+    await page.click('[data-example="chrome-preflight"]');
+    assert.strictEqual(await page.locator('.cause').first().getAttribute('data-cause'), 'preflight-missing-acao');
+    assert.match(await page.locator('.cause').first().innerText(), /Headers can fix this[\s\S]*Only the OPTIONS preflight/);
+    assert.strictEqual(await page.locator('#origin').inputValue(), 'http://localhost:5173');
+    assert.strictEqual(await page.locator('#host').inputValue(), 'localhost');
+    assert.ok(await page.locator('#pre').isChecked());
+    assert.match(await page.locator('#output').innerText(), /^Access-Control-Allow-Origin: http:\/\/localhost:5173\nAccess-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS\nAccess-Control-Allow-Headers: Authorization, Content-Type\nVary: Origin$/);
+    await page.fill('#hdrs', 'X-Api-Key');
+    await page.check('#creds');
+    await page.selectOption('#fmt', 'nginx');
+    assert.match(await page.locator('#output').innerText(), /add_header Access-Control-Allow-Credentials "true" always;/);
+    await page.click('#copy');
+    const p = await page.evaluate((l) => HeaderDial.parseImport(l).profiles[0], await page.locator('#link').inputValue());
+    assert.deepStrictEqual(p.headers.map((h) => [h.target, h.name, h.op, h.value]), [
+      ['response', 'Access-Control-Allow-Origin', 'set', 'http://localhost:5173'], ['response', 'Access-Control-Allow-Credentials', 'set', 'true'],
+      ['response', 'Access-Control-Allow-Methods', 'set', 'GET, POST, PUT, PATCH, DELETE, OPTIONS'],
+      ['response', 'Access-Control-Allow-Headers', 'set', 'X-Api-Key, Authorization, Content-Type']]);
+    assert.deepStrictEqual(p.filters.map((f) => [f.type, f.value]), [['domain', 'localhost']]);
+    // Firefox: no origin in the message; ticking cookies asks for it and disables the link.
+    await page.selectOption('#fmt', 'headers');
+    await page.click('[data-example="firefox-missing"]');
+    assert.strictEqual(await page.locator('#origin').inputValue(), '');
+    assert.match(await page.locator('#output').innerText(), /^Access-Control-Allow-Origin: \*$/);
+    await page.check('#creds');
+    assert.ok(await page.locator('#origin-warn').isVisible());
+    assert.ok(await page.locator('#copy').isDisabled());
+    // OPTIONS 404: headers cannot fix it, so no fix section, a to-do list instead.
+    await page.click('[data-example="chrome-404"]');
+    assert.strictEqual(await page.locator('.cause').first().getAttribute('data-cause'), 'preflight-status');
+    assert.ok(await page.locator('#fix').isHidden());
+    assert.match(await page.locator('#todo').innerText(), /before authentication/);
+    // A generic error asks for the reason line.
+    await page.fill('#paste', 'TypeError: Failed to fetch');
+    assert.match(await page.locator('.cause').first().innerText(), /Need the reason line/);
+    assert.deepStrictEqual(errors, []);
+    ok('CORS error explainer: examples explain, fix fills from the message, origin required with cookies, OPTIONS 404 has no fix, no network');
     await browser.close();
   }
 
