@@ -99,17 +99,18 @@ about 500K Chrome users. The rest is fragmented into small or copycat listings.
 
 ## Status
 
-HeaderDial 0.3.1 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
+HeaderDial 0.4.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
 - **Firefox Add-ons:** submitted 2026-11-20 through the AMO API, slug `headerdial`, id
   `headerdial@plainbyte`, https://addons.mozilla.org/firefox/addon/headerdial/. Version 0.2.0
   with Markdown description and 2 screenshots; add-on status `nominated`, file `unreviewed`
   (rechecked 2026-11-20 with `publish-amo.py --status`; the public API returns 401 until then).
-  0.1.0 was superseded. **0.3.x is deliberately not on AMO yet**: wait until 0.2.0 is approved
+  0.1.0 was superseded. **0.3.x/0.4.0 are deliberately not on AMO yet**: wait until 0.2.0 is approved
   so the first review is not disturbed, then `publish-amo.py` (version) and `--listing` (the
-  description in `store/amo-listing.json` already mentions redirects).
-- **Chrome Web Store:** 0.2.0, then 0.3.0 and 0.3.1, uploaded through the API on 2026-11-20 as a draft, item id
+  description in `store/amo-listing.json` already mentions redirects, cookies and curl). Still
+  `nominated` on 2026-11-20 (session 4 recheck).
+- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1 and 0.4.0, uploaded through the API on 2026-11-20 as a draft, item id
   `hfacpfgfdcpacffioinklbocgjiglhig` (`store/cws-item.json`, upload state SUCCESS). Publishing
-  fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 listing
+  fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in session 4) listing
   privacy practices, certification, language, category, icon, screenshot, description and a
   verified publisher contact email. Exact text for every field: `store/chrome-privacy.md`
   (inbox line added). Promo tiles: `store/promo-small-440x280.png`, `store/promo-marquee-1400x560.png`
@@ -128,7 +129,11 @@ What exists:
   sites or the current one), **URL redirects** (0.3.0: "Replace" text in the URL or "Regex" with
   `\1` groups; DNR `redirect` rules; loops and bad patterns flagged, not applied), import
   (HeaderDial JSON, share link, ModHeader export including `urlReplacements`), export,
-  share-as-link with no server, light and dark mode.
+  share-as-link with no server, light and dark mode. **Cookie rows** (0.4.0, "+ Cookie"): Send adds
+  `name=value` after the browser's cookies (one DNR append on `Cookie`, folded into a Cookie header row
+  if the profile has one); Store adds one `Set-Cookie` line per row with attributes. ModHeader
+  `cookieHeaders`/`setCookieHeaders` import as these rows. **Copy as curl…** (profile ⋯ menu) builds a
+  curl command for the tab's URL (removes as `-H 'Name:'`, cookies as `-b`, browser-only parts as comments).
 - `extension/lib/model.js` compiles profiles into DNR rules (`modifyHeaders`, `redirect`, `allow` for exclusions). `background.js` applies them;
   if the browser rejects the batch it adds rules one at a time and reports the bad ones.
 - `scripts/build.js` emits `dist/extension` + zip (Chrome/Edge) and `dist/firefox` + zip (the
@@ -141,10 +146,10 @@ What exists:
   share page, how-to guides plus a hub, sitemap.xml, robots.txt, `/download/headerdial.zip`.
 - `store/LISTING.md` (CWS/Edge text + AMO notes), `store/amo-listing.json`, two 1280×800 screenshots.
 
-Verified on 2026-11-20 (0.3.1) locally and in CI (see Log): unit 18/18; Chromium e2e 21/21
-(Chrome for Testing 159.0.8154.6); Firefox e2e 14/14 in Firefox 158.0.1 over WebDriver BiDi
+Verified on 2026-11-20 (0.4.0) locally and in CI run 44751522144 (see Log): unit 22/22; Chromium e2e 22/22
+(Chrome for Testing 159.0.8154.6); Firefox e2e 15/15 in Firefox 158.0.1 over WebDriver BiDi
 (request set/remove/override, response header, fetch, domain/regex/method filters, URL redirects in
-both modes, empty-value rows, pause, no change without host access, access banner, shortcut).
+both modes, cookie rows, empty-value rows, pause, no change without host access, access banner, shortcut).
 The Chromium e2e also opens the real toolbar popup (`chrome.action.openPopup()` over CDP) with
 one site allowed, and checks the banner, "+ Only on <host>" and "Only in this tab".
 Not verified: Edge itself; Firefox for Android; the toolbar popup in Firefox; the
@@ -164,12 +169,16 @@ check the binding and call the handler).
    AMO daily users in Metrics.
 3. **Search Console:** `python3 scripts/gsc.py status` from about 2026-11-27 for indexing and the
    first impressions; record them in Metrics. Write guides for the queries that show up.
-4. Features users of the old tool expect, next: cookie helpers (set/remove one cookie by name
-   rather than the whole Cookie header), and a per-profile "copy as curl" for the active headers.
+4. Features next: tab-group / window filters (the last ModHeader import warnings), and an
+   "edit one cookie" mode that really replaces a same-named browser cookie (DNR cannot rewrite part of a
+   header; would need the `cookies` permission, so weigh it against the minimal-permission promise).
 5. Guard the guides: e2e assertions for the measured claims most likely to change between browser
    releases (Firefox ignoring a set over an existing Content-Type/HSTS, Sec-Fetch-Site settable,
    preflights not declaring extension-added headers), so CI flags a guide that goes stale.
-6. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
+6. Guard the cross-profile cookie result found in session 4 (Chrome and Firefox disagree when a Send
+   row and a Cookie header row are in different profiles; table in `send-cookie-with-request.html`)
+   with e2e assertions in both browsers.
+7. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
    the chrome scope) and the matched-request count (needs an activeTab grant from a real click).
 
 ## Metrics
@@ -177,6 +186,9 @@ check the binding and call the handler).
 - 2026-11-20: no live store listing yet (AMO `nominated`, CWS draft waiting for the dashboard), so
   no install numbers. Search Console: property added and sitemap submitted 2026-11-20 13:34 UTC
   (`gsc.py status`: pending, 0 errors, no search analytics rows yet). Sitemap: 25 URLs.
+- 2026-11-20 (session 4): still no installs to read (AMO `nominated` per `publish-amo.py --status`; CWS
+  `--publish` 400, dashboard unfilled). `gsc.py status`: sitemap pending, 0 errors, search analytics
+  for 2026-10-23..11-20 returned no rows. Sitemap: 27 URLs.
 
 ## Monetization plan
 
@@ -241,3 +253,18 @@ that is how the incumbent died.
   include Firefox and Edge. CI 44746865351 (0.3.0) and 44749753458 (0.3.1) passed (test, firefox,
   deploy). Live check: /download/headerdial.zip is 0.3.1, the 5 new guides return 200, sitemap 25 URLs
   (resubmitted to Search Console).
+- 2026-11-20 builder (session 4): rechecked channels: CWS `--publish` still 400 (dashboard), AMO 0.2.0
+  still `nominated`, GSC no rows. Built 0.4.0: cookie rows ("+ Cookie": Send appends `name=value` to
+  `Cookie`, folded into a Cookie header row when one exists; Store adds one `Set-Cookie` per row with
+  attributes), ModHeader `cookieHeaders`/`setCookieHeaders` import (previously dropped with a warning),
+  and "Copy as curl…" in the profile menu. Measured in e2e, both browsers: browser cookies `pre=0`,
+  `dup=browser` plus Send `hd=1`, `dup=ext` → server got `pre=0; dup=browser; hd=1; dup=ext`; Store rows
+  both stored and `dup=ext` replaced `dup=browser`; Chrome `credentials:'omit'` fetch still got
+  `hd=1; dup=ext`. A screenshot caught a stray "false" in Send rows (DOM `append` of a falsy child),
+  fixed, and the e2e now asserts it. Unit 22/22, Chromium e2e 22/22, Firefox e2e 15/15 locally; CI
+  44751522144 passed (test, firefox, deploy); live zip is 0.4.0. Uploaded 0.4.0 to the CWS draft (upload
+  SUCCESS, crxVersion 0.4.0). Subagent wrote 2 measured guides: chrome-devtools-override-headers (DevTools
+  overrides measured in headless Chrome 159: response headers apply only while DevTools is open, only in
+  that tab, not on preflights) and send-cookie-with-request (found Chrome/Firefox disagree when cookie
+  rows and a Cookie header row sit in different profiles). Landing page, cookie and ModHeader-import
+  guides, LISTING.md and amo-listing.json updated for cookies and curl.

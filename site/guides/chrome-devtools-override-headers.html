@@ -1,0 +1,112 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to override response headers in Chrome DevTools, and when to use an extension instead – HeaderDial</title><meta name="description" content="Override HTTP response headers with Chrome DevTools local overrides (.headers files, Chrome 113+): what works, what stops when DevTools closes, why CORS preflights and request headers are out of reach, and when an extension is the better tool. Measured in Chrome 159.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/chrome-devtools-override-headers.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to override response headers in Chrome DevTools, and when to use an extension instead","description":"Change the response headers a page receives with Chrome DevTools local overrides, or with a browser extension when the change must cover request headers, CORS preflights or tabs without DevTools open.","tool":[{"@type":"HowToTool","name":"Chrome DevTools"},{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open the request in DevTools","text":"Open DevTools, go to the Network panel, reload, and right-click the request whose headers you want to change."},{"@type":"HowToStep","name":"Choose Override headers","text":"Choose Override headers. The first time, select a local folder for overrides and click Allow."},{"@type":"HowToStep","name":"Edit the response headers","text":"Edit or add response headers in the Headers tab, or edit the .headers file under Sources > Overrides to apply rules to many URLs with wildcards."},{"@type":"HowToStep","name":"Keep DevTools open","text":"Reload the page with DevTools still open. Overrides apply only to that tab and only while its DevTools window is open."},{"@type":"HowToStep","name":"Use an extension for the rest","text":"For request headers, CORS preflights, every tab, or Firefox, add a response or request header row in HeaderDial instead."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to override response headers in Chrome DevTools, and when to use an extension instead</h1>
+<p>Since Chrome 113, DevTools can override response headers without an extension. In the <strong>Network</strong> panel, right-click a request and choose <strong>Override headers</strong>. Then edit the header, or put rules for many URLs in a <code>.headers</code> file under <strong>Sources › Overrides</strong>. In our test in Chrome 159, the overrides reached page loads and <code>fetch()</code> calls, and an added <code>Set-Cookie</code> was stored. They applied only in the tab whose DevTools was open, and stopped as soon as DevTools closed. They did not reach CORS preflight responses, and DevTools overrides cannot change request headers at all. For a quick look at one response, DevTools is enough. If the change has to cover requests or preflights, stay on without DevTools, or work in Firefox, use an extension.</p>
+
+<h2>Setting up a header override in DevTools</h2>
+<p>These steps are taken from Chrome's documentation: <a href="https://developer.chrome.com/docs/devtools/overrides">Override web content and HTTP response headers locally</a> and <a href="https://developer.chrome.com/blog/new-in-devtools-113">What's new in DevTools (Chrome 113)</a>. Our test (below) set up the overrides folder through Chrome's profile settings, so we did not click through these screens ourselves.</p>
+<ol>
+<li>Open DevTools (F12), go to the <strong>Network</strong> panel and reload the page.</li>
+<li>Right-click the request and choose <strong>Override headers</strong>. The first time, DevTools asks you to <strong>Select folder</strong> for override files; pick an empty folder and click <strong>Allow</strong> in the bar that appears.</li>
+<li>Under <strong>Response Headers</strong>, hover over a value and click the edit icon to change it, or add a header of your own.</li>
+<li>To manage every header override in one place, open the <code>.headers</code> file under <strong>Sources › Overrides</strong>. <strong>Add override rule</strong> applies headers to many URLs with <code>*</code> wildcards.</li>
+<li>Untick <strong>Enable Local Overrides</strong> in <strong>Sources › Overrides</strong> to switch them off, or click <strong>Clear</strong> to delete them.</li>
+</ol>
+<p>The <code>.headers</code> file is JSON. This is the file we wrote by hand for the test, and Chrome 159 applied it:</p>
+<pre><code>[
+  {
+    "applyTo": "*",
+    "headers": [
+      { "name": "x-added", "value": "yes" },
+      { "name": "access-control-allow-origin", "value": "*" }
+    ]
+  }
+]</code></pre>
+<p>A <code>.headers</code> file at the top of the overrides folder applied to every site. One in a sub-folder named after the host and port, <code>127.0.0.1:18765/</code>, applied to that host only. A folder named <code>127.0.0.1%3A18765/</code> did nothing.</p>
+
+<h2>What we measured</h2>
+<p>We tested in November 2026 with Chrome for Testing 159.0.8154.6 on Linux, and HeaderDial 0.4.0 for comparison. Chrome ran headless with a real DevTools window opened for each tab (<code>--auto-open-devtools-for-tabs</code>). We registered the overrides folder in the browser profile's DevTools settings with local overrides switched on, and wrote the <code>.headers</code> file above. Two local servers on different ports stood in for a site and its API. The HeaderDial run used response header rows with the same names and values, plus one request header, with no DevTools open. The results:</p>
+<table>
+<tr><th>Check</th><th>DevTools overrides</th><th>HeaderDial</th></tr>
+<tr><td>Changed or added response header on a page load</td><td>applied</td><td>applied</td></tr>
+<tr><td>Same header read by <code>fetch()</code> through <code>response.headers</code></td><td>overridden value</td><td>overridden value</td></tr>
+<tr><td><code>Set-Cookie: dtc=1; Path=/</code> added</td><td>cookie stored</td><td>cookie stored</td></tr>
+<tr><td>Same tab after DevTools was closed</td><td>server's headers again</td><td>unaffected (does not use DevTools)</td></tr>
+<tr><td>A second tab whose DevTools was closed, while the first tab kept DevTools open</td><td>server's headers</td><td>applied in every tab, unless the profile is limited to one</td></tr>
+<tr><td>Cross-origin <code>fetch()</code>, API sends no CORS headers, <code>Access-Control-Allow-Origin: *</code> added</td><td>succeeded</td><td>succeeded</td></tr>
+<tr><td>Same, with a custom request header (needs a preflight)</td><td><strong>blocked</strong>: the <code>OPTIONS</code> preflight got the server's headers</td><td>succeeded</td></tr>
+<tr><td>Add a request header (<code>X-Debug: 1</code>)</td><td>not possible with overrides</td><td>server received it</td></tr>
+</table>
+<p>For the two CORS rows we started Chrome with <code>--disable-features=LocalNetworkAccessChecks</code>. Both test servers ran on the same machine. While DevTools overrides were active, Chrome's local network access check blocked the call to the second port before CORS was checked, so without the flag the rows told us nothing about CORS. HeaderDial gave the same results with and without the flag. We did not test Edge, which has the same DevTools feature, or a site on the public internet.</p>
+
+<h2>What DevTools overrides cannot do</h2>
+<ul>
+<li><strong>Request headers.</strong> Local overrides change responses only: content and response headers. Chrome's overrides documentation describes no way to add, change or remove a request header such as <code>Authorization</code>, <code>Cookie</code> or <code>X-Forwarded-For</code>. Separately, the <strong>Network conditions</strong> panel can replace the User-Agent (see <a href="https://developer.chrome.com/docs/devtools/device-mode/override-user-agent">Chrome's documentation</a>; we did not test it).</li>
+<li><strong>CORS preflights.</strong> In our test the preflight <code>OPTIONS</code> response kept the server's headers, so a cross-origin request with a custom header or a JSON body stayed blocked. Simple <code>GET</code> requests did work.</li>
+<li><strong>Tabs without DevTools, or DevTools closed.</strong> Measured above: a second tab with its DevTools closed got the server's headers, and so did the first tab once its DevTools closed. A flow that opens a new tab needs DevTools open in that tab too.</li>
+<li><strong>Firefox.</strong> Firefox DevTools has had <a href="https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/network_overrides/index.html">Network overrides</a> since Firefox 137. Its documentation describes replacing a response's content with a local file, for one tab, until the toolbox closes, and does not mention headers. <strong>Edit and Resend</strong> can send one request again with edited headers, but the page itself is not affected.</li>
+<li><strong>The cache.</strong> Chrome's documentation says local overrides disable the browser cache while they are on, so they are no help for testing caching. See <a href="cache-control-header-testing.html">testing with Cache-Control</a> for that.</li>
+</ul>
+
+<h2>When DevTools is the right tool</h2>
+<ul>
+<li><strong>A one-off check on one page.</strong> To try a <code>Content-Security-Policy</code> or <code>Permissions-Policy</code> change before you ask for a server change, an override in the Network panel is quicker than installing anything.</li>
+<li><strong>You also need to change the body.</strong> Local overrides can replace a script, stylesheet or JSON response with a local file. HeaderDial changes headers and URLs only, never response bodies.</li>
+<li><strong>You cannot install extensions</strong>, for example on a managed work machine.</li>
+<li><strong>You want it to stop by itself.</strong> Closing DevTools switches everything off, so a forgotten override cannot break your normal browsing.</li>
+</ul>
+
+<h2>When an extension is the better tool</h2>
+<ul>
+<li>You need to <strong>add, change or remove request headers</strong>: an <a href="add-authorization-header-chrome.html">Authorization token</a>, a feature-flag header, <code>Cookie</code>, <code>Accept-Language</code>.</li>
+<li>You are fixing <strong>CORS for local development</strong> and your requests need a preflight. See <a href="cors-headers-for-local-development.html">CORS headers for local development</a>.</li>
+<li>The change must hold <strong>in every tab, without DevTools open</strong>, for example while you click through a login flow, test on a second monitor, or record a demo.</li>
+<li>You switch between set-ups often: HeaderDial keeps them as profiles with an <strong>Active</strong> switch, limits each to the hosts you choose, and can switch a header off after <strong>15 min</strong> or <strong>1 hour</strong>.</li>
+<li>You work in <strong>Firefox</strong> as well as Chrome or Edge. HeaderDial runs in all three from the same export.</li>
+</ul>
+
+<h2>Steps with HeaderDial</h2>
+<ol>
+<li>Click the HeaderDial icon. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>. For a page on one host that calls an API on another, allow both.</li>
+<li>Click <strong>+ Response header</strong> and enter the header and value, for example <code>Access-Control-Allow-Origin</code> and <code>http://localhost:3000</code>. Keep the operation on <strong>set</strong>, or choose <strong>remove</strong> to drop a header the server sends. Request headers work the same way with <strong>+ Request header</strong>.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong> and choose <strong>Domain</strong> with your host, so the change stays on the site you are testing.</li>
+<li>Reload. The change stays in place when you close DevTools, and applies in every tab that matches the filter.</li>
+</ol>
+
+<h2>The curl equivalent</h2>
+<p>curl cannot override what a server sends back, but it shows exactly what the server sends, including the preflight answer that DevTools overrides do not change:</p>
+<pre><code># the response headers the server really sends
+curl -sI https://staging.example.com/
+
+# the CORS preflight a browser would send before a request with a custom header
+curl -si -X OPTIONS https://api.example.com/items \
+  -H "Origin: http://localhost:3000" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "Access-Control-Request-Headers: x-custom"
+
+# send a request header, which DevTools overrides cannot do
+curl -H "X-Debug: 1" https://staging.example.com/</code></pre>
+
+<h2>Pitfalls</h2>
+<div class="callout">Both tools change only what your browser sees. Once the header works, fix it on the server too: other visitors, and your own production build, still get the original response.</div>
+<ul>
+<li><strong>An override that seems ignored</strong> may be a preflight. Look in the Network panel for an <code>OPTIONS</code> request just before the failing one.</li>
+<li><strong>A <code>.headers</code> file at the top of the overrides folder</strong> with <code>"applyTo": "*"</code> changes every site you open with DevTools. Put rules in the host's folder instead.</li>
+<li><strong>Cookies outlive the override.</strong> An added <code>Set-Cookie</code> is stored like any other cookie, in DevTools or HeaderDial. Delete it under <strong>Application › Cookies</strong> when you are done.</li>
+<li><strong>Switch HeaderDial off afterwards.</strong> Give rows an expiry, or press <strong>Alt+Shift+D</strong> to pause every profile.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="cors-headers-for-local-development.html">CORS headers for local development</a></li>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="modify-headers-edge.html">Modify headers in Microsoft Edge</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

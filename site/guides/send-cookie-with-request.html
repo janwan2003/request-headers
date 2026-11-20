@@ -1,0 +1,92 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to send a cookie with requests without setting it in the browser – HeaderDial</title><meta name="description" content="Add a cookie to every request to one site from a Chrome, Edge or Firefox extension without storing it, or make the browser store one without the server: HeaderDial cookie rows, measured in Chrome 159 and Firefox 158.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/send-cookie-with-request.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to send a cookie with requests without setting it in the browser","description":"Add a name=value cookie to the requests a page makes in Chrome, Edge or Firefox without writing it to the cookie jar, or store a cookie in the browser as if the server had sent Set-Cookie.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Add a cookie row","text":"Click + Cookie. The new row is set to Send. Enter the cookie name and value, for example hd and 1."},{"@type":"HowToStep","name":"Or store the cookie instead","text":"Change Send to Store to make the browser save the cookie. Edit the attributes field, which starts as Path=/, for example to Path=/; Max-Age=3600."},{"@type":"HowToStep","name":"Limit it to your site","text":"Under Where it applies, add an Only on filter of type Domain for the host you are testing."},{"@type":"HowToStep","name":"Check what the server received","text":"Reload, then look at the Cookie header in your server log."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to send a cookie with requests without setting it in the browser</h1>
+<p>To add a cookie to requests without storing it, click <strong>+ Cookie</strong> in HeaderDial, leave the row on <strong>Send</strong>, and enter a name and value such as <code>hd</code> and <code>1</code>. Matching requests then carry <code>hd=1</code> after the cookies the browser already sends. The browser's cookie jar and <code>document.cookie</code> stay as they were, and unticking the row stops it at once. To have the browser save a cookie instead, as if the server had sent <code>Set-Cookie</code>, switch the row to <strong>Store</strong>. Cookie rows are new in HeaderDial 0.4.0 (20 November 2026): the download on the home page has them, and the store versions follow once their review finishes. In an older version, a <code>Cookie</code> request header with <strong>append</strong> sends extra cookies the same way (see <a href="cookie-header-testing.html">testing with Cookie and Set-Cookie headers</a>).</p>
+
+<h2>Send: what the server receives</h2>
+<p>We tested in November 2026 with HeaderDial 0.4.0 in Chrome for Testing 159.0.8154.6 and Firefox 158.0.1 on Linux. A local server logged the <code>Cookie</code> header of page loads and <code>fetch()</code> calls. Both browsers gave the same results except where a row says otherwise:</p>
+<table>
+<tr><th>Cookies in the browser</th><th>Send rows</th><th>Server received</th></tr>
+<tr><td><code>pre=0</code></td><td><code>hd=1</code></td><td><code>pre=0; hd=1</code>, on page loads and <code>fetch()</code></td></tr>
+<tr><td><code>pre=0</code></td><td><code>hd=1</code>, row unticked</td><td><code>pre=0</code> (tested in Chrome)</td></tr>
+<tr><td><code>pre=0</code>, <code>dup=browser</code></td><td><code>hd=1</code>, <code>dup=ext</code></td><td><code>pre=0; dup=browser; hd=1; dup=ext</code></td></tr>
+<tr><td>any, but <code>fetch()</code> with <code>credentials: 'omit'</code></td><td><code>hd=1</code>, <code>dup=ext</code></td><td><code>hd=1; dup=ext</code> (tested in Chrome)</td></tr>
+</table>
+<p>With a Send row active, <code>document.cookie</code> still read <code>pre=0</code>, and the browser's cookie store held only <code>pre</code>. Nothing was written, so there is nothing to clean up afterwards. The flip side: scripts on the page never see the cookie, so this tests what your <em>server</em> does with it, not your front-end code.</p>
+<p>A Send row adds to the browser's cookies and never replaces one. If the browser already has a cookie with the same name, the server gets both, the browser's first. Which one your server uses depends on its cookie parser. To replace a browser cookie, use a Store row, or a <code>Cookie</code> header row with <strong>set</strong> as shown below.</p>
+
+<h2>Send rows together with a Cookie header row</h2>
+<p>A profile can have both a <code>Cookie</code> request header row and Send rows. HeaderDial then combines them into one change to the <code>Cookie</code> header. With <code>pre=0</code> in the browser, both browsers sent:</p>
+<table>
+<tr><th>Cookie header row (same profile)</th><th>Send row</th><th>Server received</th></tr>
+<tr><td><strong>set</strong> <code>fixed=abc</code></td><td><code>hd=1</code></td><td><code>fixed=abc; hd=1</code></td></tr>
+<tr><td><strong>remove</strong></td><td><code>hd=1</code></td><td><code>hd=1</code></td></tr>
+<tr><td><strong>append</strong> <code>extra=2</code></td><td><code>hd=1</code></td><td><code>pre=0; extra=2; hd=1</code></td></tr>
+</table>
+<p>So <strong>remove</strong> plus Send rows sends exactly your cookies and none of the browser's. That is handy for testing one session cookie without logging out of your own.</p>
+
+<h2>Store: what the browser saves</h2>
+<p>A Store row adds a <code>Set-Cookie</code> line to every matching response, built from the name, the value and the attributes field. The browser then stores the cookie as if the server had sent it. Same browsers and set-up:</p>
+<table>
+<tr><th>Store row</th><th>Result</th></tr>
+<tr><td><code>st</code> = <code>1</code>, attributes <code>Path=/</code></td><td>Stored from a page load. Without <code>Max-Age</code> or <code>Expires</code> it is a session cookie (Chrome reported no expiry).</td></tr>
+<tr><td><code>mx</code> = <code>1</code>, <code>Path=/; Max-Age=3600</code></td><td>Stored with an expiry 3,600 seconds later (tested in Chrome).</td></tr>
+<tr><td><code>ho</code> = <code>1</code>, <code>Path=/; HttpOnly</code></td><td>Stored and sent on the next request, but hidden from <code>document.cookie</code>.</td></tr>
+<tr><td><code>pre</code> with an empty value, <code>Path=/; Max-Age=0</code></td><td>The browser's existing <code>pre</code> cookie was deleted.</td></tr>
+<tr><td><code>hd</code> = <code>1</code> and <code>dup</code> = <code>ext</code>, browser already has <code>dup=browser</code></td><td>Both stored. <code>dup=ext</code> replaced <code>dup=browser</code>.</td></tr>
+<tr><td>Any, after the row was deleted</td><td>The cookie stayed in the browser. Chrome kept sending it.</td></tr>
+</table>
+<p>In Chrome, <code>response.headers.get('set-cookie')</code> returned <code>null</code> for a response with a Store row, as it does for any response: browsers never show <code>Set-Cookie</code> to scripts. We tested plain cookies over HTTP. We did not test <code>Secure</code>, <code>Domain</code>, <code>SameSite</code> or partitioned cookies.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Click <strong>+ Cookie</strong>. A <strong>Cookies</strong> section appears with a row set to <strong>Send</strong>. Type the cookie name, then the value after the <strong>=</strong>. A value cannot contain <code>;</code> or a line break: the row is marked and not applied until you fix it.</li>
+<li>To store the cookie instead, change <strong>Send</strong> to <strong>Store</strong>. An attributes field appears, filled in with <code>Path=/</code>. Add what you need, for example <code>Path=/; Max-Age=3600</code> or <code>Path=/; HttpOnly</code>.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter your host, for example <code>staging.example.com</code>. Without a filter, a Send row goes to every site.</li>
+<li>Reload and check the <code>Cookie</code> header in your server log. A Send row never appears under <strong>Application › Cookies</strong> in Chrome and Edge or <strong>Storage › Cookies</strong> in Firefox, because it is not stored; a Store row does.</li>
+</ol>
+
+<h2>The curl equivalent</h2>
+<p>In HeaderDial 0.4.0, <strong>Copy as curl…</strong> in a profile's <strong>⋯</strong> menu writes a command for the current tab's URL. With Send rows <code>hd=1</code> and <code>dup=ext</code> and one Store row, it produced:</p>
+<pre><code># not in curl (browser only): response cookie st
+curl 'https://staging.example.com/' \
+  -b 'hd=1; dup=ext'</code></pre>
+<p>Store rows become a comment, because they change what the browser keeps, not what is sent. By hand:</p>
+<pre><code># send cookies without a cookie jar
+curl -b "hd=1; dup=ext" https://staging.example.com/
+
+# see what the server itself tries to set
+curl -si https://staging.example.com/login | grep -i '^set-cookie'</code></pre>
+
+<h2>Pitfalls</h2>
+<div class="callout">Keep a <code>Cookie</code> header row and its Send rows in the <strong>same profile</strong>. Split across two profiles, the result depended on their order and on the browser.</div>
+<p>With <code>pre=0</code> in the browser (the left profile in the profile bar has priority):</p>
+<table>
+<tr><th>Left profile</th><th>Right profile</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td>Cookie <strong>set</strong> <code>fixed=abc</code></td><td>Send <code>hd=1</code></td><td><code>fixed=abc; hd=1</code></td><td><code>fixed=abc; hd=1</code></td></tr>
+<tr><td>Send <code>hd=1</code></td><td>Cookie <strong>set</strong> <code>fixed=abc</code></td><td><code>pre=0; hd=1</code></td><td><code>fixed=abc</code></td></tr>
+<tr><td>Cookie <strong>remove</strong></td><td>Send <code>hd=1</code></td><td>no Cookie header</td><td><code>hd=1</code></td></tr>
+</table>
+<ul>
+<li><strong>Stored cookies stay.</strong> Deleting or unticking a Store row does not remove the cookie it stored. Delete it in DevTools, or add a Store row with the same name, an empty value and <code>Path=/; Max-Age=0</code>, load one page, then delete the row.</li>
+<li><strong>A Store row writes on every matching response.</strong> Without a filter that means responses from every site. Limit it to one host or one URL pattern.</li>
+<li><strong>Same name, two values.</strong> A Send row with the name of a cookie the browser already has sends both. Use a Store row or a Cookie <strong>set</strong> row to replace it.</li>
+<li><strong>Cookie values are secrets.</strong> <strong>Share as link…</strong> with <strong>Leave header values empty</strong> ticked also leaves cookie values empty. <strong>Copy as curl…</strong> includes them, so treat its output like a password.</li>
+<li><strong>Switch it off afterwards.</strong> Cookie rows have no expiry timer of their own. Untick the row, switch the profile off, or press <strong>Alt+Shift+D</strong> to pause everything.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="cookie-header-testing.html">Test with Cookie and Set-Cookie headers</a></li>
+<li><a href="remove-request-header.html">Remove a request header</a></li>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>
