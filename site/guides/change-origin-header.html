@@ -1,0 +1,77 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to change or remove the Origin header to test CORS and CSRF checks – HeaderDial</title><meta name="description" content="Set or remove the Origin request header in Chrome, Edge or Firefox to test server-side CORS and CSRF checks, and why the browser's own CORS check still uses the real origin. Measured in Chrome and Firefox.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/change-origin-header.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to change or remove the Origin header to test CORS and CSRF checks","description":"Set the Origin request header to a foreign value, or remove it, in Chrome, Edge or Firefox to see how your server's CORS and CSRF checks respond.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access for both the page's host and the API host, or all sites."},{"@type":"HowToStep","name":"Add the header","text":"Click + Request header, enter Origin as the name and a foreign origin such as https://evil.example as the value, or choose remove."},{"@type":"HowToStep","name":"Limit it to the server under test","text":"Under Where it applies, add an Only on filter of type Domain for the API host, and optionally tick methods such as POST."},{"@type":"HowToStep","name":"Check the server's answer","text":"Repeat the request and look at the status code and Access-Control-Allow-Origin header the server returned, and at its logs."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to change or remove the Origin header to test CORS and CSRF checks</h1>
+<p>To test how your server treats a foreign or missing <code>Origin</code>, add a request header named <code>Origin</code> in HeaderDial, set it to a value such as <code>https://evil.example</code> (or choose <strong>remove</strong>), and limit it to the host you are testing. In Chrome 159 and Firefox 158 the server received the changed value on <code>fetch()</code>, XHR, CORS preflights and form posts. The browser's own CORS check is not affected: it still compares the response with the page's real origin. So this tests your server's logic, not the browser's.</p>
+
+<h2>When browsers send Origin</h2>
+<p><code>Origin</code> holds only scheme, host and port, such as <code>https://app.example.com</code>. Browsers send it on cross-origin <code>fetch()</code> and XHR calls (every CORS request), and on requests other than <code>GET</code> and <code>HEAD</code>, including form posts. A same-origin <code>fetch()</code> with <code>GET</code> carries none, and neither does an ordinary link or an image loaded without the <code>crossorigin</code> attribute. Pages with an opaque origin, such as sandboxed iframes, send the literal value <code>null</code>.</p>
+<p>Servers use it in two ways. CORS code decides which <code>Access-Control-Allow-Origin</code> to answer with. CSRF defences compare it with the site's own origin before accepting a state-changing request; Django and Rails, among others, can do this in addition to tokens.</p>
+
+<h2>What we measured</h2>
+<p>We tested in November 2026 with HeaderDial 0.2.0, Chrome 159 and Firefox 158. A page on <code>http://127.0.0.1:<em>port</em></code> made requests to itself and to <code>http://localhost:<em>port</em></code>, a different site. A local server logged the headers it received. Both browsers behaved identically. Edge uses Chrome's engine, but we did not test it separately.</p>
+<table>
+<tr><th>Request</th><th>No rule</th><th>Origin set to <code>https://evil.example</code></th><th>Origin removed</th></tr>
+<tr><td>Same-origin <code>fetch()</code> GET</td><td>none</td><td>evil.example</td><td>none</td></tr>
+<tr><td>Same-origin <code>fetch()</code> POST</td><td>real origin</td><td>evil.example</td><td>none</td></tr>
+<tr><td>Cross-origin <code>fetch()</code> GET and POST, XHR POST</td><td>real origin</td><td>evil.example</td><td>none</td></tr>
+<tr><td>CORS preflight (<code>OPTIONS</code>)</td><td>real origin</td><td>evil.example</td><td>none</td></tr>
+<tr><td>HTML form POST, same- and cross-origin</td><td>real origin</td><td>evil.example</td><td>none</td></tr>
+</table>
+<p>The <code>Sec-Fetch-Site</code> header kept its true value (<code>same-origin</code> or <code>cross-site</code>) in every case.</p>
+<p>Then we varied the server's <code>Access-Control-Allow-Origin</code> response, to see whether the page could read the answer:</p>
+<table>
+<tr><th>Server answered with</th><th>No rule</th><th>Origin set to evil.example</th></tr>
+<tr><td><code>*</code></td><td>readable</td><td>readable</td></tr>
+<tr><td>The request's <code>Origin</code>, reflected</td><td>readable</td><td>blocked</td></tr>
+<tr><td>The page's real origin</td><td>readable</td><td>readable</td></tr>
+<tr><td><code>https://evil.example</code></td><td>blocked</td><td>blocked</td></tr>
+</table>
+<p>The browser checks the response against the origin the page really has. A server that reflects the request's <code>Origin</code> echoed <code>https://evil.example</code>, which did not match, so the call failed. A server that answered with the real origin passed, even though it had seen the forged one. With Origin removed, the reflecting server answered <code>null</code> and the call was blocked too.</p>
+
+<h2>What to test with it</h2>
+<ul>
+<li><strong>CSRF origin checks.</strong> Submit a form or <code>POST</code> with a foreign Origin. A protected endpoint should refuse it, typically with <code>403</code>. Then remove Origin and see what happens: does the server fall back to <code>Referer</code> or a token, or let it through?</li>
+<li><strong>CORS allow-lists.</strong> Send an origin that should not be allowed and look at the response headers. If the server answers <code>Access-Control-Allow-Origin: https://evil.example</code>, it reflects any origin. Combined with <code>Access-Control-Allow-Credentials: true</code>, that lets any site read logged-in responses.</li>
+<li><strong>Origin-based routing.</strong> Multi-tenant back ends sometimes pick a tenant or configuration from Origin. You can try each one from a single page.</li>
+</ul>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon. In the site-access banner, choose <strong>Allow on all sites</strong>. If you allow single hosts instead, allow both the page's host and the API host.</li>
+<li>Click <strong>+ Request header</strong>, type <code>Origin</code> (it is in the suggestions) and enter the origin to send, without a path: <code>https://evil.example</code>. Or set the operation to <strong>remove</strong>. Browsers don't allow appending to Origin, so <strong>append</strong> becomes set.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter the host that receives the requests.</li>
+<li>For CSRF tests, tick <strong>POST</strong> (and <strong>PUT</strong>, <strong>PATCH</strong>, <strong>DELETE</strong> if you use them) under <strong>Methods (none ticked = all)</strong>, so page loads and reads keep working. Preflights are separate <strong>OPTIONS</strong> requests, so they are changed only when <strong>OPTIONS</strong> is ticked or no method is.</li>
+<li>Repeat the action and check the status code and response headers in the DevTools Network panel, and the request in your server log.</li>
+</ol>
+
+<h2>The curl equivalent</h2>
+<pre><code># CSRF check: expect 403
+curl -i -X POST -H "Origin: https://evil.example" -d "amount=1" https://app.example.com/transfer
+
+# CORS allow-list: which Access-Control-Allow-Origin comes back?
+curl -si -H "Origin: https://evil.example" https://api.example.com/data | grep -i '^access-control'</code></pre>
+<p>curl does no CORS checking, so it shows exactly what the server answers. That is also the point of this whole exercise: any client outside a browser can send any Origin.</p>
+
+<h2>Pitfalls</h2>
+<div class="callout">CORS protects users from other websites; it does not protect your server. Never treat a matching Origin as authentication. Changing it in the browser only shows what a script or curl can already do.</div>
+<ul>
+<li><strong>You may break your own page.</strong> If the server allows origins by reflecting them, the page's calls start failing while the rule is on, as in the table above. Limit the rule to the endpoints under test.</li>
+<li><strong>Other headers still tell the truth.</strong> <code>Sec-Fetch-Site</code> is unchanged and <code>Referer</code> still names the real page. A server that checks them is not fooled; see <a href="set-referer-header.html">changing the Referer header</a>.</li>
+<li><strong>Caches.</strong> If a CDN caches responses whose <code>Access-Control-Allow-Origin</code> depends on Origin, it needs <code>Vary: Origin</code>. Otherwise one origin's answer can be served to another.</li>
+<li><strong>Switch it off afterwards.</strong> Give the row an expiry such as <strong>15 min</strong>, or press <strong>Alt+Shift+D</strong> to pause every profile.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+<li><a href="set-referer-header.html">Change or remove the Referer header</a></li>
+<li><a href="cookie-header-testing.html">Test with Cookie and Set-Cookie headers</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

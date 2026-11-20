@@ -13,7 +13,7 @@
 <p>When a request passes through a reverse proxy or load balancer, the server behind it sees the proxy's IP address, not the visitor's. Proxies therefore add the client address to <code>X-Forwarded-For</code>. Each further proxy appends the address it received the request from:</p>
 <pre><code>X-Forwarded-For: 203.0.113.7, 198.51.100.20, 10.0.0.5
                  client       proxy 1        proxy 2</code></pre>
-<p>The standardised form of the same idea is the <code>Forwarded</code> header (RFC 7239), for example <code>Forwarded: for=203.0.113.7;proto=https</code>. Some set-ups also use <code>X-Real-IP</code> with a single address. Find out which one your stack reads before testing.</p>
+<p>The standardised form of the same idea is the <code>Forwarded</code> header (RFC 7239), for example <code>Forwarded: for=203.0.113.7;proto=https</code>. Some set-ups also use <code>X-Real-IP</code> with a single address (see <a href="set-x-real-ip-header.html">how to set X-Real-IP</a>). Find out which one your stack reads before testing.</p>
 
 <h2>When you need to set it yourself</h2>
 <ul>

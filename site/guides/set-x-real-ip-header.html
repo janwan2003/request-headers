@@ -1,0 +1,84 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to set X-Real-IP, and how it differs from X-Forwarded-For – HeaderDial</title><meta name="description" content="Send X-Real-IP from Chrome, Edge or Firefox, how it compares with X-Forwarded-For and Forwarded, the nginx real_ip_header and set_real_ip_from settings, and how to check production ignores forged values.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/set-x-real-ip-header.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to set X-Real-IP, and how it differs from X-Forwarded-For","description":"Send an X-Real-IP request header from Chrome, Edge or Firefox, limited to one host, to test client-IP logic and proxy trust settings.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Add the header","text":"Click + Request header, enter X-Real-IP as the name and a single IP address as the value, and keep the operation on set."},{"@type":"HowToStep","name":"Add the related headers","text":"If your stack may read them, add X-Forwarded-For and Forwarded rows with the same address."},{"@type":"HowToStep","name":"Limit it to the right host","text":"Under Where it applies, add an Only on filter of type Domain for the host you are testing."},{"@type":"HowToStep","name":"Check what the application logged","text":"Load a page and compare the client IP in the application or access log with the address you sent."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to set X-Real-IP, and how it differs from X-Forwarded-For</h1>
+<p>To send an <code>X-Real-IP</code> header from Chrome, Edge or Firefox, add a request header named <code>X-Real-IP</code> in HeaderDial with a single address such as <code>203.0.113.7</code>, and limit it to the host you are testing. Whether the application then treats that address as the client depends on its proxy trust settings. nginx, for example, only uses the header when the request arrives from an address listed in <code>set_real_ip_from</code>. Checking that setting is usually the point of the test.</p>
+
+<h2>X-Real-IP, X-Forwarded-For and Forwarded</h2>
+<p>All three carry the client address past a reverse proxy, which would otherwise hide it. They differ in format and in who adds them:</p>
+<table>
+<tr><th>Header</th><th>Example</th><th>How it is used</th></tr>
+<tr><td><code>X-Real-IP</code></td><td><code>203.0.113.7</code></td><td>One address, normally set by the first proxy you operate (in nginx, <code>proxy_set_header X-Real-IP $remote_addr;</code>). It is a convention, not a standard.</td></tr>
+<tr><td><code>X-Forwarded-For</code></td><td><code>203.0.113.7, 10.0.0.5</code></td><td>A list. Each proxy appends the address it received the request from, so the left end is the least trustworthy. Also a convention.</td></tr>
+<tr><td><code>Forwarded</code></td><td><code>for=203.0.113.7;proto=https</code></td><td>The standard form (RFC 7239), which can also carry the protocol and host. IPv6 addresses must be quoted and bracketed: <code>for="[2001:db8::1]"</code>. Fewer servers read it.</td></tr>
+</table>
+<p>Your application reads one of these, sometimes with a fallback. Find out which before testing, or send all three with the same address. For the list format and choosing test addresses, see <a href="set-x-forwarded-for-header.html">how to set X-Forwarded-For</a>.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>Click <strong>+ Request header</strong>, type <code>X-Real-IP</code> (it is in the suggestions) and enter one address. Keep the operation on <strong>set</strong>. Browsers do not allow appending to <code>X-Real-IP</code>, so <strong>append</strong> is turned into set with a message saying so.</li>
+<li>To cover the other conventions, add rows for <code>X-Forwarded-For</code> and <code>Forwarded</code> (value <code>for=203.0.113.7</code>).</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter the host, for example <code>staging.example.com</code>.</li>
+<li>Load a page and look at the client IP in your application log or access log.</li>
+</ol>
+<p>We checked this with HeaderDial 0.2.0 in Chrome 159 and Firefox 158 in November 2026: a local test server received all three headers unchanged, on page loads and on <code>fetch()</code> calls.</p>
+
+<h2>How nginx decides whether to believe it</h2>
+<p>nginx's <code>realip</code> module replaces the client address (<code>$remote_addr</code>) with the value of a header, but only for requests whose direct peer is listed in <code>set_real_ip_from</code>:</p>
+<pre><code># app server behind load balancers in 10.0.0.0/8
+set_real_ip_from 10.0.0.0/8;
+real_ip_header   X-Real-IP;
+
+# or, with X-Forwarded-For and a chain of proxies
+set_real_ip_from 10.0.0.0/8;
+real_ip_header   X-Forwarded-For;
+real_ip_recursive on;</code></pre>
+<p>We ran these settings in nginx 1.31.9 (Docker image <code>nginx:alpine</code>, November 2026), sending headers with curl. Here <code>172.17.0.1</code> was the real peer address:</p>
+<table>
+<tr><th>Configuration and request</th><th>nginx used as client</th></tr>
+<tr><td>Peer trusted, <code>X-Real-IP: 203.0.113.7</code></td><td><code>203.0.113.7</code></td></tr>
+<tr><td>Peer not in <code>set_real_ip_from</code>, same header</td><td><code>172.17.0.1</code> (header ignored)</td></tr>
+<tr><td><code>set_real_ip_from 0.0.0.0/0</code>, same header</td><td><code>203.0.113.7</code> (anyone is believed)</td></tr>
+<tr><td><code>X-Forwarded-For: 6.6.6.6, 198.51.100.9, 10.0.0.5</code>, <code>real_ip_recursive on</code></td><td><code>198.51.100.9</code></td></tr>
+<tr><td>Same, <code>real_ip_recursive</code> off (the default)</td><td><code>10.0.0.5</code></td></tr>
+<tr><td><code>real_ip_header Forwarded</code>, <code>Forwarded: for=203.0.113.7;proto=https</code></td><td><code>172.17.0.1</code> (the <code>for=</code> syntax is not parsed)</td></tr>
+</table>
+<p>With <code>real_ip_recursive on</code>, nginx reads the list from the right and skips trusted addresses, so the forged <code>6.6.6.6</code> on the left is never used. With it off, nginx takes the last address, which is often your own proxy. And <code>0.0.0.0/0</code> trusts everyone, so any client can set its own IP.</p>
+<p>The proxy in front matters as much. We also put one nginx in front of another that trusted only it. When the front proxy had <code>proxy_set_header X-Real-IP $remote_addr;</code>, the client's forged value was overwritten and the application saw the real address. Without that line, the forged <code>203.0.113.7</code> passed straight through and was believed.</p>
+
+<h2>Check that production ignores forged values</h2>
+<ol>
+<li>Load a page on production without any rule and note the client IP your logs record. That is your real address.</li>
+<li>Make a profile named "Forged IP" with <code>X-Real-IP</code>, <code>X-Forwarded-For</code> and <code>Forwarded</code> all set to <code>203.0.113.7</code>, limited to the production host.</li>
+<li>Reload and check the same log, plus anything keyed on IP: rate limits, geo decisions, audit entries, allow-lists.</li>
+<li>If <code>203.0.113.7</code> appears anywhere, some layer trusts client-supplied headers. Look for a <code>set_real_ip_from</code> that is too wide, a front proxy that passes the header through instead of overwriting it, or a framework's "trusted proxies" setting that trusts every address.</li>
+</ol>
+<div class="callout">Only run this against systems you are responsible for. A forged address can end up in someone else's audit logs or trip their abuse detection.</div>
+
+<h2>The curl equivalent</h2>
+<pre><code>curl -H "X-Real-IP: 203.0.113.7" https://staging.example.com/whoami
+curl -H "X-Real-IP: 203.0.113.7" \
+     -H "X-Forwarded-For: 203.0.113.7" \
+     -H "Forwarded: for=203.0.113.7" https://www.example.com/</code></pre>
+
+<h2>Pitfalls</h2>
+<ul>
+<li><strong>CDNs add their own headers.</strong> Behind a CDN, the application may read a CDN-specific header (Cloudflare's is <code>CF-Connecting-IP</code>), and the CDN may overwrite <code>X-Forwarded-For</code>. Your value may never reach the application.</li>
+<li><strong>Documentation addresses have no country.</strong> <code>203.0.113.0/24</code> is fine for testing trust and logging, but geolocation needs a real address from the region.</li>
+<li><strong>Switch it off afterwards.</strong> Give the rows an expiry such as <strong>1 hour</strong>, or press <strong>Alt+Shift+D</strong> to pause every profile.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="set-x-forwarded-for-header.html">Set X-Forwarded-For</a></li>
+<li><a href="feature-flag-headers-staging.html">Send custom headers to staging</a></li>
+<li><a href="remove-request-header.html">Remove a request header</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

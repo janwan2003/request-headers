@@ -1,0 +1,79 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to test with Cookie and Set-Cookie headers in the browser – HeaderDial</title><meta name="description" content="Send a fixed Cookie header, strip cookies from requests, or remove and rewrite Set-Cookie in Chrome, Edge or Firefox, and what each does to the cookie jar and document.cookie, measured.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/cookie-header-testing.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to test with Cookie and Set-Cookie headers in the browser","description":"Send a fixed Cookie header, remove cookies from requests, or remove and rewrite Set-Cookie responses in Chrome, Edge or Firefox, scoped to one host.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and grant site access if the banner asks for it."},{"@type":"HowToStep","name":"Change the Cookie request header","text":"Click + Request header, enter Cookie, and choose set with a value such as session=test123, append to add a cookie, or remove to send none."},{"@type":"HowToStep","name":"Change Set-Cookie responses","text":"In another profile, click + Response header and enter Set-Cookie with remove, or with set and a full cookie line."},{"@type":"HowToStep","name":"Limit it to your site","text":"Under Where it applies, add an Only on filter of type Domain for the host you are testing."},{"@type":"HowToStep","name":"Check server and jar","text":"Reload, then compare the Cookie header your server logged with the cookies stored in the browser."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>How to test with Cookie and Set-Cookie headers in the browser</h1>
+<p>To send a fixed cookie, add a request header <code>Cookie</code> in HeaderDial with a value such as <code>session=test123</code> and the operation <strong>set</strong>. Matching requests then carry only that value. Choose <strong>remove</strong> to send no cookies, or <strong>append</strong> to add one to the real ones. None of these touch the browser's stored cookies or <code>document.cookie</code>. Response rules are different: removing or rewriting <code>Set-Cookie</code> <em>does</em> change what the browser stores, in both Chrome and Firefox.</p>
+
+<h2>Request rules change only what the server sees</h2>
+<p>We tested in November 2026 with HeaderDial 0.2.0, Chrome 159 and Firefox 158. The page had one cookie, <code>jar=1</code>, and a local server logged the <code>Cookie</code> header of both a page load and a <code>fetch()</code> call. Both browsers gave the same results:</p>
+<table>
+<tr><th>Request rule</th><th>Server received</th><th><code>document.cookie</code></th></tr>
+<tr><td>None</td><td><code>jar=1</code></td><td><code>jar=1</code></td></tr>
+<tr><td>set <code>fixed=abc</code></td><td><code>fixed=abc</code> (real cookie gone)</td><td><code>jar=1</code></td></tr>
+<tr><td>append <code>extra=2</code></td><td><code>jar=1; extra=2</code></td><td><code>jar=1</code></td></tr>
+<tr><td>remove</td><td>no Cookie header</td><td><code>jar=1</code></td></tr>
+</table>
+<p>After the rules were switched off, the next request carried <code>jar=1</code> again. The rule never wrote <code>fixed=abc</code> into the jar, so scripts on the page, and the Application or Storage panel in DevTools, still show the real cookies.</p>
+<p>This makes request rules good for:</p>
+<ul>
+<li><strong>Logged-out views</strong> of a site without logging out: remove Cookie for one host.</li>
+<li><strong>Switching sessions</strong>: one profile per test user, each with <code>set</code> and that user's session cookie, toggled with the <strong>Active</strong> switches.</li>
+<li><strong>Feature or A/B cookies</strong>: <strong>append</strong> <code>variant=b</code> while keeping the session.</li>
+</ul>
+<p>But a page that reads its session from <code>document.cookie</code> in JavaScript still sees the real one.</p>
+
+<h2>Response rules change the cookie jar</h2>
+<p>Same set-up, with the server sending one <code>Set-Cookie</code> line, through both a page load and a <code>fetch()</code>:</p>
+<table>
+<tr><th>Response rule</th><th>Stored by the browser</th></tr>
+<tr><td>None, server sends <code>r=1; Path=/</code></td><td><code>r=1</code></td></tr>
+<tr><td>remove <code>Set-Cookie</code></td><td>nothing</td></tr>
+<tr><td>set <code>Set-Cookie</code> to <code>x=rewritten; Path=/</code></td><td><code>x=rewritten</code> only</td></tr>
+<tr><td>append <code>x=added; Path=/</code></td><td>both <code>r=1</code> and <code>x=added</code></td></tr>
+<tr><td>None, server sends <code>h=secret; HttpOnly; Path=/</code></td><td><code>h</code>, hidden from <code>document.cookie</code></td></tr>
+<tr><td>set to <code>h=secret; Path=/</code> (HttpOnly dropped)</td><td><code>h</code>, now visible in <code>document.cookie</code></td></tr>
+</table>
+<p>So in both browsers, cookie storage follows the modified header. That is unlike <a href="cache-control-header-testing.html">Cache-Control</a>, where Chrome's cache ignores response overrides. In every case, <code>response.headers.get('set-cookie')</code> in the page returned <code>null</code>: browsers never show <code>Set-Cookie</code> to scripts.</p>
+<p>Uses: see how the site behaves when a cookie is refused (remove), try a different expiry, <code>SameSite</code> or <code>Path</code> before changing the server (set), or temporarily expose an HttpOnly cookie to your own debugging script. Our tests used plain cookies over HTTP. We did not test how the browser treats rewritten <code>Secure</code>, <code>Domain</code> or <code>SameSite</code> attributes, or a response with several <code>Set-Cookie</code> lines.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>.</li>
+<li>For requests: click <strong>+ Request header</strong>, type <code>Cookie</code> (it is in the suggestions), and pick <strong>set</strong>, <strong>append</strong> or <strong>remove</strong>. A value holds one or more <code>name=value</code> pairs separated by <code>; </code>.</li>
+<li>For responses: create a second profile with <strong>+</strong>, click <strong>+ Response header</strong> and type <code>Set-Cookie</code>. Use <strong>remove</strong>, or <strong>set</strong> with a full cookie line such as <code>theme=dark; Path=/; Max-Age=3600</code>.</li>
+<li>Open <strong>Where it applies</strong> and use <strong>+ Only on…</strong> with type <strong>Domain</strong>. For a response rule, a <strong>URL pattern</strong> for the one endpoint that sets the cookie is safer.</li>
+<li>Reload, then compare the server log with DevTools: Application › Cookies in Chrome and Edge, Storage › Cookies in Firefox.</li>
+</ol>
+
+<h2>The curl equivalent</h2>
+<pre><code># send fixed cookies
+curl -b "session=test123; variant=b" https://staging.example.com/
+
+# see what the server tries to set
+curl -si https://staging.example.com/login | grep -i '^set-cookie'
+
+# keep a cookie jar between calls
+curl -c jar.txt -b jar.txt https://staging.example.com/</code></pre>
+
+<h2>Pitfalls</h2>
+<div class="callout">A response <strong>set</strong> rule writes your cookie from every matching response, not just one. In our test it was stored from page loads too. Scope it tightly, and delete the cookie in DevTools when you are done; switching the rule off does not remove it.</div>
+<ul>
+<li><strong>set replaces every request cookie.</strong> Sessions, CSRF cookies and consent cookies all disappear from matching requests. Use <strong>append</strong> to add one.</li>
+<li><strong>Session values are secrets.</strong> Use <strong>Share as link…</strong> with <strong>Leave header values empty</strong> ticked, and clear values before <strong>Export all</strong> if the file leaves your machine.</li>
+<li><strong>Switch it off afterwards.</strong> Give rows an expiry such as <strong>1 hour</strong>, or press <strong>Alt+Shift+D</strong> to pause everything.</li>
+</ul>
+<p>To strip other headers the same way, see <a href="remove-request-header.html">how to remove a request header</a>.</p>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="remove-request-header.html">Remove a request header</a></li>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="change-origin-header.html">Change the Origin header</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>
