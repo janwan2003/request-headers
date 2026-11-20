@@ -1,7 +1,7 @@
 # Chrome Web Store: first publish of HeaderDial (operator steps)
 
 The package is already uploaded through the API: item id **`hfacpfgfdcpacffioinklbocgjiglhig`**
-(version 0.9.1, uploaded on 2026-11-20; 0.2.0 to 0.9.0 were uploaded first). Open
+(version 0.9.2, uploaded on 2026-11-20; 0.2.0 to 0.9.1 were uploaded first). Open
 https://chrome.google.com/webstore/devconsole, click the item, and fill the fields below. Every
 value is copy-paste ready. When done, tell a builder (or run
 `python3 scripts/publish-cws.py --publish` in `ventures/request-headers`) to submit it for review.

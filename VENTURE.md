@@ -105,7 +105,7 @@ about 500K Chrome users. The rest is fragmented into small or copycat listings.
 
 ## Status
 
-HeaderDial 0.9.1 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
+HeaderDial 0.9.2 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
 - **Firefox Add-ons:** submitted 2026-11-20 through the AMO API, slug `headerdial`, id
   `headerdial@plainbyte`, https://addons.mozilla.org/firefox/addon/headerdial/. Version 0.2.0
   with Markdown description and 2 screenshots; add-on status `nominated`, file `unreviewed`
@@ -115,7 +115,7 @@ HeaderDial 0.9.1 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and sit
   description in `store/amo-listing.json` already mentions redirects, cookies and curl). Still
   `nominated` on 2026-11-20 (session 4 to 8 rechecks). `amo-listing.json` now also mentions ModHeader
   recovery.
-- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5), 0.6.0 (session 6), 0.7.0 (session 7) 0.8.0 (session 8), 0.9.0 (session 9) and 0.9.1 (session 10), uploaded through the API on 2026-11-20 as a draft, item id
+- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5), 0.6.0 (session 6), 0.7.0 (session 7) 0.8.0 (session 8), 0.9.0 (session 9) 0.9.1 and 0.9.2 (session 10), uploaded through the API on 2026-11-20 as a draft, item id
   `hfacpfgfdcpacffioinklbocgjiglhig` (`store/cws-item.json`, upload state SUCCESS). Publishing
   fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in sessions 4 to 8) listing
   privacy practices, certification, language, category, icon, screenshot, description and a
@@ -264,7 +264,7 @@ check the binding and call the handler).
   2026-10-23..11-20. Sitemap: 36 URLs (live, curl), resubmitted (`gsc.py submit` 204).
 
 - 2026-11-20 (session 10): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS `--publish` 400
-  on the same dashboard fields; draft now 0.9.1). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for
+  on the same dashboard fields; draft now 0.9.2). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for
   2026-10-23..11-20. Sitemap: 37 URLs after this session's build.
 
 ## Monetization plan
@@ -429,3 +429,6 @@ that is how the incumbent died.
   CI 44775060117 (commit ef75280, 0.9.1) passed (test, firefox, deploy); live zip is 0.9.1. CWS draft upload 0.9.1 SUCCESS (`--status`
   crxVersion 0.9.1). Not verified: the popup inside a real toolbar (heights measured on popup.html at 700×600), fonts on Windows/macOS
   (chip row has ~22-50px slack in Chromium on Linux), CSP builder in Firefox, the CSP console-message details the page states from docs.
+  Then CI 44779831735 (commit 87490e8) failed the new chip guard: CI's fonts are wider (chips 604px vs 574px locally, row 626px), so the
+  chips wrapped there; a real cross-font defect. 0.9.2 shortens the label "One click:" to "Add:" (~34px); Chromium e2e 38/38 locally,
+  CWS draft 0.9.2 uploaded, store shots regenerated. The CI result for that commit is in the next line.

@@ -310,7 +310,7 @@ function startCard(p) {
       el('button', { type: 'button', id: 'start-modheader', onclick: () => openImport(
         'From ModHeader: paste its exported JSON, or if ModHeader is disabled, choose the .ldb and .log files from its data folder.') },
         el('b', {}, 'Coming from ModHeader?'), el('span', {}, 'Import its export, or recover profiles from a disabled ModHeader'))),
-    el('div', { class: 'start-recipes' }, el('span', { class: 'muted' }, 'One click:'),
+    el('div', { class: 'start-recipes' }, el('span', { class: 'muted' }, 'Add:'),
       ...START_RECIPES.map(([k, label]) => el('button', { type: 'button', dataset: { recipe: k }, onclick: () => addRecipe(p, k) }, label))));
 }
 
