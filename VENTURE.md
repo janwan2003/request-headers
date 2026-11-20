@@ -99,55 +99,67 @@ about 500K Chrome users. The rest is fragmented into small or copycat listings.
 
 ## Status
 
-HeaderDial 0.1.0 (Manifest V3, Chrome/Edge) is built, and its source and site are public. It
-is not in any store yet (that needs the operator's developer accounts, see Next steps).
+HeaderDial 0.2.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
+- **Firefox Add-ons:** submitted 2026-11-20 through the AMO API, slug `headerdial`, id
+  `headerdial@plainbyte`, https://addons.mozilla.org/firefox/addon/headerdial/. Version 0.2.0
+  with Markdown description and 2 screenshots; add-on status `nominated` (waiting for Mozilla
+  review; the public API returns 401 until then). 0.1.0 was superseded.
+- **Chrome Web Store:** keys exist, but the Chrome Web Store API is disabled in the Google Cloud
+  project, so uploads return 403 SERVICE_DISABLED (operator request in OPERATOR-INBOX.md).
+  `scripts/publish-cws.py` is ready.
+- **Edge Add-ons:** needs a free Partner Center account (inbox).
 
 What exists:
 - `extension/`: popup and full-tab editor (`popup.html?page=1`). Profiles (several can be
   active; the leftmost wins), request and response headers with set/append/remove, timed
   headers (15 min to 1 day, via `chrome.alarms`), filters (domain, URL pattern, regex,
-  "Never on" exclusions, request types, one tab), global pause, a badge with the
-  active-header count, "Applied to N requests in this tab" (`getMatchedRules` via
-  activeTab), optional site access requested from the popup (all sites or the current
-  one), import (HeaderDial JSON, share link, ModHeader export), export, share-as-link
-  with no server, light and dark mode.
+  "Never on" exclusions, request types, **request methods**, one tab), global pause (switch
+  or **Alt+Shift+D**), a badge with the active-header count, "Applied to N requests in this
+  tab" (`getMatchedRules` via activeTab), optional site access requested from the popup (all
+  sites or the current one), import (HeaderDial JSON, share link, ModHeader export), export,
+  share-as-link with no server, light and dark mode.
 - `extension/lib/model.js` compiles profiles into DNR rules. `background.js` applies them;
-  if Chrome rejects the batch it adds rules one at a time and reports the bad ones.
-- Site (GitHub Pages, deployed by `.github/workflows/ci.yml` only after unit and e2e tests
-  pass): landing page with install-from-zip steps, privacy policy, share page, how-to
-  guides plus a hub, sitemap.xml, robots.txt, and the release zip at `/download/headerdial.zip`.
-- `store/LISTING.md` and two 1280×800 screenshots for the Chrome Web Store and Edge forms.
+  if the browser rejects the batch it adds rules one at a time and reports the bad ones.
+- `scripts/build.js` emits `dist/extension` + zip (Chrome/Edge) and `dist/firefox` + zip (the
+  same files, Firefox manifest: event-page background, gecko id, `data_collection_permissions:
+  none`, name shortened to 45 characters for AMO).
+- `scripts/publish-amo.py` (create/version, `--listing` for text and screenshots, `--status`)
+  and `scripts/publish-cws.py` (upload, `--publish`, `--status`). Both read the studio `.env`.
+- Site (GitHub Pages, deployed by `.github/workflows/ci.yml` only after unit, Chromium e2e and
+  Firefox e2e jobs pass): landing page (Firefox + Chrome/Edge install), privacy policy,
+  share page, how-to guides plus a hub, sitemap.xml, robots.txt, `/download/headerdial.zip`.
+- `store/LISTING.md` (CWS/Edge text + AMO notes), `store/amo-listing.json`, two 1280×800 screenshots.
 
-Verified on 2026-11-20 (see Log): unit tests 13/13 and e2e 13/13 in Playwright Chromium 159,
-against a local echo server that returns the headers it received.
-Not verified: Edge itself (same Chromium engine, not run); Firefox (not ported); the
-toolbar-popup context (the tests drive the full-tab editor, so "+ Only on <host>", the
-per-site access button and the matched-request count are untested); the permission
-prompt (the tests pre-grant host access in a copy of the build; the shipped build was
-checked to change nothing and to show the banner without it).
+Verified on 2026-11-20 locally and in CI (see Log): unit 14/14; Chromium e2e 20/20 (Playwright Chromium
+build 1255); Firefox e2e 12/12 in Firefox 158.0.1 over WebDriver BiDi (request set/remove/
+override, response header, fetch, domain/regex/method filters, pause, no change without host
+access, access banner, shortcut registered).
+The Chromium e2e also opens the real toolbar popup (`chrome.action.openPopup()` over CDP) with
+one site allowed, and checks the banner, "+ Only on <host>" and "Only in this tab".
+Not verified: Edge itself; Firefox for Android; the toolbar popup in Firefox; the
+matched-request count (needs an activeTab grant from a real click); real permission prompts
+(tests pre-grant host access in a copy of the build); the shortcut key press itself (tests
+check the binding and call the handler).
 
 ## Next steps
 
-1. **Store release (blocked on the operator):** the Chrome Web Store developer account
-   (already in OPERATOR-INBOX.md) and a free Edge Add-ons account. The package and
-   listing are ready in `store/`. Edge matters most: ModHeader left Edge first, and
-   about 700K Edge users were displaced.
-2. Firefox port: MV3 with `background.scripts`. Test DNR `modifyHeaders` in Firefox
-   (installed at /usr/bin/firefox), then an AMO listing (needs a free AMO account).
-3. Test the toolbar-popup context (open popup.html with a real tab behind it) and the
-   "+ Only on <host>" and per-site access flows.
-4. More ranking pages (Referer, Accept-Language testing, X-Real-IP, Basic auth,
-   Cache-Control), and submit the sitemap to Google Search Console (operator account).
-5. Verify the claim in the CORS guide that site access for the page's host alone is not
-   enough when the API is on another host (written from the DNR docs, untested). Add an
-   e2e case with access granted for only one origin.
-6. Features the old tool's users expect: cookie helpers, URL redirects (DNR `redirect`),
-   request-method filters, a keyboard shortcut for pause.
+1. **AMO follow-through:** `python3 scripts/publish-amo.py --status` until approved (status
+   `public`). Then change the Firefox install line on `site/index.html` and
+   `guides/modify-headers-firefox.html` from "in review" to live, and record AMO daily users
+   in Metrics. If Mozilla rejects it, the reason will be in the developer hub (operator email).
+2. **Chrome Web Store (operator):** enable the API (inbox). Then `publish-cws.py`, fill the
+   dashboard listing once from `store/LISTING.md`, then `--publish`. Edge needs its account.
+3. Firefox toolbar-popup test (BiDi cannot open it yet; try `browserAction.openPopup` from
+   the chrome scope), and a test of the matched-request count.
+4. Submit the sitemap to Google Search Console (operator account). 20 indexable pages now.
+   More guide ideas: Content-Type override, HSTS/Strict-Transport-Security, Authorization for
+   GraphQL, testing `Sec-*` headers (which ones browsers refuse to change).
+5. Features users of the old tool expect: cookie helpers, URL redirects (DNR `redirect`).
 
 ## Metrics
 
-- 2026-11-20: no store listing yet, so there are no install numbers. The site was live from
-  2026-11-20 (GitHub Pages); there is no Search Console data yet.
+- 2026-11-20: no live store listing yet (AMO in review, CWS blocked), so no install numbers.
+  The site has been live since 2026-11-20; no Search Console data yet.
 
 ## Monetization plan
 
@@ -173,3 +185,22 @@ that is how the incumbent died.
   (commit d6c9f6c) passed tests and deployed. Live check: /, /privacy.html, /guides/,
   /download/headerdial.zip (13 files, v0.1.0) and /sitemap.xml return 200, and a live share
   link decodes on /share/. Store submission is waiting on accounts (OPERATOR-INBOX).
+- 2026-11-20 builder (session 2): CWS keys were now in `.env`, but the upload returned 403
+  SERVICE_DISABLED (Chrome Web Store API not enabled in the Google Cloud project), so I added an
+  inbox request. Built a Firefox target and submitted it to AMO with the existing keys:
+  `headerdial` created 12:26 UTC, 0.2.0 submitted 13:27 UTC. The validator found 0 errors and
+  2 harmless warnings. The description and 2 screenshots were pushed after a ~1 h write
+  throttle. Status is `nominated` (`publish-amo.py --status`). New in 0.2.0: Alt+Shift+D pause
+  shortcut (Chrome leaves Alt+Shift+P unbound, found with a probe), request-method filter,
+  permission errors inline (no alert() in Firefox popups), and a fix for stray "false"/"null"
+  text in the access banner (the new popup test fails on the old code). Tests: new Firefox
+  e2e over WebDriver BiDi (12 checks, Firefox 158.0.1) plus a CI job for it. Chromium e2e grew
+  from 13 to 20 checks: the shortcut, the method filter, CORS needing access to both hosts
+  (verified: page-only and API-only both stay blocked), the real toolbar popup over CDP, and
+  Origin/Set-Cookie. Two subagents wrote 9 guides, measured in Chrome 159 and Firefox 158
+  (Referer, Accept-Language, Basic auth, Cache-Control, Firefox, X-Real-IP, Origin, Cookie,
+  Edge). Measuring corrected one assumption: a response Cache-Control override changes
+  Firefox's cache but not Chrome's. CI runs 44737414393, 44738265937 and 44739027590 passed
+  (test, firefox, deploy); the first 0.2.0 run, 44737084308, failed on the CI Firefox needing
+  MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1 (fixed). Live check: the 9 new guides return 200, the
+  sitemap has 20 URLs, and /download/headerdial.zip is 0.2.0.

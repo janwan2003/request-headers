@@ -70,10 +70,9 @@ channel, category Web Development, licence MIT, Firefox 128+.
 Listing: https://addons.mozilla.org/firefox/addon/headerdial/ (status `nominated` = waiting for review).
 
 - Name on Firefox: "HeaderDial: Modify Request & Response Headers" (AMO allows at most 45 characters).
-- Description: Markdown (AMO does not render HTML). The first submission sent HTML, which shows
-  escaped; the Markdown version in `amo-listing.json` must be PATCHed once the API write
-  throttle lifts (it returned 429 "available in 3441 seconds" at 12:28 UTC).
-- Screenshots (previews) are not uploaded yet: `POST /api/v5/addons/addon/headerdial/previews/`
-  with `store/screenshot-1-editor.png` and `store/screenshot-2-private.png`.
+- Description: Markdown (AMO does not render HTML). Pushed with `publish-amo.py --listing` on
+  2026-11-20 13:26 UTC, together with the two screenshots (preview ids 456217, 456218).
+- AMO throttles writes: after a few creates/edits it returned 429 for about an hour.
+- Version 0.2.0 submitted 2026-11-20 (0.1.0 was superseded, now `disabled`).
 - Validator: 0 errors, 2 warnings (`data_collection_permissions` is ignored before Firefox 140 /
   Android 142; harmless because older versions do not need it).
