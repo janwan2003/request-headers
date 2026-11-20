@@ -25,6 +25,7 @@ What you can do:
 Features:
 • Profiles with colours. Run several at once; one switch (or Alt+Shift+D) pauses everything
 • Set, append or remove, on requests and on responses
+• Recipes: one click adds CORS headers for the page you are on, allows a site in an iframe, or adds a Bearer token that switches off after an hour, a mobile User-Agent, no-cache or X-Forwarded-For
 • URL redirects: send requests for one URL to another (e.g. a production script to localhost), including ModHeader URL replacements
 • Filters: domains, URL patterns, regular expressions, the page that made the request, exclusions, request types, methods, or a single tab
 • Timed headers that switch themselves off after 15 minutes, an hour or a day

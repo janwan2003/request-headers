@@ -99,7 +99,7 @@ about 500K Chrome users. The rest is fragmented into small or copycat listings.
 
 ## Status
 
-HeaderDial 0.6.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
+HeaderDial 0.7.0 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and site are public.
 - **Firefox Add-ons:** submitted 2026-11-20 through the AMO API, slug `headerdial`, id
   `headerdial@plainbyte`, https://addons.mozilla.org/firefox/addon/headerdial/. Version 0.2.0
   with Markdown description and 2 screenshots; add-on status `nominated`, file `unreviewed`
@@ -132,7 +132,9 @@ What exists:
   sites or the current one), **URL redirects** (0.3.0: "Replace" text in the URL or "Regex" with
   `\1` groups; DNR `redirect` rules; loops and bad patterns flagged, not applied), import
   (HeaderDial JSON, share link, ModHeader export including `urlReplacements`), export,
-  share-as-link with no server, light and dark mode. **Cookie rows** (0.4.0, "+ Cookie"): Send adds
+  share-as-link with no server, light and dark mode. **Recipes** (0.7.0, "+ Recipe…" next to "+ Request header"; `RECIPES`/`applyRecipe`
+  in `lib/model.js`): CORS for the tab's origin, allow framing (removes X-Frame-Options and CSP), Bearer token with a 1-hour timer (focuses
+  the value field), mobile User-Agent, no-cache, X-Forwarded-For; a same-name row is replaced, the blank starter row dropped. **Cookie rows** (0.4.0, "+ Cookie"): Send adds
   `name=value` after the browser's cookies (one DNR append on `Cookie`, folded into a Cookie header row
   if the profile has one); Store adds one `Set-Cookie` line per row with attributes. ModHeader
   `cookieHeaders`/`setCookieHeaders` import as these rows. **Copy as curl…** (profile ⋯ menu) builds a

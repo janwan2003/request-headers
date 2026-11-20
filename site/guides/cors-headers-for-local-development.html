@@ -20,6 +20,7 @@
 </table>
 <p>The response headers you add in HeaderDial apply to both the preflight response and the real response, as long as they match your filter. We verified in an automated Chromium test that with <code>Access-Control-Allow-Origin: *</code> and <code>Access-Control-Allow-Headers: *</code> added, a simple cross-origin <code>GET</code> and a preflighted request with a custom header both succeed. In that test the server answered <code>OPTIONS</code> with an empty <code>204</code> and no CORS headers at all.</p>
 <p>The server still has to answer the <code>OPTIONS</code> request with a success status. If it returns <code>404</code>, <code>405</code> or a redirect for <code>OPTIONS</code>, the preflight fails no matter what headers are added. For methods other than <code>GET</code>, <code>HEAD</code> and <code>POST</code>, also add <code>Access-Control-Allow-Methods</code> (for example <code>GET, POST, PUT, PATCH, DELETE</code>), and test your actual calls.</p>
+<p>To look up the exact console error you see, or to compare this with starting Chrome with <code>--disable-web-security</code>, see <a href="fix-cors-error-while-testing.html">Fix a “blocked by CORS policy” error while testing</a>.</p>
 
 <h2>Steps</h2>
 <ol>

@@ -20,6 +20,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function serve() {
   return new Promise((resolve) => {
     const srv = http.createServer((req, res) => {
+      if (req.url.startsWith('/framed')) {
+        // A page that refuses to be framed both ways (guide: allow-iframe-x-frame-options.html).
+        res.writeHead(200, { 'content-type': 'text/html', 'x-frame-options': 'DENY', 'content-security-policy': "frame-ancestors 'none'" });
+        res.end('<!doctype html><script>parent.postMessage("framed-loaded", "*")</script>');
+        return;
+      }
       if (req.url.startsWith('/echo')) {
         res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
         res.end(JSON.stringify(req.headers));
@@ -305,6 +311,68 @@ async function launch() {
     assert.strictEqual(await from(A), 'none');
     ok('Firefox: "Page domain" filter: header on a fetch from a localhost page, not from another page or a typed address');
     await s.setState(`s.profiles = HeaderDial.normalizeState({ profiles: ${orig} }).profiles;`);
+  }
+
+  // Guide guard: guides/send-cookie-with-request.html has a table of what the server gets when a
+  // Cookie header row and a Send cookie row sit in different profiles (browser has pre=0).
+  {
+    const orig = await s.run(`chrome.storage.local.get('state').then((x) => JSON.stringify(x.state.profiles))`);
+    const setRow = `HeaderDial.newHeader('request', { name: 'Cookie', value: 'fixed=abc' })`;
+    const rmRow = `HeaderDial.newHeader('request', { name: 'Cookie', value: '', op: 'remove' })`;
+    const send = `cookies: [HeaderDial.newCookie('request', { name: 'hd', value: '1' })], headers: []`;
+    const cases = [
+      [`{ headers: [${setRow}] }`, `{ ${send} }`, 'fixed=abc; hd=1'],
+      [`{ ${send} }`, `{ headers: [${setRow}] }`, 'fixed=abc'],
+      [`{ headers: [${rmRow}] }`, `{ ${send} }`, 'hd=1'],
+    ];
+    await s.go(A + '/');
+    await s.run(`(document.cookie = 'pre=0; Path=/', 1)`);
+    for (const [left, right, want] of cases) {
+      st = await s.setState(`s.profiles = [HeaderDial.newProfile(0, ${left}), HeaderDial.newProfile(1, ${right})];`);
+      assert.deepStrictEqual(st.problems, [], JSON.stringify(st.problems));
+      const got = (await s.echo()).cookie || 'none';
+      assert.strictEqual(got, want, `Firefox, left ${left} / right ${right}: server got ${got}`);
+    }
+    await s.go(A + '/');
+    await s.run(`(document.cookie = 'pre=; Max-Age=0; Path=/', 1)`);
+    await s.setState(`s.profiles = HeaderDial.normalizeState({ profiles: ${orig} }).profiles;`);
+    ok('Firefox: guide table holds for a Cookie header row and a Send row in different profiles');
+  }
+
+  // Recipes compile to rules Firefox accepts (the empty "remove" values and the timed Bearer row).
+  {
+    const orig = await s.run(`chrome.storage.local.get('state').then((x) => JSON.stringify(x.state.profiles))`);
+    st = await s.setState(`s.profiles = [HeaderDial.newProfile(0)];
+      for (const r of HeaderDial.RECIPES) HeaderDial.applyRecipe(s.profiles[0], r.key, { origin: '${A}' });
+      s.profiles[0].headers.find((h) => h.name === 'Authorization').value = 'Bearer t0ken';`);
+    assert.deepStrictEqual(st.problems, [], 'recipes accepted: ' + JSON.stringify(st.problems));
+    const g = await s.echo();
+    assert.deepStrictEqual([g['x-forwarded-for'], g.authorization, g.pragma], ['203.0.113.7', 'Bearer t0ken', 'no-cache']);
+    await s.setState(`s.profiles = HeaderDial.normalizeState({ profiles: ${orig} }).profiles;`);
+    ok('Firefox: every recipe compiles to rules Firefox accepts, and the request rows arrive');
+  }
+
+  // Guide guard (allow-iframe-x-frame-options.html): removing X-Frame-Options alone still blocks
+  // a page that also sends CSP frame-ancestors; removing both loads it.
+  {
+    const orig = await s.run(`chrome.storage.local.get('state').then((x) => JSON.stringify(x.state.profiles))`);
+    const B = A.replace('127.0.0.1', 'localhost');
+    const frame = async (names) => {
+      st = await s.setState(`s.profiles = [HeaderDial.newProfile(0, { headers: ${JSON.stringify(names)}.map((n) => HeaderDial.newHeader('response', { name: n, op: 'remove' })) })];`);
+      assert.deepStrictEqual(st.problems, [], JSON.stringify(st.problems));
+      await s.go(B + '/');
+      return s.run(`(async () => {
+      const f = document.createElement('iframe');
+      const got = new Promise((r) => { addEventListener('message', (e) => e.data === 'framed-loaded' && r('loads')); setTimeout(() => r('blocked'), 2500); });
+      f.src = '${A}/framed'; document.body.append(f);
+      const out = await got; f.remove(); return out;
+    })()`);
+    };
+    assert.strictEqual(await frame([]), 'blocked', 'control: the page refuses to be framed');
+    assert.strictEqual(await frame(['X-Frame-Options']), 'blocked', 'frame-ancestors still blocks it');
+    assert.strictEqual(await frame(['X-Frame-Options', 'Content-Security-Policy']), 'loads');
+    await s.setState(`s.profiles = HeaderDial.normalizeState({ profiles: ${orig} }).profiles;`);
+    ok('Firefox: guide claim holds, framing needs both X-Frame-Options and CSP frame-ancestors removed');
   }
 
   // Pause.

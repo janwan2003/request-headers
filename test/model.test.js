@@ -413,3 +413,30 @@ test('lower profile with redirects keeps its headers (copied) and gets a redirec
   ]));
   assert.match(out.problems[0].message, /"B" also has "Never on" URL filters.*Domain exclusion in one of the two/);
 });
+
+test('recipes add rows once, use the tab origin, and compile without problems', () => {
+  for (const r of HD.RECIPES) {
+    const p = HD.newProfile(0);
+    HD.applyRecipe(p, r.key, { origin: 'http://localhost:5173', now: 1000 });
+    const n = p.headers.length;
+    assert.strictEqual(n, r.rows.length, r.key + ': the blank starter row is dropped');
+    HD.applyRecipe(p, r.key, { origin: 'http://localhost:5173', now: 1000 });
+    assert.strictEqual(p.headers.length, n, r.key + ': applying twice adds nothing');
+    const state = HD.normalizeState({ profiles: [p] });
+    if (r.key === 'bearer') state.profiles[0].headers[0].value = 'Bearer abc';
+    const out = HD.compile(state, { now: 2000 });
+    assert.deepStrictEqual(out.problems, [], r.key + ': ' + JSON.stringify(out.problems));
+    assert.ok(out.dynamic.length > 0, r.key + ': produces rules');
+  }
+  const p = HD.newProfile(0);
+  HD.applyRecipe(p, 'cors', { origin: 'http://localhost:5173' });
+  assert.strictEqual(p.headers.find((h) => h.name === 'Access-Control-Allow-Origin').value, 'http://localhost:5173');
+  const q = HD.newProfile(0);
+  HD.applyRecipe(q, 'cors', { origin: 'chrome-extension://abc' });
+  assert.strictEqual(q.headers.find((h) => h.name === 'Access-Control-Allow-Origin').value, 'http://localhost:3000');
+  // An existing row with the same name (any case) is replaced, not duplicated; other rows stay.
+  const t = HD.newProfile(0, { headers: [HD.newHeader('request', { name: 'authorization', value: 'old' }), HD.newHeader('request', { name: 'X-Keep', value: '1' })] });
+  const focus = HD.applyRecipe(t, 'bearer', { now: 0 });
+  assert.deepStrictEqual(t.headers.map((h) => [h.name, h.value, h.expiresAt]), [['Authorization', 'Bearer ', 3600000], ['X-Keep', '1', null]]);
+  assert.strictEqual(focus, t.headers[0].id);
+});

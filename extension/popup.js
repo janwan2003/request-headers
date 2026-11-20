@@ -254,7 +254,10 @@ function renderEditor() {
       el('span', { class: 'menu' }, menuBtn)),
     el('h3', {}, 'Request headers'),
     el('div', { class: 'rows', id: 'req-rows' }, req.length ? req.map((h) => headerRow(p, h)) : el('div', { class: 'empty' }, 'None.')),
-    el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-req', onclick: () => addHeader(p, 'request') }, '+ Request header')),
+    el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-req', onclick: () => addHeader(p, 'request') }, '+ Request header'),
+      el('select', { id: 'recipe', class: 'recipe', 'aria-label': 'Add from a recipe', title: 'Add common headers in one click',
+        onchange: (e) => { const k = e.target.value; e.target.value = ''; if (k) addRecipe(p, k); } },
+      el('option', { value: '' }, '+ Recipe…'), ...HD.RECIPES.map((r) => el('option', { value: r.key }, r.label)))),
     el('h3', {}, 'Response headers'),
     el('div', { class: 'rows', id: 'res-rows' }, res.length ? res.map((h) => headerRow(p, h)) : el('div', { class: 'empty' }, 'None.')),
     el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-res', onclick: () => addHeader(p, 'response') }, '+ Response header')),
@@ -281,6 +284,14 @@ function addHeader(p, target) {
   save(true);
   const input = document.querySelector(`[data-id="${h.id}"] input.name`);
   if (input) input.focus();
+}
+
+function addRecipe(p, key) {
+  const origin = tab && tab.url && /^https?:/.test(tab.url) ? new URL(tab.url).origin : null;
+  const focus = HD.applyRecipe(p, key, { origin });
+  save(true);
+  const input = focus && document.querySelector(`[data-id="${focus}"] input.value`);
+  if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
 }
 
 function addCookie(p) {

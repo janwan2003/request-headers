@@ -64,6 +64,7 @@ h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: v
 #curl-text { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: pre; }
 .add { margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; }
 .add button { padding: 2px 8px; font-size: 12px; }
+.add select.recipe { padding: 2px 4px; font-size: 12px; max-width: 13em; }
 details { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 4px; }
 summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 4px 0; }
 .types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px 8px; font-size: 12px; margin-top: 4px; }

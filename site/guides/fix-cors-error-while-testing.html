@@ -1,0 +1,134 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix a “blocked by CORS policy” error while testing: each error, cause and fix – HeaderDial</title><meta name="description" content="Look up your CORS console error in Chrome or Firefox, its cause and the fix. Measured: adding response headers vs --disable-web-security, and preflight 404s.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/fix-cors-error-while-testing.html">
+<meta property="og:title" content="Fix a “blocked by CORS policy” error while testing"><meta property="og:description" content="Each Chrome and Firefox CORS error with its cause and fix, and adding headers compared with --disable-web-security. Measured in Chrome 159 and Firefox 158.">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Fix a CORS error on your own test API without changing the server","description":"Add the missing CORS response headers in the browser with HeaderDial, scoped to the API host, and know which errors headers cannot fix.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Read the console error","text":"Open DevTools and copy the line that says blocked by CORS policy (Chrome) or Cross-Origin Request Blocked (Firefox). The fix depends on the reason in that line."},{"@type":"HowToStep","name":"Give site access","text":"In the HeaderDial popup, use the site access banner to allow the API host and the page host, or all sites."},{"@type":"HowToStep","name":"Add response headers","text":"Click + Response header and set Access-Control-Allow-Origin, plus Access-Control-Allow-Headers and Access-Control-Allow-Methods for preflighted requests, with the op select on set."},{"@type":"HowToStep","name":"Scope the profile","text":"Open Where it applies, click + Only on…, choose Domain and enter the API host."},{"@type":"HowToStep","name":"Set an expiry","text":"Use the expiry select on each row (15 min to 1 day) so the headers switch themselves off."},{"@type":"HowToStep","name":"Fix the server if OPTIONS fails","text":"If the error says It does not have HTTP ok status, the server must answer OPTIONS with a success status, or use a dev-server proxy. Added headers cannot fix it."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Fix a “blocked by CORS policy” error while testing</h1>
+<p>If your own test API is missing CORS headers, you can add them in the browser with HeaderDial, scoped to the API host. In our tests in Chrome 159 and Firefox 158, this fixed every CORS error below except one. When the server answers the <code>OPTIONS</code> preflight with <code>404</code> or <code>405</code>, no added header helps. Then the server has to answer <code>OPTIONS</code>, or you call it through a dev-server proxy. Launching Chrome with <code>--disable-web-security</code> got past all of the errors, including the <code>404</code>, because Chrome then sent no preflight at all. But it turns off these checks for every site in that window.</p>
+<p>This page is a lookup: find the line from your console, then read its cause and fix. For the basic recipe step by step, see <a href="cors-headers-for-local-development.html">Add Access-Control-Allow-Origin for local testing</a>.</p>
+
+<div class="callout"><strong>Only for your own test APIs.</strong> CORS protects users: it stops other sites from reading your data with your browser. Scope the profile to the API host with a <strong>Domain</strong> filter. Never leave <code>Access-Control-Allow-Origin: *</code> on everywhere, and never pair it with credentials. Give the rows an expiry (the select on each row offers 15 min, 1 hour, 8 hours or 1 day) so they switch themselves off.</div>
+
+<h2>Find your error</h2>
+<p>The error your code catches says nothing useful. Chrome throws <code>TypeError: Failed to fetch</code> and logs <code>Failed to load resource: net::ERR_FAILED</code>. Firefox throws <code>TypeError: NetworkError when attempting to fetch resource.</code> The reason is in the console line just above. Chrome's line starts with <code>Access to fetch at '…' from origin '…' has been blocked by CORS policy:</code>. Firefox's starts with <code>Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at …</code>. The texts below are copied from our test runs.</p>
+
+<h3>1. No 'Access-Control-Allow-Origin' header is present on the requested resource</h3>
+<p>Chrome: <code>has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.</code></p>
+<p>Firefox: <code>(Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 200.</code></p>
+<p><strong>Cause:</strong> a simple request (a plain <code>GET</code>, for example) reached the server and got an answer, but the answer has no <code>Access-Control-Allow-Origin</code>. The server did run the request; the browser only hides the response from your code.</p>
+<p><strong>Fix:</strong> a response header <code>Access-Control-Allow-Origin: *</code>. That alone made the <code>GET</code> work in both browsers.</p>
+
+<h3>2. Response to preflight request doesn't pass access control check</h3>
+<p>Chrome: <code>has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.</code></p>
+<p>Firefox logs two lines: <code>(Reason: CORS header ‘Access-Control-Allow-Origin’ missing). Status code: 200.</code> and then <code>(Reason: CORS request did not succeed). Status code: (null).</code></p>
+<p><strong>Cause:</strong> the request needs a preflight. It sends an <code>Authorization</code> or custom header, a JSON <code>Content-Type</code>, or uses a method such as <code>PUT</code>. The browser asked first with <code>OPTIONS</code>, and that answer had no CORS headers. The real request was never sent; our server saw only the <code>OPTIONS</code>.</p>
+<p><strong>Fix:</strong> add three response headers: <code>Access-Control-Allow-Origin: *</code>, <code>Access-Control-Allow-Headers</code> and <code>Access-Control-Allow-Methods</code> (see 3 and 4 for values). HeaderDial's headers are added to the <code>OPTIONS</code> response too. Our server answered <code>OPTIONS</code> with an empty <code>200</code> or <code>204</code> and no CORS headers. With the three headers added, the preflight passed and the real <code>PUT</code> reached the server, in both browsers.</p>
+
+<h3>3. Request header field authorization is not allowed by Access-Control-Allow-Headers in preflight response</h3>
+<p>Chrome: <code>Request header field authorization is not allowed by Access-Control-Allow-Headers in preflight response.</code> (with <code>x-custom</code> or another name in place of <code>authorization</code> for other headers)</p>
+<p>Firefox: <code>(Reason: header ‘authorization’ is not allowed according to header ‘Access-Control-Allow-Headers’ from CORS preflight response).</code></p>
+<p><strong>Cause:</strong> the preflight answer has <code>Access-Control-Allow-Origin</code> but does not allow a header your code sends.</p>
+<p><strong>Fix:</strong> <code>Access-Control-Allow-Headers: Authorization, Content-Type, X-Custom</code>, listing the headers you send. Name <code>Authorization</code> explicitly. <code>*</code> did let it through in both browsers, but Firefox logged this warning: <code>When the `Access-Control-Allow-Headers` is `*`, the `Authorization` header is not covered. To include the `Authorization` header, it must be explicitly listed in CORS header `Access-Control-Allow-Headers`</code>, and said the request would be blocked “soon”. Chrome logged nothing.</p>
+
+<h3>4. Method PUT is not allowed by Access-Control-Allow-Methods in preflight response</h3>
+<p>Chrome: <code>Method PUT is not allowed by Access-Control-Allow-Methods in preflight response.</code></p>
+<p>Firefox: <code>(Reason: Did not find method in CORS header ‘Access-Control-Allow-Methods’).</code></p>
+<p><strong>Fix:</strong> <code>Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE</code>. Without credentials, <code>*</code> also worked in both browsers.</p>
+
+<h3>5. The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*' when the request's credentials mode is 'include'</h3>
+<p>Chrome: <code>The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*' when the request's credentials mode is 'include'.</code> If the request was preflighted, the same text comes after <code>Response to preflight request doesn't pass access control check:</code>.</p>
+<p>Firefox: <code>(Reason: Credential is not supported if the CORS header ‘Access-Control-Allow-Origin’ is ‘*’).</code></p>
+<p><strong>Cause:</strong> your code sends cookies or HTTP auth (<code>fetch(url, { credentials: 'include' })</code> or <code>xhr.withCredentials = true</code>), and the response says <code>*</code>.</p>
+<p><strong>Fix:</strong> set the exact origin of your page and allow credentials:</p>
+<pre><code>Access-Control-Allow-Origin: http://localhost:3000
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Headers: Authorization, Content-Type, X-Custom
+Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE</code></pre>
+<p>The origin is scheme, host and port, with no path or trailing slash. With credentials, list the headers and methods by name. In our test, <code>Access-Control-Allow-Methods: *</code> made a credentialed <code>PUT</code> fail with error 4 in both browsers, while the explicit list worked.</p>
+
+<h3>6. The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true'</h3>
+<p>Chrome: <code>The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.</code></p>
+<p>Firefox: <code>(Reason: expected ‘true’ in CORS header ‘Access-Control-Allow-Credentials’).</code></p>
+<p><strong>Fix:</strong> you set the exact origin but not <code>Access-Control-Allow-Credentials: true</code>. Add it.</p>
+
+<h3>7. Response to preflight request doesn't pass access control check: It does not have HTTP ok status</h3>
+<p>Chrome: <code>Response to preflight request doesn't pass access control check: It does not have HTTP ok status.</code></p>
+<p>Firefox: <code>(Reason: CORS preflight response did not succeed). Status code: 404.</code> (or <code>405</code>), then <code>(Reason: CORS request did not succeed). Status code: (null).</code></p>
+<p><strong>Cause:</strong> the server answers <code>OPTIONS</code> with an error status, often <code>404</code> or <code>405 Method Not Allowed</code> because no route handles <code>OPTIONS</code>. A preflight needs a success status.</p>
+<p><strong>Headers cannot fix this.</strong> We added all four headers from error 5 (and the <code>*</code> versions) to an endpoint whose <code>OPTIONS</code> returned <code>404</code>, and another that returned <code>405</code>. The preflight still failed in both browsers, and the real request never reached the server. HeaderDial changes headers, not status codes. The real fixes:</p>
+<ul>
+<li>Make the server answer <code>OPTIONS</code> with <code>200</code> or <code>204</code>. CORS middleware for your framework usually does this once it is enabled for that route.</li>
+<li>Or call the API through your dev server's proxy, so the browser sees a same-origin request and never sends a preflight. Vite has a <a href="https://vite.dev/config/server-options#server-proxy"><code>server.proxy</code></a> option for this.</li>
+<li>Or, briefly, a throwaway Chrome profile with <code>--disable-web-security</code> (next section).</li>
+</ul>
+<p>Before you blame CORS, check the <code>OPTIONS</code> row in the DevTools Network panel. If its status is 4xx or 5xx, this is your case.</p>
+
+<h2>--disable-web-security or added headers?</h2>
+<p>The usual “disable CORS in Chrome” advice is to start a second Chrome like this:</p>
+<pre><code>chrome --disable-web-security --user-data-dir=/path/to/empty-folder</code></pre>
+<p>We ran it without any extension against the same server and compared it with HeaderDial.</p>
+<table>
+<tr><th></th><th>HeaderDial response headers</th><th>Chrome with <code>--disable-web-security</code></th></tr>
+<tr><td>Errors 1 to 6</td><td>fixed, with the right headers</td><td>all requests worked</td></tr>
+<tr><td>Error 7 (<code>OPTIONS</code> returns 404/405)</td><td>still blocked</td><td>worked: Chrome sent no <code>OPTIONS</code> request at all, for any of our cases</td></tr>
+<tr><td>Which sites</td><td>only the API host in the Domain filter</td><td>every site you open in that window</td></tr>
+<tr><td>Your logins, extensions, bookmarks</td><td>your normal profile</td><td>a separate profile in the <code>--user-data-dir</code> folder; a new folder starts empty (<a href="https://chromium.googlesource.com/chromium/src/+/main/docs/user_data_dir.md">Chromium docs</a>)</td></tr>
+<tr><td>Firefox</td><td>works the same (all results matched Chrome)</td><td>no such flag (see below)</td></tr>
+<tr><td>Turning it off</td><td>switch the profile off, or let the rows expire</td><td>close that Chrome</td></tr>
+</table>
+<p>What else the flag changes, from our runs:</p>
+<ul>
+<li><strong>It is not only CORS.</strong> With the flag alone, a page on <code>127.0.0.1</code> still could not read the DOM of a cross-site iframe on <code>localhost</code> (<code>contentDocument</code> was <code>null</code>). With <code>--disable-site-isolation-trials</code> added, as some answers suggest, the page read the iframe's text. Do not browse other sites in that window.</li>
+<li><strong>The warning bar.</strong> Our runs were headless, so we could not see it. This Chrome build's English strings contain “You are using an unsupported command-line flag: $1. Stability and security will suffer.”, where <code>$1</code> is the flag.</li>
+<li><strong><code>--user-data-dir</code>.</strong> The Chrome binary contains the message “Web security may only be disabled if '--user-data-dir' is also specified with a non-default value.” In our headless runs the flag took effect even without <code>--user-data-dir</code>, so we could not confirm when Chrome enforces this. Pass an empty folder anyway, so the unprotected window is never your everyday profile.</li>
+</ul>
+<p><strong>Firefox</strong> has no <code>--disable-web-security</code>. Its <code>about:config</code> pref <code>content.cors.disable</code> does the opposite of what the name suggests. With it set to <code>true</code>, every cross-origin <code>fetch()</code> in our test failed with <code>(Reason: CORS disabled).</code>, including the plain <code>GET</code>.</p>
+
+<h2>Steps in HeaderDial</h2>
+<ol>
+<li>Click the HeaderDial icon. If the site access banner shows, allow access. The page and the API are usually on different hosts, and Chrome only changed the response when HeaderDial had access to both (<a href="cors-headers-for-local-development.html">tested here</a>). Choose <strong>Allow on all sites</strong>, or <strong>Only &lt;host&gt;</strong> once on a page tab and once on an API tab.</li>
+<li>Click <strong>+ Response header</strong> and add the headers your error needs, from the list above. Leave the op select on <strong>set</strong>, so it replaces any value the server already sends.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and enter the API host, for example <code>localhost</code> or <code>api.dev.example.com</code>.</li>
+<li>Set the expiry select on each row, for example <strong>1 hour</strong>.</li>
+<li>Reload your app and check that the console line is gone and the Network panel shows the real request after the <code>OPTIONS</code> one.</li>
+</ol>
+<p>Shortcut (HeaderDial 0.7.0): open the popup on your app's tab and pick <strong>+ Recipe…</strong> → <strong>CORS: allow calls from this page's origin</strong>. It adds <code>Access-Control-Allow-Origin</code> set to that tab's origin, <code>Access-Control-Allow-Credentials: true</code>, the usual methods, and <code>Authorization, Content-Type</code> as allowed headers. Add any other custom header names to that row, then do steps 3 and 4.</p>
+
+<h2>Things to know</h2>
+<ul>
+<li><strong>An Authorization header added by HeaderDial does not cause a preflight.</strong> We added <code>Authorization: Bearer …</code> as a <em>request</em> header in HeaderDial, and the page made a plain <code>GET</code>. In both browsers the server received one <code>GET</code> with the token, and no <code>OPTIONS</code>. The browser decides on a preflight from what your code sends, not what an extension adds. The response still needs <code>Access-Control-Allow-Origin</code>. The same header set by your own code did trigger a preflight.</li>
+<li><strong>The <code>xmlhttprequest</code> request type covers the preflight.</strong> With the profile limited to that type, the added headers still reached the <code>OPTIONS</code> response in both browsers.</li>
+<li><strong>A passed preflight is reused for a short time.</strong> In Chrome, we changed the headers so that a credentialed <code>PUT</code> should fail, then called the same URL half a second later. Chrome sent no new <code>OPTIONS</code> and the call still worked. A different URL failed at once, and the same URL failed 6 seconds later. After an edit, wait a few seconds before you judge the result.</li>
+<li><strong>Make the server right before you ship.</strong> Everything here only changes your browser. Your users' browsers still get the server's real headers.</li>
+</ul>
+
+<h2>What we measured</h2>
+<p>A local Node server reachable as <code>http://127.0.0.1:PORT</code> (the page) and <code>http://localhost:PORT</code> (the API), which are different origins. The API sent no CORS headers and answered <code>OPTIONS</code> with an empty <code>200</code>, <code>204</code>, <code>404</code> or <code>405</code>, depending on the endpoint. The server logged every request, so we could see whether a preflight or the real request arrived. HeaderDial 0.6.0, host access granted to all sites, one profile limited to Domain <code>localhost</code>. Chrome for Testing 159.0.8154.6 and Firefox 158.0.1, both headless on Linux, 20 November 2026. The flag column is Chrome with <code>--disable-web-security</code> and a new <code>--user-data-dir</code>, no extension.</p>
+<table>
+<tr><th>Request from the page to the API</th><th>Chrome 159 + HeaderDial</th><th>Firefox 158 + HeaderDial</th><th>Chrome, flag</th></tr>
+<tr><td>Plain <code>GET</code>, nothing added</td><td>blocked (error 1)</td><td>blocked (error 1)</td><td>works</td></tr>
+<tr><td>Plain <code>GET</code>, <code>Allow-Origin: *</code></td><td>works</td><td>works</td><td>–</td></tr>
+<tr><td><code>credentials: 'include'</code>, <code>Allow-Origin: *</code></td><td>blocked (error 5)</td><td>blocked (error 5)</td><td>works</td></tr>
+<tr><td><code>credentials: 'include'</code>, exact origin + <code>Allow-Credentials: true</code></td><td>works</td><td>works</td><td>–</td></tr>
+<tr><td><code>PUT</code> JSON or custom header, <code>OPTIONS</code> 200/204, only <code>Allow-Origin: *</code></td><td>blocked (errors 3, 4)</td><td>blocked (errors 3, 4)</td><td>works, no preflight sent</td></tr>
+<tr><td>Same, with <code>Allow-Origin</code>, <code>Allow-Headers</code>, <code>Allow-Methods</code></td><td>works</td><td>works</td><td>–</td></tr>
+<tr><td><code>Authorization</code> from the page, <code>Allow-Headers: *</code></td><td>works, no warning</td><td>works, with a warning</td><td>works</td></tr>
+<tr><td>Credentialed <code>PUT</code>, exact origin + <code>Allow-Credentials: true</code>, <code>Allow-Methods: *</code></td><td>blocked (error 4)</td><td>blocked (error 4)</td><td>works</td></tr>
+<tr><td><code>PUT</code> JSON, <code>OPTIONS</code> 404 or 405, all headers added</td><td>blocked (error 7)</td><td>blocked (error 7)</td><td>works, no preflight sent</td></tr>
+<tr><td>HeaderDial adds <code>Authorization</code> to a plain <code>GET</code></td><td>no preflight; token arrives</td><td>no preflight; token arrives</td><td>–</td></tr>
+<tr><td>Read the DOM of a cross-site iframe</td><td>–</td><td>–</td><td>blocked; readable with <code>--disable-site-isolation-trials</code></td></tr>
+</table>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
+<li><a href="headers-only-from-one-site.html">Send a header only on requests made by one site</a></li>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>

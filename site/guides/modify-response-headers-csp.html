@@ -26,7 +26,7 @@
 <li>Click <strong>+ Only on &lt;current host&gt;</strong> under <strong>Where it applies</strong>. Changing security headers on every site you visit is never what you want.</li>
 <li>Hard-reload (Ctrl+Shift+R) and watch the DevTools <strong>Console</strong>: CSP violations are logged there with the directive that blocked them.</li>
 </ol>
-<p>For framing problems, add two rows: remove <code>X-Frame-Options</code>, and remove or replace <code>Content-Security-Policy</code>. Modern browsers give <code>frame-ancestors</code> precedence over <code>X-Frame-Options</code>, so removing only the older header is often not enough. Response headers apply to whatever response matches the filter, so put the filter on the <em>framed</em> site's domain, not the parent page's.</p>
+<p>For framing problems, add two rows: remove <code>X-Frame-Options</code>, and remove or replace <code>Content-Security-Policy</code>. Modern browsers give <code>frame-ancestors</code> precedence over <code>X-Frame-Options</code>, so removing only the older header is often not enough. Response headers apply to whatever response matches the filter, so put the filter on the <em>framed</em> site's domain, not the parent page's. We measured each combination in Chrome and Firefox in <a href="allow-iframe-x-frame-options.html">Embed a site in an iframe while testing</a>.</p>
 
 <h2>A safer way to try a stricter policy</h2>
 <p>To see what a new policy <em>would</em> block without breaking the page, add it as <code>Content-Security-Policy-Report-Only</code> instead. The browser reports violations in the Console but enforces nothing. When the console is quiet, move the policy into the real header on your server.</p>

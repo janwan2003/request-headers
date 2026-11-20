@@ -15,10 +15,22 @@ const SHOTS = process.env.SHOTS || '';
 function serve() {
   return new Promise((resolve) => {
     const srv = http.createServer((req, res) => {
+      if (req.url.startsWith('/framed')) {
+        // A page that refuses to be framed both ways (guide: allow-iframe-x-frame-options.html).
+        res.writeHead(200, { 'content-type': 'text/html', 'x-frame-options': 'DENY', 'content-security-policy': "frame-ancestors 'none'" });
+        res.end('<!doctype html><script>parent.postMessage("framed-loaded", "*")</script>');
+        return;
+      }
       if (req.url.startsWith('/nocors')) {
-        // No CORS headers at all; answers preflights with an empty 204.
-        res.writeHead(req.method === 'OPTIONS' ? 204 : 200, req.method === 'OPTIONS' ? {} : { 'content-type': 'application/json' });
+        // No CORS headers at all; answers preflights with an empty 204 (or 404 for /nocors404).
+        res.writeHead(req.method === 'OPTIONS' ? (req.url.startsWith('/nocors404') ? 404 : 204) : 200, req.method === 'OPTIONS' ? {} : { 'content-type': 'application/json' });
         res.end(req.method === 'OPTIONS' ? '' : JSON.stringify({ ok: true, h: req.headers['x-custom'] || null }));
+      } else if (req.url.startsWith('/sw.js')) {
+        // Service worker: answers /swecho by fetching /echo itself (a request with no tab).
+        res.writeHead(200, { 'content-type': 'text/javascript' });
+        res.end(`self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener('fetch', (e) => { if (new URL(e.request.url).pathname === '/swecho') e.respondWith(fetch('/echo?fromsw')); });`);
       } else if (req.url.startsWith('/setcookie')) {
         res.writeHead(200, { 'content-type': 'text/plain', 'set-cookie': 'sc=1; Path=/' });
         res.end('ok');
@@ -398,6 +410,21 @@ async function fetchVia(page, url) {
   assert.strictEqual((await fetchVia(other, A + '/echo')).body['x-tab'], '1');
   assert.strictEqual((await fetchVia(page, A + '/echo')).body['x-tab'], undefined);
   ok('a tab-only profile applies in its tab and nowhere else');
+  // Guide guard (modify-headers-one-tab-only.html): a request the site's service worker makes,
+  // even for the bound tab's own fetch(), has no tab, so the tab-only header is not sent.
+  const viaSw = await other.evaluate(async () => {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    for (let i = 0; i < 50 && !navigator.serviceWorker.controller; i++) await new Promise((r) => setTimeout(r, 100));
+    const out = { controlled: !!navigator.serviceWorker.controller, sw: await (await fetch('/swecho')).json(), direct: await (await fetch('/echo?direct')).json() };
+    await reg.unregister();
+    return out;
+  });
+  assert.ok(viaSw.controlled, 'the page is controlled by the service worker');
+  assert.ok(viaSw.sw.host, 'the service worker reached the server');
+  assert.strictEqual(viaSw.sw['x-tab'], undefined, 'service worker request: no tab-only header');
+  assert.strictEqual(viaSw.direct['x-tab'], '1', 'the same tab without the worker: header sent');
+  ok('guide claim holds: a tab-only profile misses requests made by the site\'s service worker');
 
   // A regex the browser cannot compile is reported, and the other rules still work.
   await ui.evaluate(async () => {
@@ -431,6 +458,11 @@ async function fetchVia(page, url) {
   ok('adding Access-Control-Allow-Origin makes a blocked simple cross-origin GET succeed');
   assert.strictEqual(await corsTry(B + '/nocors?pre', true), 'ok');
   ok('a preflighted request (custom header) also succeeds: the added headers apply to the OPTIONS response too');
+  // Guide guard (fix-cors-error-while-testing.html): a preflight answered with 404 stays blocked,
+  // whatever headers are added; the browser wants an ok status.
+  assert.strictEqual(await corsTry(B + '/nocors404?pre', true), 'blocked', 'OPTIONS 404 cannot be fixed with headers');
+  assert.strictEqual(await corsTry(B + '/nocors404?simple', false), 'ok', 'control: no preflight, works');
+  ok('guide claim holds: a preflight answered with 404 stays blocked even with CORS headers added');
 
   // Guide guard: guides/headers-browsers-wont-let-you-change.html says Chrome lets an extension
   // set Sec-Fetch-Site, but removing Host or Connection has no effect. Fail if a release changes that.
@@ -482,6 +514,82 @@ async function fetchVia(page, url) {
     ok('"Page domain" filter: header on a fetch from a localhost page, not from another page or a typed address');
     await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
     await settle();
+  }
+
+  // Guide guard: guides/send-cookie-with-request.html has a table of what the server gets when a
+  // Cookie header row and a Send cookie row sit in different profiles (browser has pre=0).
+  {
+    const saved = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state);
+    const setRow = { target: 'request', name: 'Cookie', value: 'fixed=abc', op: 'set' };
+    const rmRow = { target: 'request', name: 'Cookie', value: '', op: 'remove' };
+    const send = { headers: [], cookies: [{ target: 'request', name: 'hd', value: '1' }] };
+    const cases = [
+      [{ headers: [setRow] }, send, 'fixed=abc; hd=1'],
+      [send, { headers: [setRow] }, 'pre=0; hd=1'],
+      [{ headers: [rmRow] }, send, 'none'],
+    ];
+    await page.goto(A + '/');
+    await page.evaluate(() => { document.cookie = 'pre=0; Path=/'; });
+    for (const [left, right, want] of cases) {
+      await ui.evaluate(async ([l, r]) => chrome.storage.local.set({ state: HeaderDial.normalizeState({ profiles: [
+        { id: 'l', name: 'Left', active: true, ...l }, { id: 'r', name: 'Right', active: true, ...r }] }) }), [left, right]);
+      await settle();
+      assert.deepStrictEqual((await status()).problems, []);
+      const got = (await echoVia(page, A + '/echo?cookies')).cookie || 'none';
+      assert.strictEqual(got, want, `Chrome, left ${JSON.stringify(left)} / right ${JSON.stringify(right)}: server got ${got}`);
+    }
+    await page.goto(A + '/');
+    await page.evaluate(() => { document.cookie = 'pre=; Max-Age=0; Path=/'; });
+    await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
+    await settle();
+    ok('guide table holds for a Cookie header row and a Send row in different profiles');
+  }
+
+  // Recipes picked in the editor add working rows; picking one twice adds nothing.
+  {
+    const saved = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state);
+    await ui.evaluate(async () => chrome.storage.local.set({ state: HeaderDial.normalizeState({ profiles: [{ id: 'r', name: 'R', active: true }] }) }));
+    await ui.reload();
+    await ui.locator('#recipe').selectOption('xff');
+    await ui.locator('#recipe').selectOption('xff');
+    assert.strictEqual(await ui.locator('#req-rows .hrow').count(), 1, 'one row, the blank starter row dropped');
+    await ui.locator('#recipe').selectOption('bearer');
+    assert.strictEqual(await ui.evaluate(() => document.activeElement.value), 'Bearer ', 'the token field has focus');
+    await ui.keyboard.type('t0ken');
+    await ui.locator('#recipe').selectOption('iframe');
+    await settle();
+    const g = await until(async () => { const x = await echoVia(page, A + '/echo?recipe'); return x['x-forwarded-for'] && x; }, 'recipe rows live');
+    assert.deepStrictEqual([g['x-forwarded-for'], g.authorization], ['203.0.113.7', 'Bearer t0ken']);
+    assert.strictEqual(await ui.locator('#res-rows .hrow').count(), 2);
+    assert.deepStrictEqual((await status()).problems, []);
+    await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
+    await ui.reload();
+    await settle();
+    ok('recipes add working rows from the editor (and the token field gets focus)');
+  }
+
+  // Guide guard (allow-iframe-x-frame-options.html): with both X-Frame-Options and CSP
+  // frame-ancestors, removing X-Frame-Options alone still blocks the frame; removing both loads it.
+  {
+    const saved = await ui.evaluate(async () => (await chrome.storage.local.get('state')).state);
+    const frame = async (rows) => {
+      await ui.evaluate(async (hs) => chrome.storage.local.set({ state: HeaderDial.normalizeState({ profiles: [{ id: 'f', name: 'F', active: true,
+        headers: hs.map((n) => ({ target: 'response', name: n, value: '', op: 'remove' })) }] }) }), rows);
+      await settle();
+      await page.goto(B + '/');
+      return page.evaluate(async (src) => {
+      const f = document.createElement('iframe');
+      const got = new Promise((r) => { addEventListener('message', (e) => e.data === 'framed-loaded' && r('loads')); setTimeout(() => r('blocked'), 2500); });
+      f.src = src; document.body.append(f);
+      const out = await got; f.remove(); return out;
+    }, A + '/framed');
+    };
+    assert.strictEqual(await frame([]), 'blocked', 'control: the page refuses to be framed');
+    assert.strictEqual(await frame(['X-Frame-Options']), 'blocked', 'frame-ancestors still blocks it');
+    assert.strictEqual(await frame(['X-Frame-Options', 'Content-Security-Policy']), 'loads');
+    await ui.evaluate(async (s) => chrome.storage.local.set({ state: s }), saved);
+    await settle();
+    ok('guide claim holds: framing needs both X-Frame-Options and CSP frame-ancestors removed');
   }
 
   if (SHOTS) {

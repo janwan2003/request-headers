@@ -440,7 +440,49 @@
     return out;
   }
 
+  // Recipes: common starting points, added to the selected profile in one click. A row with
+  // the same name and direction is replaced, so applying a recipe twice adds nothing.
+  // {origin} in a value is the current tab's origin (or http://localhost:3000 without one).
+  const RECIPES = [
+    { key: 'bearer', label: 'Bearer token (switches off after 1 hour)', focus: 'Authorization',
+      rows: [['request', 'Authorization', 'Bearer ', 'set', 3600000]] },
+    { key: 'cors', label: 'CORS: allow calls from this page\'s origin',
+      rows: [['response', 'Access-Control-Allow-Origin', '{origin}'], ['response', 'Access-Control-Allow-Credentials', 'true'],
+        ['response', 'Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS'],
+        ['response', 'Access-Control-Allow-Headers', 'Authorization, Content-Type']] },
+    { key: 'iframe', label: 'Allow the site in an iframe (remove X-Frame-Options and CSP)',
+      rows: [['response', 'X-Frame-Options', '', 'remove'], ['response', 'Content-Security-Policy', '', 'remove']] },
+    { key: 'nocache', label: 'Ask for fresh responses (no-cache)',
+      rows: [['request', 'Cache-Control', 'no-cache'], ['request', 'Pragma', 'no-cache']] },
+    { key: 'mobile', label: 'Mobile User-Agent (iPhone Safari)',
+      rows: [['request', 'User-Agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1']] },
+    { key: 'xff', label: 'Pretend to come from another IP (X-Forwarded-For)',
+      rows: [['request', 'X-Forwarded-For', '203.0.113.7']] },
+  ];
+
+  // Adds a recipe's rows to profile p. Returns the id of the row to focus (or null).
+  function applyRecipe(p, key, opts) {
+    const r = RECIPES.find((x) => x.key === key);
+    if (!r) return null;
+    const o = opts || {};
+    const origin = o.origin && /^https?:\/\/[^/]+$/.test(o.origin) ? o.origin : 'http://localhost:3000';
+    const now = o.now != null ? o.now : Date.now();
+    let focus = null;
+    for (const [target, name, value, op, ttl] of r.rows) {
+      const fields = { name, value: value.replace('{origin}', origin), op: op || 'set', enabled: true,
+        expiresAt: ttl ? now + ttl : null };
+      const same = p.headers.find((h) => h.target === target && h.name.trim().toLowerCase() === name.toLowerCase());
+      const h = same ? Object.assign(same, fields) : newHeader(target, fields);
+      if (!same) p.headers.push(h);
+      if (name === r.focus) focus = h.id;
+    }
+    // A blank row left from a new profile would only clutter it.
+    p.headers = p.headers.filter((h) => h.name.trim() || h.value.trim());
+    return focus;
+  }
+
   root.HeaderDial = Object.assign(root.HeaderDial || {}, {
+    RECIPES, applyRecipe,
     SCHEMA, RESOURCE_TYPES, METHODS, APPENDABLE_REQUEST, COLORS, OPS, REDIRECT_MODES, uid, newHeader, newFilter,
     newRedirect, newCookie, newProfile, normalizeCookie, cookieProblem, cookieInfo, liveCookies, defaultState, normalizeState, normalizeProfile, normalizeHeader, normalizeFilter,
     normalizeRedirect, combine, headerProblem, filterProblem, redirectProblem, redirectAction, liveHeaders,

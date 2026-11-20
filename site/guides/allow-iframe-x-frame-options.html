@@ -1,0 +1,95 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Embed a site in an iframe: remove X-Frame-Options and frame-ancestors – HeaderDial</title><meta name="description" content="Fix &quot;Refused to display in a frame because it set X-Frame-Options to sameorigin&quot; and CSP frame-ancestors errors while testing, by removing the response headers. Measured in Chrome 159 and Firefox 158.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/allow-iframe-x-frame-options.html">
+<meta property="og:title" content="Embed a site in an iframe while testing: remove X-Frame-Options and frame-ancestors"><meta property="og:description" content="Which response headers to remove so a page loads in your iframe, and where the rule must apply. Measured in Chrome and Firefox.">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Load a page in an iframe that sends X-Frame-Options or CSP frame-ancestors","description":"Remove the X-Frame-Options and Content-Security-Policy response headers of the framed site with HeaderDial, so it loads in your iframe while you test.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Remove X-Frame-Options","text":"In HeaderDial, click + Response header, type X-Frame-Options and choose remove in the operation select."},{"@type":"HowToStep","name":"Remove or replace Content-Security-Policy","text":"Click + Response header again, type Content-Security-Policy and choose remove, or keep set and paste the policy without its frame-ancestors directive."},{"@type":"HowToStep","name":"Limit it to the framed site","text":"Open Where it applies, click + Only on…, choose Domain and type the host of the page inside the iframe."},{"@type":"HowToStep","name":"Set an expiry","text":"Pick 15 min, 1 hour, 8 hours or 1 day in each row's expiry select so the rule turns itself off."},{"@type":"HowToStep","name":"Reload the parent page","text":"Reload the page that contains the iframe and check that the frame shows the site."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Embed a site in an iframe while testing: remove X-Frame-Options and frame-ancestors</h1>
+<p>To load a page in your iframe when it refuses to be framed, remove two <strong>response</strong> headers from that page: <code>X-Frame-Options</code> and <code>Content-Security-Policy</code>. In HeaderDial that is two <strong>remove</strong> rows, limited to the framed site's domain. Removing only <code>X-Frame-Options</code> is not enough when the page also sends a CSP <code>frame-ancestors</code> directive. In our tests the frame stayed blocked in both Chrome and Firefox until both headers were gone. Use this only on sites you are testing.</p>
+
+<h2>The errors this fixes</h2>
+<p>Chrome 159 logged these in the Console of the parent page. Chrome shows only the framed site's origin, and writes the value in lower case:</p>
+<pre><code>Refused to display 'https://example.com/' in a frame because it set 'X-Frame-Options' to 'sameorigin'.
+Refused to display 'https://example.com/' in a frame because it set 'X-Frame-Options' to 'deny'.
+Framing 'https://example.com/' violates the following Content Security Policy directive: "frame-ancestors 'none'". The request has been blocked.</code></pre>
+<p>Many support threads quote the CSP error in another wording, for example <a href="https://confluence.atlassian.com/jirakb/kb-preview-is-failing-with-a-refused-to-frame-site-because-an-ancestor-violates-the-following-content-security-policy-directive-frame-ancestors-self-error-in-browser-s-console-1388151291.html">this Atlassian article</a>. It is the same block:</p>
+<pre><code>Refused to frame 'https://example.com/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".</code></pre>
+<p>Firefox 158 logged these:</p>
+<pre><code>The loading of “https://example.com/page” in a frame is denied by “X-Frame-Options“ directive set to “sameorigin“.
+Content-Security-Policy: The page’s settings blocked the loading of a resource (frame-ancestors) at &lt;unknown&gt; because it violates the following directive: “frame-ancestors 'none'”</code></pre>
+<p>The directive can also read <code>frame-ancestors 'self'</code> or name a list of sites. The fix is the same.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Open HeaderDial and click <strong>+ Response header</strong>. In the name field type <code>X-Frame-Options</code>, then choose <strong>remove</strong> in the operation select (set / append / remove).</li>
+<li>Click <strong>+ Response header</strong> again and type <code>Content-Security-Policy</code>. Choose <strong>remove</strong>. To keep the rest of the policy, leave the operation on <strong>set</strong> instead and paste the site's policy without the <code>frame-ancestors</code> part as the value, for example <code>default-src 'self'</code>.</li>
+<li>Open <strong>Where it applies</strong>, click <strong>+ Only on…</strong>, choose <strong>Domain</strong> and type the host of the page <em>inside</em> the iframe, for example <code>app.example.com</code>. Not the host of your parent page: these headers come on the framed page's response.</li>
+<li>In each row's expiry select, pick <strong>15 min</strong>, <strong>1 hour</strong>, <strong>8 hours</strong> or <strong>1 day</strong>. The rows then turn themselves off.</li>
+<li>Give HeaderDial site access when the banner asks, then reload the parent page.</li>
+</ol>
+<p>Shortcut (HeaderDial 0.7.0): pick <strong>+ Recipe…</strong> → <strong>Allow the site in an iframe</strong>. It adds both <strong>remove</strong> rows at once; then do steps 3 to 5.</p>
+<p>If you ticked request types under <strong>Where it applies</strong>, include <strong>sub frame</strong>. An iframe's page is a <code>sub_frame</code> request, not a page load (<code>main_frame</code>). With no type ticked, the profile covers all types, and that works.</p>
+
+<h2>What we measured</h2>
+<p>Measured with HeaderDial 0.6.0 in Chrome for Testing 159.0.8154.6 and Firefox 158.0.1, 20 November 2026. A local server answered on both <code>localhost</code> and <code>127.0.0.1</code>. The parent page on <code>localhost</code> framed a child page on <code>127.0.0.1</code>, which is a different origin and a different site. The child page posts a message to the parent when its script runs. "Loads" means the parent got that message. "Blocked" means the server sent the page but its script never ran. Each case was run three times in each browser, with the same results.</p>
+<table>
+<tr><th>Child page sends</th><th>HeaderDial rule</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td>nothing (control)</td><td>none</td><td>loads</td><td>loads</td></tr>
+<tr><td><code>X-Frame-Options: DENY</code></td><td>none</td><td>blocked</td><td>blocked</td></tr>
+<tr><td><code>X-Frame-Options: SAMEORIGIN</code></td><td>none</td><td>blocked</td><td>blocked</td></tr>
+<tr><td><code>X-Frame-Options: SAMEORIGIN</code>, parent on the same origin</td><td>none</td><td>loads</td><td>loads</td></tr>
+<tr><td><code>X-Frame-Options: DENY</code> or <code>SAMEORIGIN</code></td><td>remove X-Frame-Options</td><td>loads</td><td>loads</td></tr>
+<tr><td><code>X-Frame-Options: DENY</code></td><td>set X-Frame-Options to <code>ALLOWALL</code></td><td>loads</td><td>loads</td></tr>
+<tr><td><code>Content-Security-Policy: frame-ancestors 'none'</code> (or <code>'self'</code>)</td><td>none</td><td>blocked</td><td>blocked</td></tr>
+<tr><td><code>frame-ancestors 'none'</code></td><td>remove X-Frame-Options only</td><td>blocked</td><td>blocked</td></tr>
+<tr><td><code>frame-ancestors 'none'</code></td><td>remove Content-Security-Policy</td><td>loads</td><td>loads</td></tr>
+<tr><td><code>default-src 'self'; frame-ancestors 'none'</code></td><td>set Content-Security-Policy to <code>default-src 'self'</code></td><td>loads</td><td>loads</td></tr>
+<tr><td>both <code>X-Frame-Options: DENY</code> and <code>frame-ancestors 'none'</code></td><td>remove X-Frame-Options only</td><td>blocked</td><td>blocked</td></tr>
+<tr><td>both</td><td>remove Content-Security-Policy only</td><td>blocked</td><td>blocked</td></tr>
+<tr><td>both</td><td>remove both</td><td>loads</td><td>loads</td></tr>
+<tr><td><code>X-Frame-Options: DENY</code> and a <code>frame-ancestors</code> that lists the parent</td><td>none</td><td>loads</td><td>loads</td></tr>
+<tr><td>both</td><td>remove both; request types: main frame only</td><td>blocked</td><td>blocked</td></tr>
+<tr><td>both</td><td>remove both; request types: main frame, xmlhttprequest, script</td><td>blocked</td><td>blocked</td></tr>
+<tr><td>both</td><td>remove both; request types: sub frame only</td><td>loads</td><td>loads</td></tr>
+<tr><td>both</td><td>remove both; Only on Domain = the child's host</td><td>loads</td><td>loads</td></tr>
+<tr><td>both</td><td>remove both; Only on Domain = the parent's host</td><td>blocked</td><td>blocked</td></tr>
+<tr><td>both</td><td>remove both; Only on Page domain = the parent's host</td><td>loads</td><td>loads</td></tr>
+</table>
+<p>What this shows:</p>
+<ul>
+<li><strong>A <code>frame-ancestors</code> directive overrides <code>X-Frame-Options</code>.</strong> A page that sent <code>DENY</code> together with a <code>frame-ancestors</code> list that included the parent loaded in both browsers. That is why removing only <code>X-Frame-Options</code> does nothing while the CSP still says <code>'none'</code>. Once the CSP is gone, <code>X-Frame-Options</code> applies again, so remove both.</li>
+<li><strong><code>ALLOWALL</code> works, but only by accident.</strong> It is not a valid <code>X-Frame-Options</code> value, and Chromium's source says it ignores headers with values it does not recognise (<a href="https://chromium.googlesource.com/chromium/src.git/+/49cea54a/content/browser/renderer_host/ancestor_throttle.cc">ancestor_throttle.cc</a>). <strong>remove</strong> says what you mean.</li>
+<li><strong>The rule must reach the framed page.</strong> A Domain filter on the child's host works. A Domain filter on your parent page's host does not. A <strong>Page domain</strong> filter on the parent's host also worked, because the parent page starts the iframe's request. It also changes every other request that page makes, so the child's Domain is the tighter choice.</li>
+<li><strong>Scope a set rule.</strong> Without a filter, a replacement CSP also replaces the policy of your own parent page. In our first Chrome run that stopped the parent page's inline script from running.</li>
+</ul>
+<p>Browsers do let extensions change these two response headers. For the headers they don't let you change, see <a href="headers-browsers-wont-let-you-change.html">Which HTTP headers browsers won't let an extension change</a>.</p>
+
+<h2>Logged in on the site, but logged out in the frame</h2>
+<p>Once the frame loads, the site may not know you. We set four cookies by visiting the child site directly: <code>SameSite=Lax</code>, <code>SameSite=Strict</code>, no SameSite attribute, and <code>SameSite=None; Secure</code>. Then we loaded the site in the cross-site iframe and recorded which cookies the server received.</p>
+<table>
+<tr><th>Cookie</th><th>Chrome 159</th><th>Firefox 158</th></tr>
+<tr><td>Set on a direct visit with <code>SameSite=Lax</code>, <code>Strict</code> or no attribute</td><td>not sent in the frame</td><td>not sent in the frame</td></tr>
+<tr><td>Set on a direct visit with <code>SameSite=None; Secure</code></td><td>sent</td><td>not sent</td></tr>
+<tr><td>Set by the page while it was in the frame, <code>SameSite=Lax</code></td><td>not stored</td><td>not stored</td></tr>
+<tr><td>Set by the page while it was in the frame, no attribute</td><td>not stored</td><td>stored, and sent only inside that frame</td></tr>
+<tr><td>Same cookies, parent page on the same site as the child (control)</td><td>all sent</td><td>all sent</td></tr>
+<tr><td>A HeaderDial <strong>+ Cookie</strong> row set to <strong>Send</strong>, Only on Domain = the child's host</td><td>sent in the frame</td><td>sent in the frame</td></tr>
+</table>
+<p>Firefox sent no cookies at all from the direct visit, not even <code>SameSite=None</code>. That matches Firefox's separate cookie storage for each top-level site, which Mozilla calls Total Cookie Protection. To test a logged-in session inside the frame, add the session cookie with a <strong>+ Cookie</strong> row set to <strong>Send</strong> and limit it to the child's domain. See <a href="send-cookie-with-request.html">how to send a cookie with requests</a>.</p>
+
+<h2>Safety</h2>
+<div class="callout"><code>X-Frame-Options</code> and <code>frame-ancestors</code> protect against clickjacking: another site loading the page in an invisible frame and tricking you into clicking it. Remove them only on sites you are testing, keep the rule limited to that domain, and give each row an expiry. Turn the profile off with its <strong>Active</strong> switch when you are done.</div>
+<p>This changes only your own browser. Visitors still get the real headers. To let a page be embedded for real, the site has to send a <code>frame-ancestors</code> directive that lists the parent site. For the CSP itself, see <a href="modify-response-headers-csp.html">How to modify Content-Security-Policy</a>.</p>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="modify-response-headers-csp.html">Modify Content-Security-Policy and other response headers</a></li>
+<li><a href="headers-browsers-wont-let-you-change.html">Which HTTP headers browsers won't let an extension change</a></li>
+<li><a href="send-cookie-with-request.html">Send a cookie with requests without setting it in the browser</a></li>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>
