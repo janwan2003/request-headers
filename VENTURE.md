@@ -231,7 +231,8 @@ check the binding and call the handler).
    "Copy as fetch to headers", "Postman headers to browser" and a CSP builder page. The checker's DevTools formats are partly assumed
    (Chrome's non-raw header list copy, Firefox "Copy All" JSON); confirm by copying from a real DevTools panel. Re-check the comparison
    page's figures about monthly (the curl/API calls are listed at the end of the page); a scheduled routine would be cheaper than by hand.
-10. Tests: the Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
+10. Tests: the CORS check "access to both hosts works" flaked once in CI 44780455961 (passed on rerun); if it flakes again, wait for
+   rule sync before its fetch. The Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
    the chrome scope) and the matched-request count (needs an activeTab grant from a real click).
 
 ## Metrics
@@ -431,4 +432,7 @@ that is how the incumbent died.
   (chip row has ~22-50px slack in Chromium on Linux), CSP builder in Firefox, the CSP console-message details the page states from docs.
   Then CI 44779831735 (commit 87490e8) failed the new chip guard: CI's fonts are wider (chips 604px vs 574px locally, row 626px), so the
   chips wrapped there; a real cross-font defect. 0.9.2 shortens the label "One click:" to "Add:" (~34px); Chromium e2e 38/38 locally,
-  CWS draft 0.9.2 uploaded, store shots regenerated. The CI result for that commit is in the next line.
+  CWS draft 0.9.2 uploaded, store shots regenerated. CI 44780455961 (commit a1f029f) attempt 1 failed on "access to both hosts works"
+  (an older CORS check, unrelated code path); attempt 2 on the identical commit passed test, firefox, deploy, so a flake (first seen; watch
+  it). Live (curl): csp-builder.html, js/csp-build.js, hub 200; sitemap 37 URLs incl. csp-builder; zip is 0.9.2 with 'Add:';
+  `gsc.py submit` 204.
