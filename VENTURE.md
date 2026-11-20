@@ -138,8 +138,16 @@ checked to change nothing and to show the banner without it).
    "+ Only on <host>" and per-site access flows.
 4. More ranking pages (Referer, Accept-Language testing, X-Real-IP, Basic auth,
    Cache-Control), and submit the sitemap to Google Search Console (operator account).
-5. Features the old tool's users expect: cookie helpers, URL redirects (DNR `redirect`),
+5. Verify the claim in the CORS guide that site access for the page's host alone is not
+   enough when the API is on another host (written from the DNR docs, untested). Add an
+   e2e case with access granted for only one origin.
+6. Features the old tool's users expect: cookie helpers, URL redirects (DNR `redirect`),
    request-method filters, a keyboard shortcut for pause.
+
+## Metrics
+
+- 2026-11-20: no store listing yet, so there are no install numbers. The site was live from
+  2026-11-20 (GitHub Pages); there is no Search Console data yet.
 
 ## Monetization plan
 
@@ -153,3 +161,15 @@ that is how the incumbent died.
 - 2026-11-20 scout: created idea. Evidence: web search (THN, TechRadar, Cybernews,
   VPNCentral, SelectorsHub, Requestly pages); live curl of the CWS listings and searches, the Edge
   product endpoint (404) and the AMO API, all on 2026-11-20.
+- 2026-11-20 builder: rechecked the evidence (THN article live; ModHeader's CWS listing blank;
+  Requestly 300,000 and Header Editor Lite 200,000 users, live curl). Named the product
+  HeaderDial after a clash check. Built 0.1.0 (MV3 extension, DNR rule compiler, ModHeader
+  importer, popup/full-tab editor), 13 unit tests, and a 13-check Playwright e2e against a
+  local echo server (headers on page loads and fetch, response headers, remove/override,
+  domain filter, pause, ModHeader import, expiry, tab-only, rejected-regex reporting, simple
+  and preflighted CORS, nothing changed without host access). Found and fixed 3 UI bugs that
+  way (banner always visible, focus lost on tab-out, filter section collapsing). Site with 8
+  guides by a subagent. Repo github.com/janwan2003/request-headers; CI run 44734401964
+  (commit d6c9f6c) passed tests and deployed. Live check: /, /privacy.html, /guides/,
+  /download/headerdial.zip (13 files, v0.1.0) and /sitemap.xml return 200, and a live share
+  link decodes on /share/. Store submission is waiting on accounts (OPERATOR-INBOX).
