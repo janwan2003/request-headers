@@ -19,6 +19,9 @@ function serve() {
         // No CORS headers at all; answers preflights with an empty 204.
         res.writeHead(req.method === 'OPTIONS' ? 204 : 200, req.method === 'OPTIONS' ? {} : { 'content-type': 'application/json' });
         res.end(req.method === 'OPTIONS' ? '' : JSON.stringify({ ok: true, h: req.headers['x-custom'] || null }));
+      } else if (req.url.startsWith('/setcookie')) {
+        res.writeHead(200, { 'content-type': 'text/plain', 'set-cookie': 'sc=1; Path=/' });
+        res.end('ok');
       } else if (req.url.startsWith('/echo')) {
         res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
         res.end(JSON.stringify(req.headers));
@@ -199,6 +202,36 @@ async function fetchVia(page, url) {
   });
   await settle();
   ok('a request-method filter (POST only) changes POST and leaves GET alone');
+
+  // Claims in the Origin and Cookie guides: Origin can be set; removing Set-Cookie on a
+  // response stops the browser storing the cookie.
+  await ui.evaluate(async () => {
+    const { state } = await chrome.storage.local.get('state');
+    state.profiles.push({ id: 'guides', name: 'Guides', active: true, filters: [{ kind: 'include', type: 'pattern', value: '/setcookie' }],
+      headers: [{ target: 'request', name: 'Origin', value: 'https://evil.example' },
+        { target: 'response', name: 'Set-Cookie', op: 'remove' }] });
+    state.profiles.push({ id: 'origin', name: 'Origin', active: true, filters: [{ kind: 'include', type: 'pattern', value: '/echo?origin' }],
+      headers: [{ target: 'request', name: 'Origin', value: 'https://evil.example' }] });
+    await chrome.storage.local.set({ state });
+  });
+  await settle();
+  await page.goto(A + '/');
+  const guideFacts = await page.evaluate(async () => {
+    const o = await (await fetch('/echo?origin', { method: 'POST', body: 'x' })).json();
+    await fetch('/setcookie');
+    return { origin: o.origin || null, cookie: document.cookie };
+  });
+  assert.strictEqual(guideFacts.origin, 'https://evil.example');
+  assert.doesNotMatch(guideFacts.cookie, /sc=1/);
+  await ui.evaluate(async () => {
+    const { state } = await chrome.storage.local.get('state');
+    state.profiles = state.profiles.filter((p) => p.id !== 'guides' && p.id !== 'origin');
+    await chrome.storage.local.set({ state });
+  });
+  await settle();
+  await page.evaluate(() => fetch('/setcookie'));
+  assert.match(await page.evaluate(() => document.cookie), /sc=1/, 'control: without the rule the cookie is stored');
+  ok('Origin can be set on fetch, and removing Set-Cookie stops the cookie being stored');
 
   // Remove and override existing headers.
   await ui.click('#add-req');
