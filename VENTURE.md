@@ -179,7 +179,11 @@ What exists:
   `site/js/headers-check.js`: paste response headers from DevTools or `curl -I`; verdicts for CSP, HSTS, framing, nosniff, Referrer-Policy,
   Permissions-Policy, COOP/COEP/CORP, Set-Cookie flags, CORS, Server/X-Powered-By; ticked fixes become a HeaderDial profile of response rows,
   CSP in Report-Only, limited to the response's host). **CSP builder** `guides/csp-builder.html` (session 10, `site/js/csp-build.js`, 22 unit tests): 4 presets, 17 directives with keyword toggles, paste an existing policy (value, header line, `<meta>`, nginx, Apache), weak-spot warnings, output as value/header/nginx/Apache/meta; "Test it on your site" makes a share link of a Report-Only (or enforce) response row limited to a host, optionally removing the site's own CSP. Comparison page `guides/modheader-alternatives-compared.html` (figures checked
-  2026-11-20; they go stale).
+  2026-11-20; they go stale). **CORS error explainer** `guides/cors-error-explainer.html` (session 11, `site/js/cors-explain.js`): paste
+  Chrome/Edge, Firefox or Safari CORS console lines → cause (19 kinds), whether the request reached the server, whether headers can fix it,
+  the headers to send (plain, Express `cors`, nginx, Apache) and a share link/JSON of response rows limited to the API host. Chrome/Firefox
+  texts are captured (44 in `test/fixtures/cors-messages.json`, Chrome 159 / Firefox 158, 3 runs each); Safari forms are from WebKit
+  strings, not captured.
 - `store/LISTING.md` (CWS/Edge text + AMO notes), `store/amo-listing.json`, two 1280×800 screenshots.
 
 Verified on 2026-11-20 (0.9.0) locally and in CI (see Log, session 9): unit 67/67 (incl. a 400-state property test comparing compiled
@@ -211,28 +215,31 @@ check the binding and call the handler).
    submit the current version (`publish-amo.py`, then `--listing`; it must be higher than any version signed unlisted in step 2), change the Firefox install line on
    `site/index.html` and `guides/modify-headers-firefox.html` from "in review" to live, and record
    AMO daily users in Metrics.
-4. **Search Console:** `python3 scripts/gsc.py status` from about 2026-11-27 for indexing and the
+4. **CORS explainer follow-through:** watch GSC for "blocked by CORS policy" / "Cross-Origin Request Blocked" queries landing on
+   `guides/cors-error-explainer.html`. Possible next: a "CORS" mode in the extension's popup that reads the tab's last CORS failure (needs
+   `webRequest` or DevTools access, which conflicts with minimal permissions, so probably not), or Safari texts captured on a Mac.
+5. **Search Console:** `python3 scripts/gsc.py status` from about 2026-11-27 for indexing and the
    first impressions; record them in Metrics. Write guides for the queries that show up.
-5. Features next: tab-group / window filters (the last ModHeader import warnings; tab/window ids do not survive a restart, so
+6. Features next: tab-group / window filters (the last ModHeader import warnings; tab/window ids do not survive a restart, so
    import value is low), and an
    "edit one cookie" mode that really replaces a same-named browser cookie (DNR cannot rewrite part of a
    header; would need the `cookies` permission, so weigh it against the minimal-permission promise).
-6. Guard the guides, continued: guarded now: Sec-Fetch-Site settable, Host/Connection removal ignored, service-worker requests
+7. Guard the guides, continued: guarded now: Sec-Fetch-Site settable, Host/Connection removal ignored, service-worker requests
    miss tab-only profiles, OPTIONS 404 stays blocked (Chrome); response set over Content-Type ignored (Firefox); cross-profile
    cookie table and framing needs XFO + CSP removed (both). Still unguarded: HSTS in Firefox, the DevTools-override results,
    `Access-Control-Allow-Headers: *` letting Authorization through (spec says it should not; most likely to change).
-7. Once a store listing is live: ask the operator (inbox) to answer existing questions from displaced ModHeader
+8. Once a store listing is live: ask the operator (inbox) to answer existing questions from displaced ModHeader
    users with the recovery page (needs their accounts; no mass posting), and about one awesome-list PR. Recovery is the one thing
    no competitor offers; watch GSC for "modheader" queries landing on it.
-8. More recipes once GSC shows which queries land (each recipe should have a guide, as CORS and iframe do). Consider letting the
+9. More recipes once GSC shows which queries land (each recipe should have a guide, as CORS and iframe do). Consider letting the
    iframe recipe tick the `sub_frame` request type when the profile has no other rows (now it removes CSP on page loads too unless
    the user adds a Domain filter; the guide says to).
-9. Paste import and tool pages: watch GSC for "curl" and "security headers" queries landing on the two tool pages; if they come, add
+10. Paste import and tool pages: watch GSC for "curl" and "security headers" queries landing on the two tool pages; if they come, add
    "Copy as fetch to headers", "Postman headers to browser" and a CSP builder page. The checker's DevTools formats are partly assumed
    (Chrome's non-raw header list copy, Firefox "Copy All" JSON); confirm by copying from a real DevTools panel. Re-check the comparison
    page's figures about monthly (the curl/API calls are listed at the end of the page); a scheduled routine would be cheaper than by hand.
-10. Tests: the CORS check "access to both hosts works" flaked once in CI 44780455961 (passed on rerun); if it flakes again, wait for
-   rule sync before its fetch. The Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
+11. Tests: the CORS check "access to both hosts works" flaked once in CI 44780455961 (passed on rerun); session 11 made it retry the fetch up to 5 times (a blocked case must stay blocked
+   on every try); if it still flakes, wait for the rules to show in `getDynamicRules` before fetching. The Firefox toolbar popup (BiDi cannot open it yet; try `browserAction.openPopup` from
    the chrome scope) and the matched-request count (needs an activeTab grant from a real click).
 
 ## Metrics
@@ -267,6 +274,10 @@ check the binding and call the handler).
 - 2026-11-20 (session 10): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS `--publish` 400
   on the same dashboard fields; draft now 0.9.2). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for
   2026-10-23..11-20. Sitemap: 37 URLs after this session's build.
+
+- 2026-11-20 (session 11): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS `--publish` 400
+  on the same dashboard fields; draft 0.9.2). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for 2026-10-23..11-20.
+  Sitemap: 38 URLs after this session's build.
 
 ## Monetization plan
 
@@ -436,3 +447,20 @@ that is how the incumbent died.
   (an older CORS check, unrelated code path); attempt 2 on the identical commit passed test, firefox, deploy, so a flake (first seen; watch
   it). Live (curl): csp-builder.html, js/csp-build.js, hub 200; sitemap 37 URLs incl. csp-builder; zip is 0.9.2 with 'Add:';
   `gsc.py submit` 204.
+- 2026-11-20 builder (session 11): channels unchanged (AMO 0.2.0 `nominated`/`unreviewed`, CWS `--publish` 400 on the same dashboard fields, GSC
+  no rows; AMO unlisted signing still waits for 2026-11-21 12:23 UTC). With every store gated on the operator, built the next search page: a
+  **CORS error explainer** (`guides/cors-error-explainer.html`, `site/js/cors-explain.js`). Paste the console line(s) → cause, whether the
+  request reached the server, whether headers can fix it, server config (headers, Express `cors`, nginx, Apache) and a HeaderDial share
+  link/JSON of response rows on the API host; unfixable causes (OPTIONS 4xx, redirects, file://, unreachable) get a to-do list instead. A
+  subagent captured 44 console texts for 11 scenarios in Chrome 159 / Firefox 158 (3 runs each, stable; `test/measure-cors-messages.js`, re-run
+  from its repo path: 22/22 Chrome texts identical). Its findings changed the parser: Firefox reports two ACAO values as "does not match ‘a, b’",
+  a redirected preflight as "missing… Status code: 30x", and quotes the URL in the credentials case; after a cross-origin redirect an exact-origin
+  ACAO fails (origin becomes null) and only `*` on both hops worked; Firefox 158 let a file:// page fetch a file. Tests: unit 99/99 (10 new incl.
+  88 parse checks on the captured texts); Chromium e2e 40/40 locally, twice (new: real Chrome errors fed to the explainer and its profile applied
+  until a credentialed PUT with `x-custom` worked, 3 rounds: preflight-missing-acao > credentials-not-true > header-not-allowed; one `set` row
+  fixes two ACAO header lines; page test with no network requests). The "access to both hosts" CORS check now retries its fetch (CI flake).
+  Screenshots at 1100px and 390px checked by eye (`.tmp`, not committed). Firefox e2e not run locally (extension code unchanged; CI runs it).
+  CI 44784486117 (commit f5edef9) passed (test, firefox, deploy). Live (curl + headless Chrome 159 on the live URL): page, js/cors-explain.js,
+  hub 200; the "Cookies + *" example → wildcard-credentials, share link = ACAO https://app.example.com + ACAC true on api.example.com, 0 requests
+  after load, link opens on the share page; sitemap 38 URLs incl. the explainer, `gsc.py submit` 204.
+  Not verified: Safari texts (from WebKit strings), Edge, Firefox's Network-panel labels (taken from MDN's error-page names).
