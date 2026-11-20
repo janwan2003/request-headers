@@ -126,9 +126,10 @@ test('imports a ModHeader export', () => {
   assert.deepStrictEqual(a.filters.map((f) => [f.kind, f.type, f.value]), [['include', 'regex', '.*://localhost:[35]000/.*']]);
   assert.deepStrictEqual(t.filters.map((f) => f.kind), ['exclude']);
   assert.deepStrictEqual(t.resourceTypes, ['xmlhttprequest']);
-  assert.strictEqual(r.warnings.length, 2, r.warnings.join('\n'));
-  // and the imported profiles compile
-  assert.strictEqual(HD.compile(HD.normalizeState({ profiles: r.profiles })).dynamic.length, 3);
+  assert.strictEqual(r.warnings.length, 1, r.warnings.join('\n')); // the "tabs" filter
+  assert.deepStrictEqual(t.redirects.map((x) => [x.mode, x.from, x.to, x.enabled]), [['replace', 'a', 'b', true]]);
+  // and the imported profiles compile: 2 header rules, 1 exclusion, 1 redirect
+  assert.strictEqual(HD.compile(HD.normalizeState({ profiles: r.profiles })).dynamic.length, 4);
 });
 
 test('imports {profiles:[...]} and a single ModHeader profile object', () => {
@@ -165,4 +166,47 @@ test('request-method filter: normalised, compiled into requestMethods, kept on e
   assert.strictEqual(HD.compile(state([{ headers: [hdr('A', '1')] }])).dynamic[0].condition.requestMethods, undefined);
   const back = HD.parseImport(HD.exportJSON(s.profiles));
   assert.deepStrictEqual(back.profiles[0].requestMethods, ['post', 'put']);
+});
+
+test('redirects: replace mode escapes the text and keeps the rest of the URL', () => {
+  const s = state([{ headers: [], redirects: [{ from: 'https://cdn.example.com/app.js?v=1', to: 'http://localhost:3000/app.js' }],
+    filters: [{ kind: 'exclude', type: 'domain', value: 'skip.example.com' }], requestMethods: ['get'] }]);
+  const out = HD.compile(s);
+  assert.strictEqual(out.dynamic.length, 1);
+  const r = out.dynamic[0];
+  assert.deepStrictEqual(r.action, { type: 'redirect', redirect: { regexSubstitution: '\\1http://localhost:3000/app.js\\2' } });
+  assert.strictEqual(r.condition.regexFilter, '^(.*?)https://cdn\\.example\\.com/app\\.js\\?v=1(.*)$');
+  assert.deepStrictEqual(r.condition.excludedRequestDomains, ['skip.example.com']);
+  assert.deepStrictEqual(r.condition.requestMethods, ['get']);
+  assert.strictEqual(out.liveCount, 1);
+  // what the browser will do with that rule, emulated with JS regex replacement
+  const url = 'https://cdn.example.com/app.js?v=1&x=2';
+  const js = r.action.redirect.regexSubstitution.replace(/\\(\d)/g, '$$$1');
+  assert.strictEqual(url.replace(new RegExp(r.condition.regexFilter), js), 'http://localhost:3000/app.js&x=2');
+});
+
+test('redirects: regex mode passes through; problems are reported and skipped', () => {
+  const ok = HD.compile(state([{ headers: [], redirects: [{ mode: 'regex', from: '^https://prod\\.example\\.com/(.*)', to: 'https://staging.example.com/\\1' }] }]));
+  assert.deepStrictEqual(ok.dynamic[0].condition.regexFilter, '^https://prod\\.example\\.com/(.*)');
+  assert.deepStrictEqual(ok.dynamic[0].action.redirect.regexSubstitution, 'https://staging.example.com/\\1');
+  const bad = HD.compile(state([{ headers: [hdr('X-A', '1')], redirects: [
+    { from: 'example.com/', to: 'example.com/v2/' }, // loops
+    { mode: 'regex', from: '([', to: 'https://x/' },
+    { mode: 'regex', from: '.*', to: 'localhost/' },
+    { from: 'a', to: '' },
+    { from: '', to: '' }, // blank row: ignored silently
+    { from: 'off', to: 'x', enabled: false, mode: 'regex' },
+  ] }]));
+  assert.strictEqual(bad.dynamic.length, 1, 'only the header rule');
+  assert.strictEqual(bad.dynamic[0].action.type, 'modifyHeaders');
+  assert.deepStrictEqual(bad.problems.map((p) => p.message.split(': ')[1]), ['the target contains the text it replaces, so it would redirect forever',
+    'invalid regular expression', 'the target must start with a scheme such as https:// or a group such as \\1', 'say where to redirect to']);
+});
+
+test('redirects survive export, share links and import, with fresh ids', () => {
+  const s = state([{ headers: [], redirects: [{ from: 'prod.example.com', to: 'localhost:8080' }] }]);
+  const back = HD.parseImport(HD.shareLink(s.profiles[0])).profiles[0];
+  assert.deepStrictEqual(back.redirects.map((r) => [r.mode, r.from, r.to]), [['replace', 'prod.example.com', 'localhost:8080']]);
+  assert.notStrictEqual(back.redirects[0].id, s.profiles[0].redirects[0].id);
+  assert.deepStrictEqual(HD.normalizeState({ profiles: [{}] }).profiles[0].redirects, []);
 });

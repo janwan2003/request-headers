@@ -50,6 +50,7 @@ function describeRule(r, state) {
   const where = c.regexFilter ? 'regex ' + c.regexFilter : c.urlFilter ? 'pattern ' + c.urlFilter :
     c.requestDomains ? 'domains ' + c.requestDomains.join(', ') : 'all URLs';
   const heads = [].concat(r.action.requestHeaders || [], r.action.responseHeaders || []).map((h) => h.header);
+  if (r.action.type === 'redirect') return 'redirect to ' + r.action.redirect.regexSubstitution + ' on ' + where;
   return (heads.length ? heads.join(', ') : 'exclusion') + ' on ' + where;
 }
 

@@ -7,7 +7,7 @@ Also downloadable from https://janwan2003.github.io/request-headers/download/hea
 HeaderDial – Modify HTTP Request & Response Headers
 
 ## Summary (≤132 chars)
-Add, change or remove HTTP request and response headers. Profiles, URL filters, timed headers. Open source, no tracking.
+Add, change or remove request and response headers, or redirect URLs. Profiles, filters, timed headers. Open source, no tracking.
 
 ## Category
 Developer Tools
@@ -25,6 +25,7 @@ What you can do:
 Features:
 • Profiles with colours. Run several at once; one switch (or Alt+Shift+D) pauses everything
 • Set, append or remove, on requests and on responses
+• URL redirects: send requests for one URL to another (e.g. a production script to localhost), including ModHeader URL replacements
 • Filters: domains, URL patterns, regular expressions, exclusions, request types, or a single tab
 • Timed headers that switch themselves off after 15 minutes, an hour or a day
 • Import profiles exported from ModHeader; export and import JSON
@@ -39,10 +40,10 @@ Private by design:
 • Site access is optional and requested when you need it: all sites, or only the one you are on
 
 ## Single purpose (CWS form)
-Modify HTTP request and response headers according to rules the user writes.
+Modify the browser's HTTP requests and responses according to rules the user writes: add, change or remove headers, and redirect URLs.
 
 ## Permission justifications
-- declarativeNetRequest: applies the user's header rules (modifyHeaders) through the browser's rule engine.
+- declarativeNetRequest: applies the user's header rules (modifyHeaders) and URL redirects (redirect) through the browser's rule engine.
 - storage: saves the user's profiles locally.
 - alarms: turns timed headers off when their time runs out.
 - activeTab: when the user opens the popup, reads the current tab's address to offer "only on this site", and to show how many requests in that tab the rules changed.

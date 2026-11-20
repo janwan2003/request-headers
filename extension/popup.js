@@ -107,6 +107,33 @@ function filterRow(p, f) {
       onclick: () => { p.filters = p.filters.filter((x) => x !== f); save(true); } }, '×'));
 }
 
+function redirectRow(p, r) {
+  const prob = r.enabled ? HD.redirectProblem(r) : '';
+  const row = el('div', { class: 'rrow' + (r.enabled ? '' : ' disabled') + (prob ? ' bad' : ''), dataset: { id: r.id } });
+  const check = () => {
+    const bad = r.enabled ? HD.redirectProblem(r) : '';
+    row.classList.toggle('bad', !!bad); row.querySelector('input.from').title = bad;
+  };
+  const regex = r.mode === 'regex';
+  row.append(
+    el('input', { type: 'checkbox', checked: r.enabled, 'aria-label': 'Enabled', title: 'Enabled',
+      onchange: (e) => { r.enabled = e.target.checked; save(true); } }),
+    el('select', { 'aria-label': 'Redirect type', title: 'Replace: swap this text in the URL. Regex: a regular expression, with \\1 for groups in the target.',
+      onchange: (e) => { r.mode = e.target.value; save(true); } },
+      el('option', { value: 'replace', selected: !regex }, 'Replace'),
+      el('option', { value: 'regex', selected: regex }, 'Regex')),
+    el('input', { type: 'text', class: 'from', value: r.from, spellcheck: false, title: prob || '', 'aria-label': 'URL to redirect',
+      placeholder: regex ? '^https://prod\\.example\\.com/(.*)' : 'https://cdn.example.com/app/',
+      oninput: (e) => { r.from = e.target.value; save(); check(); } }),
+    el('span', { class: 'arrow', 'aria-hidden': 'true' }, '→'),
+    el('input', { type: 'text', class: 'to', value: r.to, spellcheck: false, 'aria-label': 'Redirect to',
+      placeholder: regex ? 'https://staging.example.com/\\1' : 'http://localhost:3000/',
+      oninput: (e) => { r.to = e.target.value; save(); check(); } }),
+    el('button', { class: 'icon', type: 'button', title: 'Delete', 'aria-label': 'Delete redirect',
+      onclick: () => { p.redirects = p.redirects.filter((x) => x !== r); save(true); } }, '×'));
+  return row;
+}
+
 function renderProfiles() {
   const nav = $('profiles');
   nav.replaceChildren(...state.profiles.map((p) => el('button', {
@@ -127,7 +154,7 @@ function profileMenu(p, anchor) {
   const list = el('div', { class: 'menu-list', role: 'menu' },
     item('Duplicate', () => {
       const copy = HD.normalizeProfile(JSON.parse(JSON.stringify(Object.assign({}, p, { id: null, name: p.name + ' copy', tabId: null,
-        headers: p.headers.map((h) => Object.assign({}, h, { id: null })), filters: p.filters.map((f) => Object.assign({}, f, { id: null })) }))), state.profiles.length);
+        headers: p.headers.map((h) => Object.assign({}, h, { id: null })), redirects: p.redirects.map((r) => Object.assign({}, r, { id: null })), filters: p.filters.map((f) => Object.assign({}, f, { id: null })) }))), state.profiles.length);
       state.profiles.splice(idx + 1, 0, copy); state.selectedId = copy.id; save(true);
     }),
     idx > 0 && item('Move left (higher priority)', () => { state.profiles.splice(idx, 1); state.profiles.splice(idx - 1, 0, p); save(true); }),
@@ -198,6 +225,13 @@ function renderEditor() {
     el('h3', {}, 'Response headers'),
     el('div', { class: 'rows', id: 'res-rows' }, res.length ? res.map((h) => headerRow(p, h)) : el('div', { class: 'empty' }, 'None.')),
     el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-res', onclick: () => addHeader(p, 'response') }, '+ Response header')),
+    ...(p.redirects.length ? [
+      el('h3', {}, 'URL redirects'),
+      el('div', { class: 'rows', id: 'redir-rows' }, p.redirects.map((r) => redirectRow(p, r))),
+      el('p', { class: 'hint' }, 'Requests whose URL contains the text on the left go to the URL with that text replaced. ',
+        '"Never on" filters, the tab, request types and methods below apply to redirects too.'),
+    ] : []),
+    el('div', { class: 'add' }, el('button', { type: 'button', id: 'add-redir', onclick: () => addRedirect(p) }, '+ URL redirect')),
     det);
 }
 
@@ -206,6 +240,14 @@ function addHeader(p, target) {
   p.headers.push(h);
   save(true);
   const input = document.querySelector(`[data-id="${h.id}"] input.name`);
+  if (input) input.focus();
+}
+
+function addRedirect(p) {
+  const r = HD.newRedirect();
+  p.redirects.push(r);
+  save(true);
+  const input = document.querySelector(`[data-id="${r.id}"] input.from`);
   if (input) input.focus();
 }
 

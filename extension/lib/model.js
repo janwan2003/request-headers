@@ -17,6 +17,9 @@
   const COLORS = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#ea580c', '#0891b2', '#ca8a04', '#db2777'];
   const OPS = ['set', 'append', 'remove'];
   const FILTER_TYPES = ['pattern', 'regex', 'domain'];
+  // Redirect modes: "replace" swaps the first occurrence of some text in the URL;
+  // "regex" is a regular expression with \\1-style groups in the target.
+  const REDIRECT_MODES = ['replace', 'regex'];
 
   function uid() {
     return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
@@ -32,10 +35,14 @@
       type: 'pattern', value: '' }, o || {});
   }
 
+  function newRedirect(o) {
+    return Object.assign({ id: uid(), enabled: true, mode: 'replace', from: '', to: '' }, o || {});
+  }
+
   function newProfile(index, o) {
     const i = index || 0;
     return Object.assign({ id: uid(), name: 'Profile ' + (i + 1), color: COLORS[i % COLORS.length], active: true,
-      headers: [newHeader('request')], filters: [], resourceTypes: [], requestMethods: [], tabId: null, tabLabel: '' }, o || {});
+      headers: [newHeader('request')], redirects: [], filters: [], resourceTypes: [], requestMethods: [], tabId: null, tabLabel: '' }, o || {});
   }
 
   function defaultState() {
@@ -71,6 +78,17 @@
     };
   }
 
+  function normalizeRedirect(r) {
+    r = r && typeof r === 'object' ? r : {};
+    return {
+      id: str(r.id, '') || uid(),
+      enabled: bool(r.enabled, true),
+      mode: REDIRECT_MODES.includes(r.mode) ? r.mode : 'replace',
+      from: str(r.from, ''),
+      to: str(r.to, ''),
+    };
+  }
+
   function normalizeProfile(p, i) {
     p = p && typeof p === 'object' ? p : {};
     return {
@@ -79,6 +97,7 @@
       color: /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : COLORS[i % COLORS.length],
       active: bool(p.active, true),
       headers: Array.isArray(p.headers) ? p.headers.map(normalizeHeader) : [],
+      redirects: Array.isArray(p.redirects) ? p.redirects.map(normalizeRedirect) : [],
       filters: Array.isArray(p.filters) ? p.filters.map(normalizeFilter) : [],
       resourceTypes: Array.isArray(p.resourceTypes) ? p.resourceTypes.filter((t) => RESOURCE_TYPES.includes(t)) : [],
       requestMethods: Array.isArray(p.requestMethods)
@@ -112,6 +131,36 @@
     }
     if (f.type === 'domain' && !/^[a-z0-9.-]+$/i.test(v)) return 'domain must look like example.com';
     return '';
+  }
+
+  // Returns a problem message for a redirect row, or '' if it can be applied.
+  function redirectProblem(r) {
+    const from = r.from.trim(), to = r.to.trim();
+    if (!from && !to) return '';
+    if (!from) return 'say which URL to redirect';
+    if (!to) return 'say where to redirect to';
+    if (/\s/.test(from) || /\s/.test(to)) return 'URLs cannot contain spaces';
+    if (r.mode === 'regex') {
+      try { new RegExp(from); } catch (e) { return 'invalid regular expression'; }
+      if (!/^[a-z][a-z0-9+.-]*:|^\\\d/i.test(to)) return 'the target must start with a scheme such as https:// or a group such as \\1';
+      return '';
+    }
+    if (to.includes(from)) return 'the target contains the text it replaces, so it would redirect forever';
+    return '';
+  }
+
+  // The replacement text for a DNR regexSubstitution: backslashes are escapes there.
+  const substEscape = (t) => t.replace(/\\/g, '\\\\');
+  const regexEscape = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  function redirectAction(r) {
+    const from = r.from.trim(), to = r.to.trim();
+    if (r.mode === 'regex') return { regexFilter: from, regexSubstitution: to };
+    return { regexFilter: '^(.*?)' + regexEscape(from) + '(.*)$', regexSubstitution: '\\1' + substEscape(to) + '\\2' };
+  }
+
+  function liveRedirects(p) {
+    return p.redirects.filter((r) => r.enabled && r.from.trim() && !redirectProblem(r));
   }
 
   // A header is "live" when it will be sent: enabled, named, valid and not expired.
@@ -169,6 +218,10 @@
         const prob = f.enabled ? filterProblem(f) : '';
         if (prob) out.problems.push({ profileId: p.id, filterId: f.id, message: `filter "${f.value.trim()}": ${prob}` });
       }
+      for (const r of p.redirects) {
+        const prob = r.enabled ? redirectProblem(r) : '';
+        if (prob) out.problems.push({ profileId: p.id, redirectId: r.id, message: `redirect "${r.from.trim()}": ${prob}` });
+      }
     }
     if (state.paused) return out;
 
@@ -180,8 +233,9 @@
           out.nextExpiry = h.expiresAt;
         }
       }
-      if (!live.length) return;
-      out.liveCount += live.length;
+      const redirects = liveRedirects(p);
+      if (!live.length && !redirects.length) return;
+      out.liveCount += live.length + redirects.length;
       const requestHeaders = dedupe(live.filter((h) => h.target === 'request').map((h) => headerInfo(h, out.problems, p)));
       const responseHeaders = dedupe(live.filter((h) => h.target === 'response').map((h) => headerInfo(h, out.problems, p)));
       const action = { type: 'modifyHeaders' };
@@ -209,8 +263,17 @@
 
       const target = p.tabId != null ? out.session : out.dynamic;
       const priority = (active.length - idx) * 2;
-      for (const c of conditions) {
-        target.push({ id: nextId++, priority, action, condition: Object.assign({}, base, c) });
+      if (requestHeaders.length || responseHeaders.length) {
+        for (const c of conditions) {
+          target.push({ id: nextId++, priority, action, condition: Object.assign({}, base, c) });
+        }
+      }
+      // Redirects carry their own URL match, so "Only on" filters do not narrow them;
+      // exclusions, the tab, request types and methods still do.
+      for (const r of redirects) {
+        const { regexFilter, regexSubstitution } = redirectAction(r);
+        target.push({ id: nextId++, priority, action: { type: 'redirect', redirect: { regexSubstitution } },
+          condition: Object.assign({}, base, { regexFilter }) });
       }
       // URL-level exclusions become "allow" rules one step above this profile.
       for (const f of exc) {
@@ -224,8 +287,9 @@
   }
 
   root.HeaderDial = Object.assign(root.HeaderDial || {}, {
-    SCHEMA, RESOURCE_TYPES, METHODS, APPENDABLE_REQUEST, COLORS, OPS, uid, newHeader, newFilter, newProfile, defaultState,
-    normalizeState, normalizeProfile, normalizeHeader, normalizeFilter, headerProblem, filterProblem, liveHeaders,
+    SCHEMA, RESOURCE_TYPES, METHODS, APPENDABLE_REQUEST, COLORS, OPS, REDIRECT_MODES, uid, newHeader, newFilter,
+    newRedirect, newProfile, defaultState, normalizeState, normalizeProfile, normalizeHeader, normalizeFilter,
+    normalizeRedirect, headerProblem, filterProblem, redirectProblem, redirectAction, liveHeaders,
     compile,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = root.HeaderDial;

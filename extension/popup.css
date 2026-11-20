@@ -52,6 +52,10 @@ h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: v
 .hrow.bad input.name { border-color: var(--err); }
 .frow { display: grid; grid-template-columns: 18px 104px 118px minmax(0, 1fr) 22px; gap: 4px; align-items: center; }
 .frow.bad input.val { border-color: var(--err); }
+.rrow { display: grid; grid-template-columns: 18px 84px minmax(0, 1fr) 12px minmax(0, 1fr) 22px; gap: 4px; align-items: center; }
+.rrow .arrow { color: var(--muted); text-align: center; }
+.rrow.disabled input[type=text] { opacity: .5; }
+.rrow.bad input.from { border-color: var(--err); }
 .add { margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; }
 .add button { padding: 2px 8px; font-size: 12px; }
 details { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 4px; }

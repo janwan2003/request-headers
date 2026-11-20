@@ -141,6 +141,9 @@ async function launch() {
     const setState = async (mutation) => {
       await go(ui);
       await run(`(async () => {
+        // On a fresh profile the editor's init() saves a default state; wait for it, or
+        // that save can land after ours and undo it.
+        for (let i = 0; i < 100 && !(await chrome.storage.local.get('state')).state; i++) await new Promise((r) => setTimeout(r, 50));
         const s = HeaderDial.normalizeState((await chrome.storage.local.get('state')).state);
         const p = s.profiles[0];
         ${mutation}
@@ -220,6 +223,22 @@ async function launch() {
   assert.deepStrictEqual(byMethod, { get: null, post: 'on' });
   await s.setState(`p.requestMethods = [];`);
   ok('Firefox: request-method filter (POST only)');
+
+  // URL redirect ("replace" mode): page load and fetch() both end up on /echo/.
+  st = await s.setState(`p.redirects = [HeaderDial.newRedirect({ from: '${A}/old/', to: '${A}/echo/' })];`);
+  assert.deepStrictEqual(st.problems, [], 'redirect accepted: ' + JSON.stringify(st.problems));
+  await s.go(A + '/old/page?q=1');
+  const landed = JSON.parse(await s.run(`JSON.stringify({ url: location.href, h: JSON.parse(document.body.innerText)['x-headerdial'] })`));
+  assert.deepStrictEqual(landed, { url: A + '/echo/page?q=1', h: 'on' });
+  const viaFetch = JSON.parse(await s.run(`fetch('/old/api').then((r) => JSON.stringify({ url: r.url, redirected: r.redirected }))`));
+  assert.deepStrictEqual(viaFetch, { url: A + '/echo/api', redirected: true });
+  // Regex mode with a group in the target.
+  st = await s.setState(`p.redirects = [HeaderDial.newRedirect({ mode: 'regex', from: '^http://127\\\\.0\\\\.0\\\\.1:(\\\\d+)/api/v1/(.*)$', to: 'http://127.0.0.1:\\\\1/echo/v2/\\\\2' })];`);
+  assert.deepStrictEqual(st.problems, [], 'regex redirect accepted: ' + JSON.stringify(st.problems));
+  await s.go(A + '/api/v1/users?id=3');
+  assert.strictEqual(await s.run('location.href'), A + '/echo/v2/users?id=3');
+  await s.setState(`p.redirects = [];`);
+  ok('Firefox: URL redirect (text and regex with groups) applies to page loads and fetch(), and headers still apply');
 
   // Pause.
   st = await s.setState(`s.paused = true; p.filters = [];`);

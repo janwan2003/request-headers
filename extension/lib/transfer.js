@@ -12,6 +12,7 @@
       name: p.name, color: p.color, active: p.active,
       headers: p.headers.map((h) => ({ enabled: h.enabled, target: h.target, name: h.name,
         value: blank ? '' : h.value, op: h.op, comment: h.comment })),
+      redirects: (p.redirects || []).map((r) => ({ enabled: r.enabled, mode: r.mode, from: r.from, to: r.to })),
       filters: p.filters.map((f) => ({ enabled: f.enabled, kind: f.kind, type: f.type, value: f.value })),
       resourceTypes: p.resourceTypes.slice(),
       requestMethods: p.requestMethods.slice(),
@@ -67,12 +68,17 @@
         note(`filter type "${f.type}" is not supported and was skipped`);
       }
     }
-    for (const k of ['cookieHeaders', 'setCookieHeaders', 'urlReplacements']) {
+    // ModHeader's URL replacements swap one piece of text in the URL for another,
+    // which is HeaderDial's "replace" redirect.
+    const redirects = (Array.isArray(m.urlReplacements) ? m.urlReplacements : [])
+      .filter((u) => u && u.name)
+      .map((u) => HD.newRedirect({ enabled: u.enabled !== false, from: String(u.name), to: String(u.value == null ? '' : u.value) }));
+    for (const k of ['cookieHeaders', 'setCookieHeaders']) {
       if (Array.isArray(m[k]) && m[k].length) note(`${k} (${m[k].length}) are not supported yet and were skipped`);
     }
-    const p = HD.newProfile(i, { name, headers, filters, resourceTypes: [...types].filter((t) => HD.RESOURCE_TYPES.includes(t)) });
+    const p = HD.newProfile(i, { name, headers, redirects, filters, resourceTypes: [...types].filter((t) => HD.RESOURCE_TYPES.includes(t)) });
     if (typeof m.backgroundColor === 'string' && /^#[0-9a-f]{6}$/i.test(m.backgroundColor)) p.color = m.backgroundColor;
-    if (!headers.length) note('no headers');
+    if (!headers.length && !redirects.length) note('no headers');
     return HD.normalizeProfile(p, i);
   }
 
@@ -101,6 +107,7 @@
         id: null, tabId: null,
         headers: (p.headers || []).map((h) => Object.assign({}, h, { id: null, expiresAt: null })),
         filters: (p.filters || []).map((f) => Object.assign({}, f, { id: null })),
+        redirects: (p.redirects || []).map((r) => Object.assign({}, r, { id: null })),
       }), i));
       return { source: 'HeaderDial', profiles, warnings };
     }

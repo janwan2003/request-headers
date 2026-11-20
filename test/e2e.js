@@ -203,6 +203,31 @@ async function fetchVia(page, url) {
   await settle();
   ok('a request-method filter (POST only) changes POST and leaves GET alone');
 
+  // URL redirect typed in the UI: "/old/" in the URL becomes "/echo/", on page loads and
+  // fetch(), and the profile's request header still reaches the redirected request.
+  await ui.click('#add-redir');
+  await ui.locator('#redir-rows input.from').fill(A + '/old/');
+  await ui.locator('#redir-rows input.to').fill(A + '/echo/');
+  await settle();
+  await until(async () => (await status()).live === 3, 'two headers + one redirect live');
+  got = await echoVia(page, A + '/old/page?q=1');
+  assert.strictEqual(page.url(), A + '/echo/page?q=1');
+  assert.strictEqual(got['x-headerdial'], 'on', 'header applied after the redirect');
+  const viaFetch = await page.evaluate(async () => { const r = await fetch('/old/api'); return { url: r.url, redirected: r.redirected }; });
+  assert.deepStrictEqual(viaFetch, { url: A + '/echo/api', redirected: true });
+  assert.strictEqual(await sw.evaluate(() => chrome.action.getBadgeText({})), '3');
+  // A target that contains its own source would loop: flagged in the row, not applied.
+  await ui.locator('#redir-rows input.to').fill(A + '/old/v2/');
+  await settle();
+  await until(async () => (await status()).live === 2, 'looping redirect not applied');
+  assert.ok(await ui.locator('#redir-rows .rrow.bad').isVisible(), 'looping row marked');
+  await ui.click('#redir-rows button[aria-label="Delete redirect"]');
+  await settle();
+  await until(async () => (await status()).live === 2, 'redirect deleted');
+  await page.goto(A + '/old/page');
+  assert.strictEqual(page.url(), A + '/old/page');
+  ok('a URL redirect typed in the UI applies to page loads and fetch(), keeps headers, and refuses a loop');
+
   // Claims in the Origin and Cookie guides: Origin can be set; removing Set-Cookie on a
   // response stops the browser storing the cookie.
   await ui.evaluate(async () => {

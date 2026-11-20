@@ -7,6 +7,7 @@ HTTP request and response headers. Website: https://janwan2003.github.io/request
 - Operations: set, append, remove
 - Filters: domains, URL patterns, URL regexes, exclusions, request types, a single tab
 - Timed headers that switch themselves off (15 min to 1 day)
+- URL redirects: replace text in the URL or use a regex with groups (DNR `redirect` rules)
 - Import ModHeader profile exports; export and import JSON; share a profile as a link
   (the profile is encoded after `#`, nothing is uploaded)
 - No account, no analytics, no network requests, no remote code

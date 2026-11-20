@@ -1,0 +1,49 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redirect a URL to localhost in Chrome, Edge or Firefox – HeaderDial</title><meta name="description" content="Load a production script, stylesheet or API from your local dev server without touching the site: redirect one URL to another in the browser, with plain text replacement or a regex with groups.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/redirect-url-to-localhost.html">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Redirect a URL to localhost in Chrome, Edge or Firefox","description":"Send the browser's requests for a production URL to a local development server, using a redirect rule in the HeaderDial extension.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Open HeaderDial","text":"Click the toolbar icon and allow access to the site whose requests you want to redirect."},{"@type":"HowToStep","name":"Add a redirect","text":"Click + URL redirect. Keep the type on Replace, enter the part of the URL to swap on the left and its replacement on the right."},{"@type":"HowToStep","name":"Reload the page","text":"Reload. Requests whose URL contains the text on the left now go to the new URL, with the rest of the URL kept."},{"@type":"HowToStep","name":"Use a regex for patterns","text":"Switch the type to Regex to match a pattern and reuse its groups in the target as \\1, \\2."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Redirect a URL to localhost in Chrome, Edge or Firefox</h1>
+<p>To make the browser load a production file from your machine, add a <strong>URL redirect</strong> in HeaderDial: put <code>https://cdn.example.com/app/</code> on the left and <code>http://localhost:3000/</code> on the right. Every request whose URL contains the left-hand text goes to the same URL with that text replaced, so <code>https://cdn.example.com/app/main.js?v=7</code> loads from <code>http://localhost:3000/main.js?v=7</code>. The site, its HTML and its other requests stay as they are. That makes it a quick way to try a local build of one bundle against real production data, or to point a page at a different API version.</p>
+
+<h2>Steps</h2>
+<ol>
+<li>Click the HeaderDial icon. If the site-access banner appears, choose <strong>Allow on all sites</strong> or <strong>Only &lt;current host&gt;</strong>. Without access to the site, nothing is redirected.</li>
+<li>Click <strong>+ URL redirect</strong>. Keep the type on <strong>Replace</strong>.</li>
+<li>On the left, type the part of the URL to swap, for example <code>https://cdn.example.com/app/</code>. On the right, type what replaces it, for example <code>http://localhost:3000/</code>.</li>
+<li>Reload the page. The developer tools' Network panel shows the request going to the new address.</li>
+<li>When you are done, untick the row, switch the profile off, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> to pause everything.</li>
+</ol>
+<p>We checked this with HeaderDial 0.3.0 in Chrome 159.0.8154.6 and Firefox 158.0.1 in November 2026. A page on <code>http://127.0.0.1:<em>port</em></code> loaded <code>/prod.js?v=7</code>, and with the rule in place the script that ran was <code>http://localhost:<em>port</em>/dev.js?v=7</code>: another origin, with the query kept. Page loads and <code>fetch()</code> calls were redirected too, and the profile's request headers were still sent to the new address. With the same rule but no site access granted, the original script loaded.</p>
+
+<h2>Replace or Regex</h2>
+<table>
+<tr><th>Type</th><th>Left</th><th>Right</th><th>Effect</th></tr>
+<tr><td>Replace</td><td><code>https://cdn.example.com/app/</code></td><td><code>http://localhost:3000/</code></td><td>The first occurrence of the text is swapped; everything before and after it is kept.</td></tr>
+<tr><td>Replace</td><td><code>/api/v1/</code></td><td><code>/api/v2/</code></td><td>Any host's v1 API calls go to v2 on the same host.</td></tr>
+<tr><td>Regex</td><td><code>^https://prod\.example\.com/(.*)</code></td><td><code>https://staging.example.com/\1</code></td><td>The whole URL must match; <code>\1</code> to <code>\9</code> insert the groups.</td></tr>
+</table>
+<p>In our Chrome and Firefox runs, <code>^http://127\.0\.0\.1:(\d+)/api/v1/(.*)$</code> → <code>http://localhost:\1/echo/v2/\2</code> took <code>/api/v1/users?id=3</code> to <code>/echo/v2/users?id=3</code> on the other host, port and query included.</p>
+<p>Browsers compile these rules with their own regex engines, which accept a little less than JavaScript (Chrome documents its <code>regexFilter</code> as <a href="https://github.com/google/re2/wiki/Syntax">RE2 syntax</a>, which has no lookaheads or back-references). If the browser rejects a pattern, HeaderDial lists it under the editor and keeps every other rule running.</p>
+
+<h2>Things that stop a redirect working</h2>
+<ul>
+<li><strong>A loop.</strong> If the target contains the text it replaces (<code>/v1/</code> → <code>/v1/beta/</code>), every redirected request would match again. HeaderDial marks the row red and does not apply it.</li>
+<li><strong>Site access.</strong> The extension needs access to the site the request is going to. Chrome's <a href="https://developer.chrome.com/docs/extensions/reference/api/declarativeNetRequest">declarativeNetRequest documentation</a> says it also needs access to the page that makes the request; <strong>Allow on all sites</strong> covers both.</li>
+<li><strong>CORS.</strong> A <code>fetch()</code> redirected to another origin is a cross-origin request. Your dev server must answer with <code>Access-Control-Allow-Origin</code>, or you can add that header as a response header in the same profile (see <a href="cors-headers-for-local-development.html">CORS headers for local development</a>). Plain <code>&lt;script src&gt;</code> and <code>&lt;link rel="stylesheet"&gt;</code> loads do not need it.</li>
+<li><strong>Subresource integrity.</strong> If the page's tag has an <code>integrity="sha256-…"</code> attribute, the browser checks the file it receives against that hash, and a local build will not match. In our Chrome 159 run the same tag ran the original script, and after the redirect it ran nothing. Test on a page without the attribute.</li>
+<li><strong>Filters.</strong> "Never on" filters, the "Only in this tab" setting, request types and methods under <strong>Where it applies</strong> also limit redirects. "Only on" filters do not, because the left-hand text already says which URLs to redirect.</li>
+</ul>
+
+<h2>Coming from ModHeader?</h2>
+<p>ModHeader profile exports keep URL replacements as pairs of text (<code>urlReplacements</code>). When you <a href="modheader-alternative-import.html">import a ModHeader export</a>, each pair becomes a Replace redirect in the same profile, so check them once after importing.</p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>
+<li><a href="modify-response-headers-csp.html">Change or remove Content-Security-Policy</a></li>
+<li><a href="modheader-alternative-import.html">Moving from ModHeader: import your profiles</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div></body></html>
