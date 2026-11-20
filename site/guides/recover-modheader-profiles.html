@@ -1,0 +1,186 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recover ModHeader profiles after it was disabled or removed from Chrome or Edge – HeaderDial</title><meta name="description" content="ModHeader was pulled from the Chrome and Edge stores and disabled, so you can't export your profiles anymore. This page reads ModHeader's data folder in your browser, with no upload, and turns it into an importable JSON file.">
+<link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/recover-modheader-profiles.html">
+<meta property="og:title" content="Recover ModHeader profiles from a disabled extension"><meta property="og:description" content="Read ModHeader's data folder in your browser (no upload) and get your header profiles back as an importable JSON file."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
+<link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
+<style>
+#drop { border: 2px dashed var(--line); border-radius: 10px; padding: 22px; text-align: center; background: var(--soft); margin: 16px 0; }
+#drop.over { border-color: var(--accent); }
+#drop .pick { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+#drop label.btn { cursor: pointer; }
+#drop input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+#result .set { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 14px 0; }
+#result .set h3 { margin: 4px 0 8px; }
+#result .actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 4px; }
+#result button { font: inherit; font-size: 15px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+#result button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#status.err { color: #b91c1c; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Recover ModHeader profiles from a disabled extension","description":"Get header profiles back from ModHeader after Chrome or Edge disabled it, by reading its local data folder in the browser and importing the result into another header editor.","tool":[{"@type":"HowToTool","name":"This page (runs locally in your browser)"},{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Keep ModHeader installed","text":"Do not click Remove on the disabled ModHeader entry yet: removing an extension deletes its stored data."},{"@type":"HowToStep","name":"Find your profile folder","text":"Open chrome://version or edge://version and note the Profile Path."},{"@type":"HowToStep","name":"Open ModHeader's data folder","text":"Inside the profile path, open Local Extension Settings and then the folder named after ModHeader's extension id."},{"@type":"HowToStep","name":"Choose the folder on this page","text":"Click Choose folder and select that folder. The page reads it locally and lists the profiles it found."},{"@type":"HowToStep","name":"Import","text":"Download the JSON file and import it in HeaderDial with Import…, or in any tool that reads ModHeader exports."}]}</script></head>
+<body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
+<p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
+<article>
+<h1>Recover ModHeader profiles from a disabled extension</h1>
+<p>If ModHeader still appears on <code>chrome://extensions</code> or <code>edge://extensions</code>, even switched off with a warning, its profiles are most likely still on your disk. Choose its data folder below. This page reads the folder <strong>in your browser</strong> and gives you a JSON file in ModHeader's export format, which <a href="modheader-alternative-import.html">HeaderDial imports</a> in one step. Nothing is uploaded: the page has no server and makes no requests with your files.</p>
+<p class="callout"><strong>Don't click Remove on ModHeader yet.</strong> Removing an extension deletes its stored data. We checked this in Chromium 159: an extension's <code>Local Extension Settings</code> folder disappeared the moment it was uninstalled. Recover your profiles first, then remove it.</p>
+
+<div id="drop">
+  <strong>Drop ModHeader's data folder (or its <code>.ldb</code> and <code>.log</code> files) here</strong>
+  <div class="pick">
+    <label class="btn" for="pick-dir">Choose folder…</label>
+    <label class="btn ghost" for="pick-files">Choose files…</label>
+  </div>
+  <input type="file" id="pick-dir" webkitdirectory multiple>
+  <input type="file" id="pick-files" multiple accept=".ldb,.log,.sst">
+  <p class="note" id="status" role="status">Read locally. Files never leave this tab.</p>
+</div>
+<div id="result"></div>
+
+<h2>Where ModHeader keeps its profiles</h2>
+<p>Chrome and Edge keep each extension's <code>chrome.storage</code> data in a folder named after the extension's id, inside your browser profile:</p>
+<ol>
+<li>Open <code>chrome://version</code> (Chrome) or <code>edge://version</code> (Edge) and copy the <strong>Profile Path</strong>. It ends in <code>Default</code>, or in <code>Profile 1</code>, <code>Profile 2</code> and so on if you use several browser profiles.</li>
+<li>Inside it, open <code>Local Extension Settings</code>, then the folder for ModHeader:
+<table>
+<tr><th>Browser</th><th>ModHeader's extension id (folder name)</th></tr>
+<tr><td>Chrome</td><td><code>idgpnmonknjnojddfkpgkljpfnnfcklj</code></td></tr>
+<tr><td>Edge</td><td><code>opgbiafapkbbnbnjcdomjaghbckfkglc</code></td></tr>
+</table>
+If you are not sure, the id is shown on the extension's card on <code>chrome://extensions</code> with Developer mode switched on.</li>
+<li>Choose that folder above. If the browser's file dialog hides it, paste the full path into the dialog's address bar.</li>
+</ol>
+<table>
+<tr><th>System</th><th>Usual Chrome profile path</th></tr>
+<tr><td>Windows</td><td><code>%LOCALAPPDATA%\Google\Chrome\User Data\Default</code> (Edge: <code>%LOCALAPPDATA%\Microsoft\Edge\User Data\Default</code>)</td></tr>
+<tr><td>macOS</td><td><code>~/Library/Application Support/Google/Chrome/Default</code> (Edge: <code>~/Library/Application Support/Microsoft Edge/Default</code>)</td></tr>
+<tr><td>Linux</td><td><code>~/.config/google-chrome/Default</code> (Edge: <code>~/.config/microsoft-edge/Default</code>)</td></tr>
+</table>
+<p>Nothing found there? Also try <code>Sync Extension Settings/&lt;id&gt;</code>, which holds data an extension saved to the browser's sync storage, and <code>Local Storage/leveldb</code>, where older extensions kept data in <code>localStorage</code>. This page reads all three folder types and only reports values that look like ModHeader profiles.</p>
+<p>The browser writes to these files while it runs. If the page reports a damaged file, close the browser (or copy the folder elsewhere) and choose it again.</p>
+
+<h2>What you get</h2>
+<p>For each set of profiles found, the page lists every profile with its number of request headers, response headers and URL filters. <strong>Download .json</strong> saves the profiles in ModHeader's own export format, and <strong>Copy JSON</strong> puts the same text on the clipboard. In HeaderDial, click <strong>Import…</strong> in the footer and paste the text or choose the file. Headers, response headers, cookies, URL replacements, URL filters and resource types carry over. Tab, tab-group and window filters can't: their ids change every time the browser starts. The <a href="modheader-alternative-import.html">import guide</a> has the full mapping.</p>
+<p>If a key was saved several times, LevelDB keeps old copies until it tidies up its files. The page uses the newest copy of each key and ignores deleted keys, so you get the profiles as ModHeader last saved them.</p>
+<p>Your profiles probably hold access tokens. The JSON file has them in plain text, so delete it after importing. The public reports on ModHeader say there is no evidence that it sent real users' data. A staging token that sat in a pulled extension is still cheap to rotate.</p>
+
+<h2>How this was tested, and what it does not cover</h2>
+<p>We do not have ModHeader's own data to test against, and we did not take its code apart to learn its storage format. Instead the reader looks for anything shaped like a ModHeader profile (a <code>title</code> with <code>headers</code>, <code>respHeaders</code>, <code>appendMode</code> and so on), wherever it is stored. We tested it on folders written by Chromium 159 (Chrome for Testing 159.0.8154.6). A test extension saved ModHeader-format profiles through <code>chrome.storage.local</code> and <code>localStorage</code> and overwrote them after a restart. That left an older copy in a compressed <code>.ldb</code> table and a 900-header profile spread across several log blocks. The page returned the newest profiles in each case. The test files and the reader are in the <a href="https://github.com/janwan2003/request-headers">repository</a> (<code>extension/lib/leveldb.js</code>, <code>test/leveldb.test.js</code>).</p>
+<ul>
+<li><strong>Not covered: Firefox.</strong> Firefox keeps extension data in an SQLite/IndexedDB database, a different format. If ModHeader still runs in your Firefox, use its own export instead.</li>
+<li><strong>Not covered: an extension you already removed.</strong> Uninstalling deletes the folder, and browser sync does not keep <code>chrome.storage.local</code> data. A backup of your profile folder from before the removal (Time Machine, File History, a disk image) still works: choose the folder inside the backup.</li>
+<li><strong>Not tested: Edge itself and real ModHeader data.</strong> Edge uses Chromium's storage code, so the format should be the same.</li>
+</ul>
+
+<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+</article>
+<div class="related"><h2>Related guides</h2><ul>
+<li><a href="modheader-alternative-import.html">ModHeader alternative: import your ModHeader profiles</a></li>
+<li><a href="add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>
+<li><a href="modify-headers-edge.html">Modify request headers in Microsoft Edge</a></li>
+</ul></div>
+<footer class="site">About: HeaderDial is a free, open-source header editor for Chrome, Edge and Firefox. <a href="../privacy.html">Privacy</a> · <a href="https://github.com/janwan2003/request-headers/issues">Support</a></footer></div>
+<script src="../js/model.js"></script><script src="../js/transfer.js"></script><script src="../js/leveldb.js"></script>
+<script>
+(function () {
+  'use strict';
+  var status = document.getElementById('status'), result = document.getElementById('result'), drop = document.getElementById('drop');
+  var DATA = /\.(ldb|log|sst)$/i;
+  function say(t, err) { status.textContent = t; status.className = 'note' + (err ? ' err' : ''); }
+  function el(tag, text, cls) { var e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
+
+  function run(list) {
+    return scan(list).catch(function (e) { say('Could not read the files: ' + e.message, true); });
+  }
+  async function scan(list) {
+    var files = list.filter(function (f) { return DATA.test(f.file.name); });
+    result.textContent = '';
+    if (!files.length) { say('No LevelDB files (.ldb or .log) in what you chose. Choose the folder named after ModHeader\'s id.', true); return; }
+    say('Reading ' + files.length + ' file' + (files.length > 1 ? 's' : '') + '…');
+    var input = [];
+    for (var i = 0; i < files.length; i++) {
+      input.push({ name: files[i].file.name, dir: files[i].dir, bytes: new Uint8Array(await files[i].file.arrayBuffer()) });
+    }
+    var r = HeaderDialLevelDB.findModHeaderProfiles(input);
+    if (!r.found.length) {
+      say('Read ' + files.length + ' file' + (files.length > 1 ? 's' : '') + ' and ' + r.scanned + ' stored value' + (r.scanned === 1 ? '' : 's') +
+        ', but none looked like ModHeader profiles.' + (r.errors.length ? ' Problems: ' + r.errors.join('; ') : ' Try the other folders listed below.'), true);
+      return;
+    }
+    say('Found ' + r.found.length + ' set' + (r.found.length > 1 ? 's' : '') + ' of profiles in ' + files.length + ' file' + (files.length > 1 ? 's' : '') + '.' +
+      (r.errors.length ? ' Some files could not be read (' + r.errors.join('; ') + '); close the browser and try again if something is missing.' : ''));
+    r.found.forEach(function (set, n) { result.appendChild(render(set, n)); });
+  }
+
+  function render(set, n) {
+    var box = el('div', null, 'set');
+    var where = (set.origin ? set.origin + ' › ' : '') + '"' + set.key + '" in ' + set.file;
+    box.appendChild(el('h3', set.profiles.length + ' profile' + (set.profiles.length > 1 ? 's' : '')));
+    box.appendChild(el('p', 'Stored under ' + where, 'note'));
+    var json = JSON.stringify(set.profiles, null, 2);
+    var parsed;
+    try { parsed = HeaderDial.parseImport(json); } catch (e) { parsed = null; }
+    var table = el('table');
+    var hr = el('tr');
+    ['Profile', 'Request headers', 'Response headers', 'Cookies', 'URL filters'].forEach(function (h) { hr.appendChild(el('th', h)); });
+    table.appendChild(hr);
+    (parsed ? parsed.profiles : []).forEach(function (p) {
+      var tr = el('tr');
+      var req = p.headers.filter(function (h) { return h.target === 'request'; }).length;
+      [p.name, req, p.headers.length - req, (p.cookies || []).length, p.filters.length].forEach(function (v) { tr.appendChild(el('td', String(v))); });
+      table.appendChild(tr);
+    });
+    box.appendChild(table);
+    if (parsed && parsed.warnings.length) box.appendChild(el('p', 'Will not carry over: ' + parsed.warnings.join('; '), 'note'));
+    var actions = el('div', null, 'actions');
+    var dl = el('button', 'Download .json', 'primary');
+    dl.addEventListener('click', function () {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      a.download = 'modheader-profiles' + (n ? '-' + (n + 1) : '') + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    });
+    var cp = el('button', 'Copy JSON');
+    cp.addEventListener('click', function () {
+      navigator.clipboard.writeText(json).then(function () { cp.textContent = 'Copied'; }, function () { cp.textContent = 'Copy failed: use Download'; });
+    });
+    actions.appendChild(dl); actions.appendChild(cp);
+    box.appendChild(actions);
+    return box;
+  }
+
+  function fromInput(input) {
+    return Array.prototype.map.call(input.files, function (f) {
+      var rel = f.webkitRelativePath || f.name;
+      return { file: f, dir: rel.slice(0, rel.length - f.name.length) };
+    });
+  }
+  document.getElementById('pick-dir').addEventListener('change', function (e) { run(fromInput(e.target)); });
+  document.getElementById('pick-files').addEventListener('change', function (e) { run(fromInput(e.target)); });
+
+  // Drag and drop: files, or a folder (walked with the entries API).
+  function walk(entry, dir, out) {
+    return new Promise(function (resolve) {
+      if (entry.isFile) { entry.file(function (f) { out.push({ file: f, dir: dir }); resolve(); }, function () { resolve(); }); return; }
+      if (!entry.isDirectory) { resolve(); return; }
+      var reader = entry.createReader(), all = [];
+      (function more() {
+        reader.readEntries(function (batch) {
+          if (!batch.length) { Promise.all(all.map(function (c) { return walk(c, dir + entry.name + '/', out); })).then(resolve); return; }
+          all = all.concat(Array.prototype.slice.call(batch)); more();
+        }, function () { resolve(); });
+      })();
+    });
+  }
+  ['dragenter', 'dragover'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+  drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+  drop.addEventListener('drop', function (e) {
+    e.preventDefault(); drop.classList.remove('over');
+    var items = Array.prototype.slice.call(e.dataTransfer.items || []);
+    var entries = items.map(function (i) { return i.webkitGetAsEntry && i.webkitGetAsEntry(); }).filter(Boolean);
+    if (!entries.length) { run(Array.prototype.map.call(e.dataTransfer.files, function (f) { return { file: f, dir: '' }; })); return; }
+    var out = [];
+    Promise.all(entries.map(function (en) { return walk(en, '', out); })).then(function () { run(out); });
+  });
+})();
+</script></body></html>

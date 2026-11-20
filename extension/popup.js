@@ -385,8 +385,24 @@ $('share-copy').addEventListener('click', async (e) => {
 
 $('import').addEventListener('click', () => { $('import-msg').textContent = ''; $('import-dialog').showModal(); });
 $('import-file').addEventListener('change', async (e) => {
-  const f = e.target.files[0];
-  if (f) $('import-text').value = await f.text();
+  const files = [...e.target.files];
+  const msg = $('import-msg');
+  msg.textContent = '';
+  const db = files.filter((f) => /\.(ldb|log|sst)$/i.test(f.name));
+  if (!db.length) { if (files[0]) $('import-text').value = await files[0].text(); return; }
+  // LevelDB files from a disabled ModHeader: read locally, keep the largest profile set.
+  const input = await Promise.all(db.map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })));
+  const r = self.HeaderDialLevelDB.findModHeaderProfiles(input);
+  if (!r.found.length) {
+    msg.className = 'msg err';
+    msg.textContent = `No ModHeader profiles in ${db.length} file${db.length > 1 ? 's' : ''}.` + (r.errors.length ? ' ' + r.errors.join('; ') : '');
+    return;
+  }
+  $('import-text').value = JSON.stringify(r.found[0].profiles, null, 2);
+  msg.className = 'msg ok';
+  msg.textContent = `Found ${r.found[0].profiles.length} ModHeader profile${r.found[0].profiles.length > 1 ? 's' : ''}` +
+    (r.found.length > 1 ? ` (and ${r.found.length - 1} other set${r.found.length > 2 ? 's' : ''}; use the recovery page to pick one)` : '') +
+    '. Click Import.';
 });
 $('import-go').addEventListener('click', (e) => {
   e.preventDefault();

@@ -31,6 +31,7 @@ Features:
 • Cookies by name: send an extra cookie with matching requests, or store one in the browser as if the server set it
 • Copy a profile as a curl command for the current page
 • Import profiles exported from ModHeader (headers, cookies, URL replacements, filters); export and import JSON
+• Recover profiles from a disabled ModHeader's data folder, read locally, when you have no export
 • Share a profile as a link: the profile is inside the link, nothing is uploaded
 • The badge shows how many headers and redirects are active; the popup shows how many requests in the tab were changed
 • Light and dark mode

@@ -358,6 +358,19 @@ async function fetchVia(page, url) {
   assert.strictEqual(got['x-headerdial'], 'on', 'first profile still active alongside');
   ok('ModHeader export imports through the dialog and applies with its URL filter, alongside other profiles');
 
+  // The same dialog takes the LevelDB files of a disabled ModHeader (fixture written by Chromium).
+  {
+    await ui.click('#import');
+    const fx = path.join(root, 'test/fixtures/chrome-storage-local');
+    await ui.setInputFiles('#import-file', fs.readdirSync(fx).filter((f) => /\.(ldb|log)$/.test(f)).map((f) => path.join(fx, f)));
+    await until(async () => /Found 3 ModHeader profiles\. Click Import\./.test(await ui.locator('#import-msg').innerText()), 'LevelDB import message');
+    const text = await ui.locator('#import-text').inputValue();
+    assert.deepStrictEqual(JSON.parse(text).map((p) => p.title), ['Staging', 'Bulk', 'Append']);
+    await ui.locator('#import-text').fill('');
+    await ui.locator('#import-dialog button[value=cancel]').click();
+    ok('import dialog reads a disabled ModHeader\'s LevelDB files into importable JSON');
+  }
+
   // Timed header: expires on its own.
   await ui.evaluate(async () => {
     const { state } = await chrome.storage.local.get('state');
@@ -508,6 +521,33 @@ async function fetchVia(page, url) {
     assert.strictEqual(elsewhere['x-headerdial'], undefined);
     ok('toolbar popup: "Only in this tab" binds the profile to the tab behind the popup');
     await l.ctx.close();
+  }
+
+  // ---- 5. The "Recover ModHeader profiles" page (no extension): choose the LevelDB files
+  // a real Chromium wrote (test/fixtures) and check what the page offers to download.
+  {
+    const browser = await chromium.launch({ executablePath: fs.existsSync(CHROME) ? CHROME : undefined, headless: true });
+    const bctx = await browser.newContext({ acceptDownloads: true });
+    const page = await bctx.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    page.on('request', (r) => { if (!r.url().startsWith('file:')) errors.push('network request: ' + r.url()); });
+    await page.goto('file://' + path.join(root, 'dist/site/guides/recover-modheader-profiles.html'));
+    const fx = path.join(root, 'test/fixtures/chrome-storage-local');
+    await page.setInputFiles('#pick-files', fs.readdirSync(fx).map((f) => path.join(fx, f)));
+    await until(async () => /Found 1 set/.test(await page.locator('#status').innerText()), 'recover page result');
+    const rows = await page.locator('#result table tr').allInnerTexts();
+    assert.deepStrictEqual(rows.slice(1).map((r) => r.split('\t')[0]), ['Staging', 'Bulk', 'Append']);
+    assert.match(rows[2], /Bulk\t900\t1\t0\t1/);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#result button.primary').click()]);
+    const saved = JSON.parse(fs.readFileSync(await dl.path(), 'utf8'));
+    assert.deepStrictEqual(saved.map((p) => p.title), ['Staging', 'Bulk', 'Append']);
+    // Files that are not LevelDB data get a clear message instead of a crash.
+    await page.setInputFiles('#pick-files', [path.join(fx, 'CURRENT')]);
+    await until(async () => /No LevelDB files/.test(await page.locator('#status').innerText()), 'no-data message');
+    assert.deepStrictEqual(errors, []);
+    ok('recover page reads a real Chromium LevelDB folder locally and downloads the newest ModHeader profiles');
+    await browser.close();
   }
 
   srv.close();
