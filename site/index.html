@@ -8,7 +8,7 @@
 <section class="hero">
 <h1>Change HTTP request and response headers, and nothing else.</h1>
 <p class="lead">HeaderDial is a small, open-source extension for Chrome, Edge and Firefox. Add an <code>Authorization</code> token for staging, set <code>X-Forwarded-For</code>, strip a <code>Cookie</code>, or add CORS headers while you develop. No account, no analytics, no network requests.</p>
-<div class="cta"><a class="btn" href="#install">Get HeaderDial</a><a class="btn ghost" href="https://github.com/janwan2003/request-headers">Read the source</a><span class="note">Free. MIT licence.</span></div>
+<div class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span><a class="btn ghost" href="https://github.com/janwan2003/request-headers">Read the source</a><span class="note">Free. MIT licence.</span></div>
 </section>
 <div class="shot"><img src="screenshot.png" width="1280" height="800" alt="The HeaderDial popup with a Staging API profile: Authorization, feature-flag and X-Forwarded-For request headers, CORS response headers and a domain filter."></div>
 <div class="grid">
@@ -30,17 +30,10 @@
 <li><strong>Few permissions.</strong> It uses the browser's <code>declarativeNetRequest</code> API, so it never reads the content of your traffic: it hands the browser a list of rules, and the browser applies them. Site access is optional and asked for when you need it, for all sites or just the one you are on.</li>
 </ul>
 <h2 id="install">Install</h2>
-<h3>Firefox</h3>
-<p><a href="https://addons.mozilla.org/firefox/addon/headerdial/">HeaderDial on Firefox Add-ons</a> (Firefox 128 or later). It was submitted on 2026-11-20 and becomes installable there once Mozilla's review is done.</p>
-<h3>Chrome and Edge</h3>
-<p>HeaderDial is on its way to the Chrome Web Store and Edge Add-ons. Until it is listed, install it from the release zip in under a minute:</p>
-<ol>
-<li><a href="download/headerdial.zip">Download headerdial.zip</a> and unzip it into a folder you will keep.</li>
-<li>Open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>) and turn on <strong>Developer mode</strong>.</li>
-<li>Click <strong>Load unpacked</strong> and choose the unzipped folder.</li>
-<li>Pin HeaderDial to the toolbar, click it, add a header, and click <strong>Allow on all sites</strong> (or allow only the site you are on).</li>
-</ol>
-<p class="note">Want to know when the store version is live? <a href="https://github.com/janwan2003/request-headers">Watch the repository</a> for releases.</p>
+<p class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span></p>
+<p><strong>Firefox:</strong> submitted to Firefox Add-ons on 20 November 2026 and in Mozilla's review (Firefox 128 or later). <strong>Chrome and Edge:</strong> waiting to be listed on the Chrome Web Store. Edge installs extensions from the Chrome Web Store, so the same listing will work there; an Edge Add-ons listing follows.</p>
+<p>The button above becomes the store links on the day each listing goes live.</p>
+<p class="note">Want to know when? <a href="https://github.com/janwan2003/request-headers">Watch the repository</a> for releases.</p>
 <h2>Guides</h2>
 <ul>
 <li><a href="guides/add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>

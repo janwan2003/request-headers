@@ -1,5 +1,6 @@
 // Checks the built site: every relative link and asset in every HTML page resolves to a
-// file in dist/site, and every page has a title, description and canonical URL.
+// file in dist/site, every page has a title, description and canonical URL, and no page
+// offers a manual install.
 'use strict';
 const fs = require('fs'), path = require('path');
 const site = path.join(__dirname, '..', 'dist/site');
@@ -16,6 +17,10 @@ const errors = [];
     for (const need of [/<title>[^<]+<\/title>/, /<meta name="description" content="[^"]+"/, /<link rel="canonical"/]) {
       if (!need.test(html)) errors.push(`${rel}: missing ${need.source.slice(0, 30)}`);
     }
+    // Studio charter: install only from real stores. No page may offer a manual-install file
+    // or walk visitors through loading one by hand (those belong in GitHub releases only).
+    if (/(?:href|src)="[^"]+\.(?:zip|xpi|crx|vsix)"/i.test(html)) errors.push(`${rel}: links a manual-install file`);
+    if (/Load unpacked|Load Temporary Add-on/i.test(html)) errors.push(`${rel}: tells visitors to install by hand`);
     for (const m of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
       const url = m[1];
       if (/^(https?:|mailto:|#|data:)/.test(url)) continue;

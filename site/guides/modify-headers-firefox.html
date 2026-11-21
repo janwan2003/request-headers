@@ -10,8 +10,8 @@
 <p>Firefox has no setting for adding or changing arbitrary request headers on the pages you browse. Its DevTools can resend a single request with edited headers, but for anything lasting you need an add-on. HeaderDial for Firefox (Firefox 128 or later) adds, changes or removes request and response headers, limited to the sites you choose. It has the same profiles, filters, timers and import as the Chrome version, so a setup exported from Chrome works unchanged.</p>
 
 <h2>Install and requirements</h2>
-<p>Install <a href="https://addons.mozilla.org/firefox/addon/headerdial/">HeaderDial on Firefox Add-ons</a>. As of 20 November 2026 the listing is in review; if the link does not open yet, the review has not finished. HeaderDial needs desktop Firefox 128 or later, which includes Firefox ESR 128 and every release since.</p>
-<p>If you want to run it from source in the meantime, clone the repository, run <code>node scripts/build.js</code>, open <code>about:debugging</code>, choose <strong>This Firefox</strong>, click <strong>Load Temporary Add-on…</strong> and select <code>dist/firefox/manifest.json</code>. Firefox removes temporary add-ons when it restarts.</p>
+<p class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span></p>
+<p>HeaderDial was submitted to Firefox Add-ons on 20 November 2026 and is in Mozilla's review; this page links to the listing the day it goes live. It needs desktop Firefox 128 or later, which includes Firefox ESR 128 and every release since.</p>
 
 <h2>Site access in Firefox</h2>
 <p>HeaderDial asks for no website access when you install it. The first time you open it, a banner says "HeaderDial needs your permission before it can change headers on websites" and offers two buttons:</p>
@@ -58,7 +58,7 @@
 <pre><code>curl -H "X-Debug: 1" https://staging.example.com/</code></pre>
 <p>In the Network panel, right-click a request and use <strong>Copy as cURL</strong> to get the full command with every header Firefox sent.</p>
 
-<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+<p class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span><a href="../#install">Install status</a></p>
 </article>
 <div class="related"><h2>Related guides</h2><ul>
 <li><a href="add-authorization-header-chrome.html">Add an Authorization header</a></li>

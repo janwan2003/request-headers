@@ -1,23 +1,17 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>How to modify HTTP headers in Microsoft Edge – HeaderDial</title><meta name="description" content="Add, change or remove HTTP request and response headers in Microsoft Edge with HeaderDial: install from the release zip, set up profiles and filters, and what Edge DevTools can do without an extension.">
+<title>How to modify HTTP headers in Microsoft Edge – HeaderDial</title><meta name="description" content="Add, change or remove HTTP request and response headers in Microsoft Edge with HeaderDial: install it, set up profiles and filters, and what Edge DevTools can do without an extension.">
 <link rel="canonical" href="https://janwan2003.github.io/request-headers/guides/modify-headers-edge.html">
 <link rel="icon" href="../favicon.png"><link rel="stylesheet" href="../style.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to modify HTTP headers in Microsoft Edge","description":"Install HeaderDial in Microsoft Edge from the release zip and add, change or remove request and response headers for the sites you choose.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Download the release","text":"Download headerdial.zip and unzip it into a folder you will keep."},{"@type":"HowToStep","name":"Load it in Edge","text":"Open edge://extensions, turn on Developer mode, click Load unpacked and choose the unzipped folder."},{"@type":"HowToStep","name":"Grant site access","text":"Click the HeaderDial icon and choose Allow on all sites or allow only the current site."},{"@type":"HowToStep","name":"Add a header","text":"Click + Request header or + Response header, enter a name and value, and pick set, append or remove."},{"@type":"HowToStep","name":"Limit where it applies","text":"Under Where it applies, add an Only on filter for the host you are testing."}]}</script></head>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to modify HTTP headers in Microsoft Edge","description":"Install HeaderDial in Microsoft Edge and add, change or remove request and response headers for the sites you choose.","tool":[{"@type":"HowToTool","name":"HeaderDial browser extension"}],"step":[{"@type":"HowToStep","name":"Install HeaderDial","text":"Install HeaderDial from the Chrome Web Store; Edge asks once to allow extensions from other stores."},{"@type":"HowToStep","name":"Grant site access","text":"Click the HeaderDial icon and choose Allow on all sites or allow only the current site."},{"@type":"HowToStep","name":"Add a header","text":"Click + Request header or + Response header, enter a name and value, and pick set, append or remove."},{"@type":"HowToStep","name":"Limit where it applies","text":"Under Where it applies, add an Only on filter for the host you are testing."}]}</script></head>
 <body><div class="wrap"><nav class="nav"><a class="brand" href="../"><img src="../icon.png" alt="">HeaderDial</a><div class="links"><a href="./">Guides</a><a href="../privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
 <p class="crumbs"><a href="../">HeaderDial</a> › <a href="./">Guides</a></p>
 <article>
 <h1>How to modify HTTP headers in Microsoft Edge</h1>
-<p>Microsoft Edge has no setting for adding or changing arbitrary headers on the requests a site makes. Its DevTools can override a few things for one tab, but for anything lasting you need an extension. HeaderDial is not on Edge Add-ons yet, so install it from the release zip: download <a href="../download/headerdial.zip">headerdial.zip</a>, open <code>edge://extensions</code>, turn on <strong>Developer mode</strong>, click <strong>Load unpacked</strong> and choose the unzipped folder. Edge is built on Chromium, so it runs the same build as Chrome.</p>
+<p>Microsoft Edge has no setting for adding or changing arbitrary headers on the requests a site makes. Its DevTools can override a few things for one tab, but for anything lasting you need an extension. HeaderDial is an extension for that. Edge is built on Chromium, so it runs the same build as Chrome and can install it from the Chrome Web Store.</p>
 
-<h2>Install from the release zip</h2>
-<ol>
-<li>Download <a href="../download/headerdial.zip">headerdial.zip</a> (version 0.3.1) and unzip it into a folder you will keep. Edge loads the extension from that folder each time it starts, so don't unzip it into Downloads and then clean up.</li>
-<li>Open <code>edge://extensions</code>, or <strong>Settings and more</strong> › <strong>Extensions</strong> › <strong>Manage extensions</strong>.</li>
-<li>Turn on the <strong>Developer mode</strong> toggle.</li>
-<li>Click <strong>Load unpacked</strong> and select the folder that contains <code>manifest.json</code>.</li>
-<li>Click the <strong>Extensions</strong> button next to the address bar and pin HeaderDial so its icon and badge stay visible.</li>
-</ol>
-<p>A loaded folder does not update itself. When a new release comes out, unzip it over the same folder and click <strong>Reload</strong> on HeaderDial's card in <code>edge://extensions</code>. Your profiles are kept, because they are stored by the browser, not in the folder.</p>
+<h2>Install</h2>
+<p class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span></p>
+<p>HeaderDial is waiting to be listed on the Chrome Web Store, and an Edge Add-ons listing follows. Edge installs Chrome Web Store extensions: the first time, it shows a bar asking you to <strong>Allow extensions from other stores</strong>; click <strong>Allow</strong>, then <strong>Add to Chrome</strong> on the listing (Edge keeps Chrome's button label). After that, pin HeaderDial with the <strong>Extensions</strong> button next to the address bar so its icon and badge stay visible. Store installs update themselves.</p>
 <p>A note on honesty: we test every release in Chrome and Firefox, not in Edge itself. The behaviour described in our other guides was measured in Chrome 159, which shares Edge's engine.</p>
 
 <h2>Steps</h2>
@@ -51,7 +45,7 @@
 <pre><code>curl -H "Authorization: Bearer eyJ…" https://staging.example.com/api/me</code></pre>
 <p>In the Network panel, right-click a request and use one of the <strong>Copy as cURL</strong> entries under <strong>Copy</strong> to get the full command with every header Edge sent.</p>
 
-<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+<p class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span><a href="../#install">Install status</a></p>
 </article>
 <div class="related"><h2>Related guides</h2><ul>
 <li><a href="modheader-alternative-import.html">Switch header extensions and import your profiles</a></li>

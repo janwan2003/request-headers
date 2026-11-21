@@ -3,6 +3,10 @@
 Open-source browser extension (Chrome, Edge and Firefox 128+, Manifest V3) to add, change or remove
 HTTP request and response headers. Website: https://janwan2003.github.io/request-headers/
 
+**Install:** coming soon to the Chrome Web Store (which Edge installs from too) and Firefox Add-ons (in review).
+Until then, each [release](https://github.com/janwan2003/request-headers/releases) carries the Chrome/Edge zip and,
+from 0.9.2, a Firefox build signed by Mozilla.
+
 - Profiles (several active at once, leftmost wins), each with request and response headers
 - Operations: set, append, remove
 - Recipes (`RECIPES` in `extension/lib/model.js`): CORS for the tab's origin, allow framing, Bearer token with a 1-hour timer, mobile User-Agent, no-cache, X-Forwarded-For
@@ -48,7 +52,11 @@ Load Temporary Add-on. The Firefox build is the same files with a different mani
 node scripts/build.js
 python3 scripts/publish-amo.py     # Firefox: new listing on first run, new version after
 python3 scripts/publish-cws.py     # Chrome Web Store: upload; --publish to submit for review
+python3 scripts/publish-amo.py --unlisted   # Mozilla-signed .xpi for a GitHub release, saved in release/
 ```
+
+The website never offers these files: install buttons stay "Coming soon" until a store listing is live
+(`scripts/check-site.js` enforces it). Manual-install files go only to GitHub releases.
 
 Both read store credentials from the studio `.env` and print no secrets.
 

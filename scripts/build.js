@@ -62,8 +62,7 @@ const fxZip = path.join(dist, `headerdial-firefox-${version}.zip`);
 try {
   execFileSync('zip', ['-qrX', zip, '.'], { cwd: ext });
   execFileSync('zip', ['-qrX', fxZip, '.'], { cwd: firefox });
-  fs.mkdirSync(path.join(site, 'download'), { recursive: true });
-  fs.copyFileSync(zip, path.join(site, 'download', 'headerdial.zip'));
+  // No download on the site: per the studio charter, manual-install files go only to GitHub releases.
   console.log('built', path.relative(root, zip), 'and', path.relative(root, fxZip));
 } catch (e) {
   console.warn('zip not available; skipped extension archive');

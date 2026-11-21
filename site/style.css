@@ -16,6 +16,7 @@ a { color: var(--accent); }
 .hero p.lead { font-size: 20px; color: var(--muted); margin: 0 0 22px; max-width: 680px; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .btn { display: inline-block; padding: 11px 18px; border-radius: 8px; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; }
+.btn.disabled { background: var(--soft); color: var(--muted); border: 1px dashed var(--line); cursor: default; }
 .btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
 .note { font-size: 14px; color: var(--muted); }
 .shot { margin: 28px 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px #0001; }

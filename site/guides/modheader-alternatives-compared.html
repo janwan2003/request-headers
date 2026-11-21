@@ -42,7 +42,7 @@
 <div style="overflow-x:auto">
 <table>
 <tr><th>Tool</th><th>Chrome Web Store</th><th>Firefox Add-ons</th><th>Edge Add-ons</th></tr>
-<tr><td>HeaderDial</td><td>Not listed yet (submitted, pending). Chrome and Edge: install from the <a href="../#install">release zip</a></td><td>In review, not installable there yet</td><td>Not listed yet; the release zip loads in Edge</td></tr>
+<tr><td>HeaderDial</td><td>Not listed yet (waiting to be published)</td><td>In review, not installable there yet</td><td>Not listed yet; will install from the Chrome Web Store listing</td></tr>
 <tr><td>Requestly</td><td>300,000 users, 4.7 (1.8K), updated 2026-09-30</td><td>Requestly's <a href="https://requestly.com/downloads/firefox/">Firefox page</a> links to a download from its own server, not to Firefox Add-ons</td><td>27,448 installs, 4.1 (16)</td></tr>
 <tr><td>Header Editor</td><td>Header Editor Lite: 200,000 users, 4.1 (84), updated 2026-11-13</td><td>Header Editor: 13,137 daily users, 4.71 (185), updated 2026-11-13. Lite: 466, no ratings</td><td>Header Editor: 630,066 installs, 4.0 (29), updated 2026-11-10</td></tr>
 <tr><td>Simple Modify Headers</td><td>40,000 users, 4.3 (23), updated 2024-06-10</td><td>6,165 daily users, 4.64 (39), updated 2024-07-14</td><td>No Edge listing linked by the author</td></tr>
@@ -63,7 +63,7 @@
 <li><strong>From ModHeader:</strong> imports ModHeader's export file. If you never exported, the <a href="recover-modheader-profiles.html">recovery page</a> reads the profiles from ModHeader's data folder in your browser profile. As far as we know, no other tool on this page offers that.</li>
 <li><strong>Permissions:</strong> <code>declarativeNetRequest</code> (the browser's built-in rule engine for changing requests, so the extension's code never sees your traffic), <code>storage</code>, <code>alarms</code> and <code>activeTab</code>. Access to sites is optional and granted from the popup.</li>
 <li><strong>Where it is weaker:</strong> it is new. It has no store listing yet, so no ratings and no track record. It cannot mock responses, change response bodies, sync between computers or share rules with a team. There is no Safari version.</li>
-<li><strong>Install:</strong> on Chrome and Edge, from the <a href="../#install">release zip</a> on the home page (about a minute, with Developer mode). The Chrome Web Store and Edge Add-ons listings are on the way. On Firefox it was submitted to Firefox Add-ons on 2026-11-20 and becomes installable there once Mozilla's review is done.</li>
+<li><strong>Install:</strong> coming soon. The Chrome Web Store listing (which Edge can install from too) is waiting to be published. On Firefox it was submitted to Firefox Add-ons on 2026-11-20 and becomes installable there once Mozilla's review is done.</li>
 </ul>
 
 <h3>Requestly</h3>
@@ -130,7 +130,7 @@
 <h2>How to choose</h2>
 <ol>
 <li><strong>Do you only need headers?</strong> If you also need mocks, body changes or an API client, choose Requestly or Tweak. Requestly if you need team features; Tweak if you want low prices and no account.</li>
-<li><strong>Must it come from a store today?</strong> On a managed work machine you may not be allowed to load an extension from a zip. Then choose a store-listed tool now: Header Editor, Requestly, Tweak or FlexHeader. You can switch later.</li>
+<li><strong>Must it come from a store today?</strong> HeaderDial is not in a store yet, and on a managed work machine you may only be allowed store installs. Then choose a store-listed tool now: Header Editor, Requestly, Tweak or FlexHeader. You can switch later.</li>
 <li><strong>Do you need Firefox?</strong> Header Editor, Simple Modify Headers, Modify Header Value, Tweak and FlexHeader are on Firefox Add-ons. Requestly offers a download from its own site. HeaderDial is in review there.</li>
 <li><strong>How much do you want to trust?</strong> A header editor can see or change every request it is allowed to touch. Prefer public source, a short permission list and no account. Check what the extension's code can see: rules handed to the browser (<code>declarativeNetRequest</code>), or every request (<code>webRequest</code>). <a href="is-modheader-safe.html">How to check</a>.</li>
 <li><strong>Do you have ModHeader profiles to bring?</strong> HeaderDial, Requestly and FlexHeader read ModHeader's export file. Header Editor offers a converter. If you have no export, see the next section.</li>
@@ -152,7 +152,7 @@
 <li>Vendors: <a href="https://requestly.com/pricing/">Requestly pricing</a>, <a href="https://requestly.com/alternatives/modheader">Requestly ModHeader page</a>, <a href="https://interceptor-docs.requestly.com/imports/modheader">Requestly ModHeader import docs</a>, <a href="https://he.firefoxcn.net/en-US/guide/index.html">Header Editor guide</a>, <a href="https://migrate-to-he.firefoxcn.net/">Header Editor converter</a>, <a href="https://mybrowseraddon.com/modify-header-value.html">Modify Header Value</a>, <a href="https://tweak-extension.com/pricing">Tweak pricing</a>, <a href="https://tweak-extension.com/faqs">Tweak FAQ</a>, <a href="https://developer.chrome.com/docs/devtools/overrides">Chrome DevTools overrides</a></li>
 </ul>
 
-<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+<p class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span><a href="../#install">Install status</a></p>
 </article>
 <div class="related"><h2>Related guides</h2><ul>
 <li><a href="is-modheader-safe.html">Is ModHeader safe? What was found, and how to check a header extension yourself</a></li>

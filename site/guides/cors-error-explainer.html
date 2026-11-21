@@ -125,7 +125,7 @@
 
 <h2 id="how">How the page works</h2>
 <p>It matches the pasted text against the CORS messages Chrome, Edge, Firefox and Safari log in English, and reads the URL, the page origin (Chrome and Safari name it; Firefox does not) and any method or header name. The headers it suggests: <code>Access-Control-Allow-Origin</code> set to your page's origin (or <code>*</code> when the origin is unknown and no cookies are sent), <code>Access-Control-Allow-Credentials: true</code> when cookies are sent, and for a preflighted request <code>Access-Control-Allow-Methods</code> with the usual methods and <code>Access-Control-Allow-Headers</code> with <code>Authorization</code>, <code>Content-Type</code> and any header the error named. With a named origin the server should also send <code>Vary: Origin</code>, so caches keep one answer per origin. It is not in the browser profile, which only changes your own responses. Our end-to-end test feeds Chrome's real console errors into this page's code and applies the profile it builds until a credentialed <code>PUT</code> with a custom header works.</p>
-<p><a class="btn" href="../#install">Get HeaderDial</a></p>
+<p class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span><a href="../#install">Install status</a></p>
 </article>
 <div class="related"><h2>Related guides</h2><ul><li><a href="cookie-blocked-explainer.html">Why was my cookie blocked? Paste the warning, get the fix</a></li>
 <li><a href="fix-cors-error-while-testing.html">Fix a CORS error on your own test API without changing the server (measured)</a></li>

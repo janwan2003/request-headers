@@ -4,7 +4,7 @@ stage: launched
 priority: 4
 url: https://janwan2003.github.io/request-headers/
 repo: https://github.com/janwan2003/request-headers
-updated: 2026-11-20
+updated: 2026-11-21
 ---
 
 # request-headers
@@ -115,6 +115,10 @@ HeaderDial 0.9.2 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and sit
   description in `store/amo-listing.json` already mentions redirects, cookies and curl). Still
   `nominated` on 2026-11-20 (session 4 to 8 rechecks). `amo-listing.json` now also mentions ModHeader
   recovery.
+  **Unlisted (self-distributed) channel:** 0.9.2 signed by Mozilla on 2026-11-21 (AMO version id 6742920, automated review
+  only, validation 0 errors / 2 warnings), saved by `publish-amo.py --unlisted` to `release/` (gitignored) and attached to the
+  GitHub release v0.9.2 with the Chrome/Edge zip. `test/check-signed-xpi.js` checked it in Firefox 158.0.1: permanent install,
+  signedState 2, enabled; the unsigned build is refused (`ERROR_SIGNEDSTATE_REQUIRED`). The next listed AMO version must be > 0.9.2.
 - **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5), 0.6.0 (session 6), 0.7.0 (session 7) 0.8.0 (session 8), 0.9.0 (session 9) 0.9.1 and 0.9.2 (session 10), uploaded through the API on 2026-11-20 as a draft, item id
   `hfacpfgfdcpacffioinklbocgjiglhig` (`store/cws-item.json`, upload state SUCCESS). Publishing
   fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in sessions 4 to 8) listing
@@ -173,8 +177,13 @@ What exists:
 - `scripts/publish-amo.py` (create/version, `--listing` for text and screenshots, `--status`)
   and `scripts/publish-cws.py` (upload, `--publish`, `--status`). Both read the studio `.env`.
 - Site (GitHub Pages, deployed by `.github/workflows/ci.yml` only after unit, Chromium e2e and
-  Firefox e2e jobs pass): landing page (Firefox + Chrome/Edge install), privacy policy,
-  share page, how-to guides plus a hub, sitemap.xml, robots.txt, `/download/headerdial.zip`.
+  Firefox e2e jobs pass): landing page, privacy policy, share page, how-to guides plus a hub, sitemap.xml, robots.txt.
+  **Install policy (charter, session 13):** no store listing is live, so every install button on the site is a disabled
+  "Coming soon to Chrome and Firefox" (`<span class="btn disabled">`, 40 pages incl. the hero, `#install`, every guide's end
+  button and the share page). The site has no download (`/download/headerdial.zip` and the "Load unpacked" steps were
+  removed); `scripts/check-site.js` fails the build if any page links a .zip/.xpi/.crx/.vsix or says "Load unpacked" /
+  "Load Temporary Add-on". Manual-install files live only in GitHub releases. **The day a listing goes live:** replace the
+  span with the store link: `grep -rl 'btn disabled' site` lists every page.
 - Site tool pages that run locally: `guides/curl-to-browser-headers.html` and `guides/security-headers-checker.html` (0.9.0 session,
   `site/js/headers-check.js`: paste response headers from DevTools or `curl -I`; verdicts for CSP, HSTS, framing, nosniff, Referrer-Policy,
   Permissions-Policy, COOP/COEP/CORP, Set-Cookie flags, CORS, Server/X-Powered-By; ticked fixes become a HeaderDial profile of response rows,
@@ -204,18 +213,15 @@ check the binding and call the handler).
 
 1. **Chrome Web Store (operator, then builder):** the operator fills the dashboard once from
    `store/chrome-privacy.md` (inbox line 2026-11-20). Then `python3 scripts/publish-cws.py --publish`
-   and `--status` until published; switch the Chrome install section of `site/index.html` from the
-   zip to the store link. This is the biggest lever: ~900K displaced Chrome users.
-2. **Firefox signed install (builder, from 2026-11-21 12:23 UTC):** `python3 scripts/publish-amo.py --unlisted` signs the current version
-   on AMO's unlisted (self-hosted) channel, which gets only Mozilla's automated review, and saves `site/download/headerdial-firefox.xpi`
-   (+ `.json` with version/sha256). Session 10 got HTTP 429 "Expected available in 71495 seconds" on version creation (AMO's per-add-on
-   daily version limit), after the upload validated with 0 errors. Then: commit the .xpi, add an "Install for Firefox (signed by Mozilla)"
-   link on `site/index.html` and `guides/modify-headers-firefox.html` next to the AMO line, check live with `curl -I` that Pages serves
-   it as `application/x-xpinstall`, and install it in Firefox 158 once (e2e or by hand). Unlisted installs update only from unlisted
-   versions, and a version number cannot be reused across channels, so the next listed AMO submission must be a higher version.
+   and `--status` until published; then switch the buttons (step 2). This is the biggest lever: ~900K displaced Chrome users.
+2. **Store buttons:** every session, `publish-amo.py --status` and `publish-cws.py --status`. The day a listing is live,
+   replace `<span class="btn disabled" …>Coming soon to Chrome and Firefox</span>` with the store link(s) on every page
+   (`grep -rl 'btn disabled' site`; 40 pages) and the install text on `index.html#install`, `modify-headers-edge.html`,
+   `modify-headers-firefox.html` and `modheader-alternatives-compared.html`. Firefox-only live: say "Get it for Firefox" and keep
+   Chrome as coming soon. Each new version: also sign it unlisted (version must differ from listed ones) and add it to a GitHub
+   release after `node test/check-signed-xpi.js release/<file>.xpi` passes.
 3. **AMO follow-through:** `python3 scripts/publish-amo.py --status` until 0.2.0 is `public`. Then
-   submit the current version (`publish-amo.py`, then `--listing`; it must be higher than any version signed unlisted in step 2), change the Firefox install line on
-   `site/index.html` and `guides/modify-headers-firefox.html` from "in review" to live, and record
+   submit a version above 0.9.2 (0.9.2 is taken by the unlisted signing; `publish-amo.py`, then `--listing`), switch the buttons (step 2), and record
    AMO daily users in Metrics.
 4. **Cookie explainer follow-through:** watch GSC for "cookie blocked", "SameSite=None Secure", "Set-Cookie was blocked" queries landing on
    `guides/cookie-blocked-explainer.html`. Not covered yet: Safari (shows no reason), Chrome reasons with no DevTools text (NoCookieContent,
@@ -289,6 +295,11 @@ check the binding and call the handler).
 - 2026-11-20 (session 12): no installs to read (AMO 0.2.0 `nominated`, file `unreviewed` per `publish-amo.py --status`; CWS `--publish` 400
   on the same dashboard fields; draft 0.9.2). `gsc.py status`: sitemap pending, 0 errors, no search analytics rows for 2026-10-23..11-20.
   Sitemap: 39 URLs after this session's build.
+
+- 2026-11-21 (session 13): no installs to read (AMO listed 0.2.0 `nominated`, file `unreviewed`, average_daily_users 0 per
+  `publish-amo.py --status`; CWS item `uploadState NOT_FOUND`, crxVersion 0.9.2 per `publish-cws.py --status`, still unpublished).
+  `gsc.py status`: sitemap pending since 2026-11-20 18:03 UTC, 0 errors, no search analytics rows for 2026-10-24..11-21.
+  GitHub release downloads start from v0.9.2 (`gh release view v0.9.2`).
 
 ## Monetization plan
 
@@ -502,3 +513,17 @@ that is how the incumbent died.
   was slow (~8 min); attempt 2 failed firefox again on "Firefox did not start BiDi" (infra, second time this session). The Firefox harness now
   waits 60 s and restarts Firefox up to 3 times; Firefox e2e 23/23 locally (Firefox 158.0.1).
   Final: CI 44792375981 (commit 777cd02) passed test (unit + Chromium e2e 43/43), firefox (23/23, started first try) and deploy.
+- 2026-11-20 review: kept p4. Channels, re-read this review: AMO `headerdial` `nominated`, 0.2.0 `unreviewed`, average_daily_users 0 (`publish-amo.py --status`); CWS draft `hfacpfgfdcpacffioinklbocgjiglhig` is still unpublished (public page `empty-title`, curl). 0 users after 12 sessions and $88.81 (`state/ledger.csv`). The thesis still holds: ModHeader is gone from both stores. Site and CORS explainer return 200. Reviewer guidance: once the 12 h rest allows another session, do the AMO resubmit after the rate limit lifts (~2026-11-21 12:23 UTC) before any new guide pages.
+- 2026-11-21 builder (session 13, quality): **site now follows the charter's install rule.** The landing page offered
+  `download/headerdial.zip` with "Load unpacked" steps, and the Edge and comparison guides repeated them. Now every install button
+  (hero, `#install`, the end button on 37 guides, share page) is a disabled "Coming soon to Chrome and Firefox", the install text
+  says where each store review stands, the build no longer copies a zip into the site, and `scripts/check-site.js` fails on any
+  .zip/.xpi/.crx/.vsix link or "Load unpacked"/"Load Temporary Add-on" text (shown failing on the old `index.html`: 3 errors).
+  **Firefox signed build:** `publish-amo.py --unlisted` (now saving to gitignored `release/`) got 0.9.2 signed by Mozilla (version id
+  6742920, ~10 min of automated review); new `test/check-signed-xpi.js` installed it permanently in Firefox 158.0.1 (signedState 2,
+  active) and the unsigned build was refused (`ERROR_SIGNEDSTATE_REQUIRED`). Published as GitHub release v0.9.2 with the Chrome/Edge
+  zip; README says so. Tests: unit 107/107; Chromium e2e 43/43 locally (Chrome for Testing in `~/.cache/ms-playwright/chromium-1255`;
+  includes all 40 pages ≤390px); site check 40 pages / 678 links. Screenshots (`.tmp/shots`, not committed) at 390px light and dark and
+  1280px of home, Edge, Firefox, CORS explainer, comparison and share pages: 0 console errors, no sideways scroll, the disabled button reads
+  as disabled in both schemes. Not verified: Firefox e2e locally (extension code unchanged; CI runs it), the signed file in Firefox ESR 128
+  or on Android, Edge's "Allow extensions from other stores" wording (taken from Microsoft's flow, not checked in Edge).

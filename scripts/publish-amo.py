@@ -5,7 +5,7 @@
   python3 scripts/publish-amo.py --status   # print the listing's review state
   python3 scripts/publish-amo.py --listing  # push store/amo-listing.json text and the screenshots
   python3 scripts/publish-amo.py --unlisted # sign the current version on the unlisted (self-hosted) channel and
-                                            # save the Mozilla-signed file as site/download/headerdial-firefox.xpi
+                                            # save the Mozilla-signed file as release/headerdial-firefox-<version>.xpi (for GitHub releases)
 
 Credentials: AMO_JWT_ISSUER / AMO_JWT_SECRET from the studio .env; nothing secret is printed.
 """
@@ -125,7 +125,8 @@ def main():
 
 
 def fetch_signed(vid, version):
-    """Unlisted versions get automated review only; wait for the signed file and save it for the site."""
+    """Unlisted versions get automated review only; wait for the signed file and save it for a GitHub release
+    (the charter allows manual-install files only there, never on the product page)."""
     for _ in range(120):
         st, v = call("GET", f"/addons/addon/{ADDON_ID}/versions/{vid}/")
         f = (v.get("file") or {}) if st == 200 else {}
@@ -133,10 +134,10 @@ def fetch_signed(vid, version):
         if f.get("status") == "public" and f.get("url"):
             req = urllib.request.Request(f["url"], headers={"Authorization": auth()})
             data = urllib.request.urlopen(req).read()
-            out = ROOT / "site" / "download" / "headerdial-firefox.xpi"
+            out = ROOT / "release" / f"headerdial-firefox-{version}.xpi"
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_bytes(data)
-            (out.parent / "headerdial-firefox.json").write_text(json.dumps(
+            (out.parent / f"headerdial-firefox-{version}.json").write_text(json.dumps(
                 {"version": version, "sha256": hashlib.sha256(data).hexdigest(), "amo_version_id": vid}, indent=2) + "\n")
             print("saved", out.relative_to(ROOT), len(data), "bytes, sha256", hashlib.sha256(data).hexdigest())
             return
