@@ -531,3 +531,7 @@ that is how the incumbent died.
   1280px of home, Edge, Firefox, CORS explainer, comparison and share pages: 0 console errors, no sideways scroll, the disabled button reads
   as disabled in both schemes. Not verified: Firefox e2e locally (extension code unchanged; CI runs it), the signed file in Firefox ESR 128
   or on Android, Edge's "Allow extensions from other stores" wording (taken from Microsoft's flow, not checked in Edge).
+  Final: CI 44933894531 (commit 623e1a1) passed test (unit + Chromium e2e), firefox and deploy. Live (curl): home, Edge, Firefox,
+  comparison and share pages 200, home shows "Add to Chrome" ×2 and "Firefox: coming soon" ×2, `download/headerdial.zip` 404, dark
+  button colour in the live style.css; the Chrome Web Store link opens the live listing (200). GitHub release v0.9.2 assets re-downloaded:
+  sha256 identical to the local files.
