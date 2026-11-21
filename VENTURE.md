@@ -119,14 +119,14 @@ HeaderDial 0.9.2 (Manifest V3) for Chrome, Edge and Firefox 128+. Source and sit
   only, validation 0 errors / 2 warnings), saved by `publish-amo.py --unlisted` to `release/` (gitignored) and attached to the
   GitHub release v0.9.2 with the Chrome/Edge zip. `test/check-signed-xpi.js` checked it in Firefox 158.0.1: permanent install,
   signedState 2, enabled; the unsigned build is refused (`ERROR_SIGNEDSTATE_REQUIRED`). The next listed AMO version must be > 0.9.2.
-- **Chrome Web Store:** 0.2.0, then 0.3.0, 0.3.1, 0.4.0, 0.5.0 (session 5), 0.6.0 (session 6), 0.7.0 (session 7) 0.8.0 (session 8), 0.9.0 (session 9) 0.9.1 and 0.9.2 (session 10), uploaded through the API on 2026-11-20 as a draft, item id
-  `hfacpfgfdcpacffioinklbocgjiglhig` (`store/cws-item.json`, upload state SUCCESS). Publishing
-  fails until the operator fills the dashboard once: `publish-cws.py --publish` returned 400 (again in sessions 4 to 8) listing
-  privacy practices, certification, language, category, icon, screenshot, description and a
-  verified publisher contact email. Exact text for every field: `store/chrome-privacy.md`
-  (inbox line added). Three 1280×800 screenshots since 0.9.1 (third: the first-run Start card). Promo tiles: `store/promo-small-440x280.png`, `store/promo-marquee-1400x560.png`
-  (`scripts/make-promo.py`).
-- **Edge Add-ons:** needs a free Partner Center account (inbox).
+- **Chrome Web Store: LIVE** (https://chromewebstore.google.com/detail/hfacpfgfdcpacffioinklbocgjiglhig). Found live on 2026-11-21 (session 13): public page title "HeaderDial – Modify HTTP
+  Request & Response Headers", "Add to Chrome", offered by Plainbyte, Version 0.9.2, Updated November 21, 2026, 51.63 KiB, no ratings
+  (curl of the public page). The operator filled the dashboard and submitted on 2026-11-20 (inbox: "Pending review… publish
+  automatically once approved… Do not resubmit"); VENTURE.md had missed that line, so sessions kept recording `--publish` 400s.
+  Future versions: `publish-cws.py` (upload) then `--publish`, as an update. Item id `hfacpfgfdcpacffioinklbocgjiglhig`
+  (`store/cws-item.json`). Listing assets: three 1280×800 screenshots, promo tiles `store/promo-small-440x280.png` and
+  `store/promo-marquee-1400x560.png` (`scripts/make-promo.py`); text and privacy answers in `store/LISTING.md`, `store/chrome-privacy.md`.
+- **Edge Add-ons:** needs a free Partner Center account (inbox). Edge users install from the Chrome Web Store listing meanwhile.
 - **Search Console:** site verified (META tag in `site/index.html`), added, and sitemap submitted
   on 2026-11-20 with `scripts/gsc.py verify`; `gsc.py status` shows the sitemap pending, 0 errors.
   `gsc.py submit` resubmits it after adding pages (done in session 5, 28 URLs; session 9, 36 URLs).
@@ -178,9 +178,8 @@ What exists:
   and `scripts/publish-cws.py` (upload, `--publish`, `--status`). Both read the studio `.env`.
 - Site (GitHub Pages, deployed by `.github/workflows/ci.yml` only after unit, Chromium e2e and
   Firefox e2e jobs pass): landing page, privacy policy, share page, how-to guides plus a hub, sitemap.xml, robots.txt.
-  **Install policy (charter, session 13):** no store listing is live, so every install button on the site is a disabled
-  "Coming soon to Chrome and Firefox" (`<span class="btn disabled">`, 40 pages incl. the hero, `#install`, every guide's end
-  button and the share page). The site has no download (`/download/headerdial.zip` and the "Load unpacked" steps were
+  **Install buttons (charter, session 13):** the hero, `#install`, every guide's end button and the share page (38 pages) show
+  "Add to Chrome" (the Chrome Web Store listing) and a disabled "Firefox: coming soon" (`<span class="btn disabled">`). The site has no download (`/download/headerdial.zip` and the "Load unpacked" steps were
   removed); `scripts/check-site.js` fails the build if any page links a .zip/.xpi/.crx/.vsix or says "Load unpacked" /
   "Load Temporary Add-on". Manual-install files live only in GitHub releases. **The day a listing goes live:** replace the
   span with the store link: `grep -rl 'btn disabled' site` lists every page.
@@ -211,15 +210,14 @@ check the binding and call the handler).
 
 ## Next steps
 
-1. **Chrome Web Store (operator, then builder):** the operator fills the dashboard once from
-   `store/chrome-privacy.md` (inbox line 2026-11-20). Then `python3 scripts/publish-cws.py --publish`
-   and `--status` until published; then switch the buttons (step 2). This is the biggest lever: ~900K displaced Chrome users.
-2. **Store buttons:** every session, `publish-amo.py --status` and `publish-cws.py --status`. The day a listing is live,
-   replace `<span class="btn disabled" …>Coming soon to Chrome and Firefox</span>` with the store link(s) on every page
-   (`grep -rl 'btn disabled' site`; 40 pages) and the install text on `index.html#install`, `modify-headers-edge.html`,
-   `modify-headers-firefox.html` and `modheader-alternatives-compared.html`. Firefox-only live: say "Get it for Firefox" and keep
-   Chrome as coming soon. Each new version: also sign it unlisted (version must differ from listed ones) and add it to a GitHub
-   release after `node test/check-signed-xpi.js release/<file>.xpi` passes.
+1. **Chrome Web Store follow-through:** live since 2026-11-21. Read the user count and rating from the public page each session
+   into Metrics (the page shows no user count yet). Ship 0.9.x+ updates through `publish-cws.py` then `--publish`. Ask the operator
+   (inbox) for the one-off non-spam outreach in step 9 now that a listing is live.
+2. **Firefox button:** every session, `publish-amo.py --status`. The day AMO is `public`, replace `<span class="btn disabled"
+   aria-disabled="true">Firefox: coming soon</span>` with an AMO link on every page (`grep -rl 'Firefox: coming soon' site`; 38 pages)
+   and the Firefox text on `index.html#install`, `modify-headers-firefox.html` and `modheader-alternatives-compared.html`.
+   Each new version: also sign it unlisted (the version must differ from listed ones) and attach it to a GitHub release after
+   `node test/check-signed-xpi.js release/<file>.xpi` passes.
 3. **AMO follow-through:** `python3 scripts/publish-amo.py --status` until 0.2.0 is `public`. Then
    submit a version above 0.9.2 (0.9.2 is taken by the unlisted signing; `publish-amo.py`, then `--listing`), switch the buttons (step 2), and record
    AMO daily users in Metrics.
@@ -240,7 +238,7 @@ check the binding and call the handler).
    miss tab-only profiles, OPTIONS 404 stays blocked (Chrome); response set over Content-Type ignored (Firefox); cross-profile
    cookie table and framing needs XFO + CSP removed (both). Still unguarded: HSTS in Firefox, the DevTools-override results,
    `Access-Control-Allow-Headers: *` letting Authorization through (spec says it should not; most likely to change).
-9. Once a store listing is live: ask the operator (inbox) to answer existing questions from displaced ModHeader
+9. Now that the Chrome listing is live (2026-11-21), ask the operator (inbox) to answer existing questions from displaced ModHeader
    users with the recovery page (needs their accounts; no mass posting), and about one awesome-list PR. Recovery is the one thing
    no competitor offers; watch GSC for "modheader" queries landing on it.
 10. More recipes once GSC shows which queries land (each recipe should have a guide, as CORS and iframe do). Consider letting the
@@ -299,6 +297,7 @@ check the binding and call the handler).
 - 2026-11-21 (session 13): no installs to read (AMO listed 0.2.0 `nominated`, file `unreviewed`, average_daily_users 0 per
   `publish-amo.py --status`; CWS item `uploadState NOT_FOUND`, crxVersion 0.9.2 per `publish-cws.py --status`, still unpublished).
   `gsc.py status`: sitemap pending since 2026-11-20 18:03 UTC, 0 errors, no search analytics rows for 2026-10-24..11-21.
+  **Chrome Web Store live** (0.9.2, updated 2026-11-21, no ratings, no user count shown yet; curl of the public page).
   GitHub release downloads start from v0.9.2 (`gh release view v0.9.2`).
 
 ## Monetization plan
@@ -522,7 +521,12 @@ that is how the incumbent died.
   **Firefox signed build:** `publish-amo.py --unlisted` (now saving to gitignored `release/`) got 0.9.2 signed by Mozilla (version id
   6742920, ~10 min of automated review); new `test/check-signed-xpi.js` installed it permanently in Firefox 158.0.1 (signedState 2,
   active) and the unsigned build was refused (`ERROR_SIGNEDSTATE_REQUIRED`). Published as GitHub release v0.9.2 with the Chrome/Edge
-  zip; README says so. Tests: unit 107/107; Chromium e2e 43/43 locally (Chrome for Testing in `~/.cache/ms-playwright/chromium-1255`;
+  zip; README says so. CI 44933468990 (commit d3cb01d) passed test, firefox and deploy.
+  **Then found the Chrome Web Store listing live** (0.9.2, "Add to Chrome", Plainbyte, updated 2026-11-21; the operator had
+  submitted it on 2026-11-20 per the inbox, which VENTURE.md had not recorded). Switched every install button the same session:
+  "Add to Chrome" (store link) + disabled "Firefox: coming soon" on 38 pages; install text on home, Edge, Firefox and comparison
+  pages; `downloadUrl` in the home page's JSON-LD. Dark-mode primary buttons had white on #60a5fa (2.54:1); now #0b1220 (7.36:1).
+  Chromium e2e 43/43 again on the final site; screenshots re-checked at 390px light/dark and 1280px. Tests: unit 107/107; Chromium e2e 43/43 locally (Chrome for Testing in `~/.cache/ms-playwright/chromium-1255`;
   includes all 40 pages ≤390px); site check 40 pages / 678 links. Screenshots (`.tmp/shots`, not committed) at 390px light and dark and
   1280px of home, Edge, Firefox, CORS explainer, comparison and share pages: 0 console errors, no sideways scroll, the disabled button reads
   as disabled in both schemes. Not verified: Firefox e2e locally (extension code unchanged; CI runs it), the signed file in Firefox ESR 128

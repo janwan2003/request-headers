@@ -48,7 +48,7 @@
 <h2>"Never on" no longer switches off your other profiles</h2>
 <p>The same release fixes a quieter problem. Browsers implement a "Never on" URL filter as an <em>allow</em> rule, and an allow rule switches off every lower-priority rule of the extension, not just its own profile's. Before 0.6.0, a "Never on <code>*/health*</code>" filter in your top profile therefore also stopped the profiles below it on <code>/health</code>. HeaderDial now copies the lower profiles' header rules above the exclusion, limited to the excluded URLs. In both browsers above, the lower profile's headers now arrive on the excluded URL, and the upper profile still wins on other URLs. In one case the browser rules cannot express this: two active profiles that both have "Never on" URL filters. HeaderDial then shows a warning in the popup that names both profiles. Using a <strong>Domain</strong> exclusion in one of them avoids the problem.</p>
 
-<p class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span><a href="../#install">Install status</a></p>
+<p class="cta"><a class="btn" href="https://chromewebstore.google.com/detail/hfacpfgfdcpacffioinklbocgjiglhig">Add to Chrome</a><span class="btn disabled" aria-disabled="true">Firefox: coming soon</span></p>
 </article>
 <div class="related"><h2>Related guides</h2><ul>
 <li><a href="cors-headers-for-local-development.html">Add CORS headers for local development</a></li>

@@ -3,12 +3,13 @@
 <meta name="google-site-verification" content="zsWPj_eKLbkOVR-7039QU8vqHab8x-Tt7L5fx_ZX01A">
 <link rel="canonical" href="https://janwan2003.github.io/request-headers/">
 <meta property="og:title" content="HeaderDial – modify HTTP request & response headers in Chrome, Edge and Firefox"><meta property="og:description" content="Free, open-source extension to add, change or remove HTTP request and response headers. Profiles, URL filters, timed headers, ModHeader import. No tracking."><meta property="og:image" content="https://janwan2003.github.io/request-headers/screenshot.png">
-<link rel="icon" href="./favicon.png"><link rel="stylesheet" href="./style.css"><script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HeaderDial","applicationCategory":"DeveloperApplication","operatingSystem":"Chrome, Edge, Firefox","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Open-source browser extension to add, change or remove HTTP request and response headers.","url":"https://janwan2003.github.io/request-headers/"}</script></head>
+<link rel="icon" href="./favicon.png"><link rel="stylesheet" href="./style.css"><script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HeaderDial","applicationCategory":"DeveloperApplication","operatingSystem":"Chrome, Edge, Firefox","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://chromewebstore.google.com/detail/hfacpfgfdcpacffioinklbocgjiglhig","softwareVersion":"0.9.2","description":"Open-source browser extension to add, change or remove HTTP request and response headers.","url":"https://janwan2003.github.io/request-headers/"}</script></head>
 <body><div class="wrap"><nav class="nav"><a class="brand" href="./"><img src="./icon.png" alt="">HeaderDial</a><div class="links"><a href="./guides/">Guides</a><a href="./privacy.html">Privacy</a><a href="https://github.com/janwan2003/request-headers">GitHub</a></div></nav>
 <section class="hero">
 <h1>Change HTTP request and response headers, and nothing else.</h1>
 <p class="lead">HeaderDial is a small, open-source extension for Chrome, Edge and Firefox. Add an <code>Authorization</code> token for staging, set <code>X-Forwarded-For</code>, strip a <code>Cookie</code>, or add CORS headers while you develop. No account, no analytics, no network requests.</p>
-<div class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span><a class="btn ghost" href="https://github.com/janwan2003/request-headers">Read the source</a><span class="note">Free. MIT licence.</span></div>
+<div class="cta"><a class="btn" href="https://chromewebstore.google.com/detail/hfacpfgfdcpacffioinklbocgjiglhig">Add to Chrome</a><span class="btn disabled" aria-disabled="true">Firefox: coming soon</span></div>
+<p class="note">Free, works in Edge too. <a href="https://github.com/janwan2003/request-headers">Open source</a> (MIT).</p>
 </section>
 <div class="shot"><img src="screenshot.png" width="1280" height="800" alt="The HeaderDial popup with a Staging API profile: Authorization, feature-flag and X-Forwarded-For request headers, CORS response headers and a domain filter."></div>
 <div class="grid">
@@ -30,10 +31,10 @@
 <li><strong>Few permissions.</strong> It uses the browser's <code>declarativeNetRequest</code> API, so it never reads the content of your traffic: it hands the browser a list of rules, and the browser applies them. Site access is optional and asked for when you need it, for all sites or just the one you are on.</li>
 </ul>
 <h2 id="install">Install</h2>
-<p class="cta"><span class="btn disabled" aria-disabled="true">Coming soon to Chrome and Firefox</span></p>
-<p><strong>Firefox:</strong> submitted to Firefox Add-ons on 20 November 2026 and in Mozilla's review (Firefox 128 or later). <strong>Chrome and Edge:</strong> waiting to be listed on the Chrome Web Store. Edge installs extensions from the Chrome Web Store, so the same listing will work there; an Edge Add-ons listing follows.</p>
-<p>The button above becomes the store links on the day each listing goes live.</p>
-<p class="note">Want to know when? <a href="https://github.com/janwan2003/request-headers">Watch the repository</a> for releases.</p>
+<p class="cta"><a class="btn" href="https://chromewebstore.google.com/detail/hfacpfgfdcpacffioinklbocgjiglhig">Add to Chrome</a><span class="btn disabled" aria-disabled="true">Firefox: coming soon</span></p>
+<p><strong>Chrome and Edge:</strong> <a href="https://chromewebstore.google.com/detail/hfacpfgfdcpacffioinklbocgjiglhig">HeaderDial on the Chrome Web Store</a>. Edge installs extensions from the Chrome Web Store too: <a href="guides/modify-headers-edge.html">how</a>. Store installs update themselves.</p>
+<p><strong>Firefox:</strong> submitted to Firefox Add-ons on 20 November 2026 and in Mozilla's review (Firefox 128 or later). The Firefox button above becomes a Firefox Add-ons link the day it is approved.</p>
+<p class="note">After installing, pin HeaderDial to the toolbar, click it, add a header, and choose <strong>Allow on all sites</strong> (or only the site you are on).</p>
 <h2>Guides</h2>
 <ul>
 <li><a href="guides/add-authorization-header-chrome.html">Add an Authorization header in Chrome</a></li>

@@ -3,9 +3,9 @@
 Open-source browser extension (Chrome, Edge and Firefox 128+, Manifest V3) to add, change or remove
 HTTP request and response headers. Website: https://janwan2003.github.io/request-headers/
 
-**Install:** coming soon to the Chrome Web Store (which Edge installs from too) and Firefox Add-ons (in review).
-Until then, each [release](https://github.com/janwan2003/request-headers/releases) carries the Chrome/Edge zip and,
-from 0.9.2, a Firefox build signed by Mozilla.
+**Install:** [Chrome Web Store](https://chromewebstore.google.com/detail/hfacpfgfdcpacffioinklbocgjiglhig) for Chrome
+and Edge. Firefox Add-ons: in review; until it is approved, the [v0.9.2 release](https://github.com/janwan2003/request-headers/releases/tag/v0.9.2)
+has a Firefox build signed by Mozilla (open the `.xpi` in Firefox 128+; it does not update itself).
 
 - Profiles (several active at once, leftmost wins), each with request and response headers
 - Operations: set, append, remove
@@ -55,8 +55,8 @@ python3 scripts/publish-cws.py     # Chrome Web Store: upload; --publish to subm
 python3 scripts/publish-amo.py --unlisted   # Mozilla-signed .xpi for a GitHub release, saved in release/
 ```
 
-The website never offers these files: install buttons stay "Coming soon" until a store listing is live
-(`scripts/check-site.js` enforces it). Manual-install files go only to GitHub releases.
+The website never offers these files: its install buttons link only to live store listings, and say "coming soon"
+otherwise (`scripts/check-site.js` rejects any .zip/.xpi/.crx/.vsix link or "Load unpacked" instructions). Manual-install files go only to GitHub releases.
 
 Both read store credentials from the studio `.env` and print no secrets.
 
